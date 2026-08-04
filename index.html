@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>متتبع التمارين - Gym Tracker ⚡ PWA</title>
 
-    <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,20 +12,15 @@
     <meta name="theme-color" content="#070b19">
     <meta name="description" content="تطبيق تتبع التمارين الرياضية بالذكاء والسعرات الحرارية الدقيقة">
 
-    <!-- Web Application Manifest (Data URI) -->
     <link rel="manifest" href="data:application/manifest+json;utf8,%7B%22name%22%3A%22Gym%20Tracker%20PWA%22%2C%22short_name%22%3A%22GymTracker%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23070b19%22%2C%22theme_color%22%3A%22%23070b19%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2964%2F2964514.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2964/2964514.png">
 
-    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
@@ -34,9 +28,7 @@
             darkMode: 'class',
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Tajawal', 'sans-serif'],
-                    },
+                    fontFamily: { sans: ['Tajawal', 'sans-serif'] },
                     colors: {
                         darkBg: '#070b19',
                         navyCard: 'rgba(15, 23, 42, 0.75)',
@@ -52,152 +44,43 @@
     </script>
 
     <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        body {
-            font-family: 'Tajawal', sans-serif;
-            background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 50%, #070b19 100%);
-            background-attachment: fixed;
-            color: #f8fafc;
-            min-height: 100vh;
-            overflow-x: hidden;
-            padding-bottom: 120px;
-        }
-
-        .glass {
-            background: rgba(15, 23, 42, 0.65);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
-        .glass-card {
-            background: rgba(30, 41, 59, 0.55);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.07);
-            border-radius: 1.25rem;
-        }
-
-        .glass-input {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            color: #ffffff;
-            backdrop-filter: blur(8px);
-            transition: all 0.3s ease;
-        }
-
-        .glass-input:focus {
-            border-color: #00f2fe;
-            box-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
-            outline: none;
-        }
-
-        .stepper-btn {
-            background: rgba(30, 41, 59, 0.9);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            transition: all 0.15s ease-in-out;
-            touch-action: manipulation;
-        }
-
-        .stepper-btn:active {
-            transform: scale(0.92);
-            background: rgba(0, 242, 254, 0.25);
-            border-color: #00f2fe;
-        }
-
-        .set-type-btn {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.2s ease;
-        }
-
-        .set-type-btn.active {
-            background: rgba(0, 242, 254, 0.15);
-            border-color: #00f2fe;
-            color: #00f2fe;
-            box-shadow: 0 0 10px rgba(0, 242, 254, 0.2);
-        }
-
+        * { box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Tajawal', sans-serif; background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 50%, #070b19 100%); background-attachment: fixed; color: #f8fafc; min-height: 100vh; overflow-x: hidden; padding-bottom: 120px; }
+        .glass { background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); }
+        .glass-card { background: rgba(30, 41, 59, 0.55); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.07); border-radius: 1.25rem; }
+        .glass-input { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.12); color: #ffffff; backdrop-filter: blur(8px); transition: all 0.3s ease; }
+        .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 12px rgba(0, 242, 254, 0.3); outline: none; }
+        .stepper-btn { background: rgba(30, 41, 59, 0.9); border: 1px solid rgba(255, 255, 255, 0.15); transition: all 0.15s ease-in-out; touch-action: manipulation; }
+        .stepper-btn:active { transform: scale(0.92); background: rgba(0, 242, 254, 0.25); border-color: #00f2fe; }
+        .set-type-btn { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.2s ease; }
+        .set-type-btn.active { background: rgba(0, 242, 254, 0.15); border-color: #00f2fe; color: #00f2fe; box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
         .neon-glow-cyan { box-shadow: 0 0 15px rgba(0, 242, 254, 0.4); }
         .neon-glow-green { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
         .neon-glow-red { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
         .neon-glow-amber { box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); }
-
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-            -webkit-appearance: none;
-            margin: 0;
-        }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-
-        .floating-dock {
-            position: fixed;
-            bottom: 1rem;
-            left: 50%;
-            transform: translateX(-50%);
-            width: calc(100% - 1.5rem);
-            max-width: 500px;
-            z-index: 50;
-            background: rgba(15, 23, 42, 0.88);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            border-radius: 2rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 242, 254, 0.15);
-        }
-
-        .dock-item {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            color: #94a3b8;
-        }
-
-        .dock-item.active {
-            color: #00f2fe;
-            transform: translateY(-4px);
-            text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
-        }
-
+        .floating-dock { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); width: calc(100% - 1.5rem); max-width: 500px; z-index: 50; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 242, 254, 0.15); }
+        .dock-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: #94a3b8; }
+        .dock-item.active { color: #00f2fe; transform: translateY(-4px); text-shadow: 0 0 10px rgba(0, 242, 254, 0.6); }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
         ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 3px; }
-
-        .modal-overlay {
-            background: rgba(7, 11, 25, 0.85);
-            backdrop-filter: blur(12px);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .animate-fade-in {
-            animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
+        .modal-overlay { background: rgba(7, 11, 25, 0.85); backdrop-filter: blur(12px); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
 </head>
 <body class="antialiased selection:bg-cyan-500 selection:text-white">
 
-    <!-- Top App Bar -->
     <header class="sticky top-0 z-40 glass px-4 py-3 mb-4 border-b border-slate-800 flex justify-between items-center">
         <div class="flex items-center space-x-3 space-x-reverse">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-cyan-500/30">
-                🏋️
-            </div>
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-cyan-500/30">🏋️</div>
             <div>
-                <h1 class="font-extrabold text-base sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 leading-tight">
-                    متتبع التمارين - Gym Tracker
-                </h1>
+                <h1 class="font-extrabold text-base sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 leading-tight">متتبع التمارين - Gym Tracker</h1>
                 <p class="text-[11px] text-slate-400 font-medium">مُتتبع التمارين والسعرات الذكي</p>
             </div>
         </div>
-
         <div id="top-quick-stats" class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-300">
             <span class="flex items-center gap-1 text-amber-400 font-bold">
                 <i class="fa-solid fa-fire text-xs" aria-hidden="true"></i>
@@ -206,103 +89,65 @@
         </div>
     </header>
 
-    <!-- LocalStorage Warning Banner -->
     <div id="ls-warning" class="hidden mx-4 mb-4 p-3 bg-red-950/80 border border-red-500/50 text-red-200 rounded-xl text-xs flex items-center gap-2">
         <i class="fa-solid fa-triangle-exclamation text-base text-red-400" aria-hidden="true"></i>
         <span>تنبيه: التخزين المحلي (LocalStorage) محجوب في متصفحك. قد لا تحفظ البيانات.</span>
     </div>
 
-    <!-- Rest Countdown Widget -->
     <div id="rest-timer-widget" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 glass-card px-4 py-2 border border-cyan-500/60 shadow-2xl neon-glow-cyan animate-fade-in flex items-center gap-3 rounded-full">
-        <div class="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-400 flex items-center justify-center text-cyan-300 font-black text-xs" id="timer-display">
-            90s
-        </div>
-        <div class="text-xs">
-            <span class="font-bold text-cyan-200">راحة بين الجولات ⏱️</span>
-        </div>
-        <button id="btn-stop-timer" aria-label="إلغاء المؤقت" class="text-slate-400 hover:text-red-400 text-xs px-1 transition">
-            ✖
-        </button>
+        <div class="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-400 flex items-center justify-center text-cyan-300 font-black text-xs" id="timer-display">90s</div>
+        <div class="text-xs"><span class="font-bold text-cyan-200">راحة بين الجولات ⏱️</span></div>
+        <button id="btn-stop-timer" aria-label="إلغاء المؤقت" class="text-slate-400 hover:text-red-400 text-xs px-1 transition">✖</button>
     </div>
 
-    <!-- Main Screens Container -->
     <main class="max-w-xl mx-auto px-4 space-y-6">
-
-        <!-- ==================== 1. WORKOUT SCREEN ==================== -->
+        <!-- WORKOUT SCREEN -->
         <section id="screen-workout" class="screen-content space-y-4 animate-fade-in">
-            
-            <!-- Split System Selector -->
             <div class="flex items-center justify-between bg-slate-900/90 p-2 rounded-2xl border border-slate-800 shadow-md">
                 <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <i class="fa-solid fa-layer-group text-cyan-400" aria-hidden="true"></i>
                     <span>نظام الجدول:</span>
                 </span>
                 <div class="flex gap-1.5">
-                    <button id="split-btn-ppl" aria-label="اختيار نظام PPL" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">
-                        PPL (دفع/سحب/أرجل)
-                    </button>
-                    <button id="split-btn-ul" aria-label="اختيار نظام علوي وسفلي" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 hover:bg-slate-700">
-                        علوي / سفلي (Upper/Lower)
-                    </button>
+                    <button id="split-btn-ppl" aria-label="اختيار نظام PPL" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">PPL (دفع/سحب/أرجل)</button>
+                    <button id="split-btn-ul" aria-label="اختيار نظام علوي وسفلي" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 hover:bg-slate-700">علوي / سفلي (Upper/Lower)</button>
                 </div>
             </div>
 
-            <!-- Dynamic Category Filter Tabs -->
-            <div id="category-tabs-container" class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-            </div>
+            <div id="category-tabs-container" class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none"></div>
 
-            <!-- Equipment Type Filters -->
             <div class="space-y-1.5">
                 <div class="text-[11px] text-slate-400 font-bold px-1 flex items-center gap-1">
                     <i class="fa-solid fa-filter text-cyan-400" aria-hidden="true"></i>
                     <span>تصفية حسب نوع الجهاز / الأداة:</span>
                 </div>
                 <div id="equip-filters-container" class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                    <button data-equip="all" aria-label="عرض جميع أدوات التمرين" class="equip-btn active px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-cyan-950 text-cyan-300 border border-cyan-800">
-                        الكل
-                    </button>
-                    <button data-equip="barbell" aria-label="تصفية حسب البار" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">
-                        أوزان حرة (بار) 🏋️‍♂️
-                    </button>
-                    <button data-equip="dumbbell" aria-label="تصفية حسب الدمبل" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">
-                        أوزان حرة (دمبل) 🏋️‍♀️
-                    </button>
-                    <button data-equip="machine" aria-label="تصفية حسب الأجهزة" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">
-                        أجهزة 🤖
-                    </button>
-                    <button data-equip="cable_body" aria-label="تصفية حسب الكابل أو وزن الجسم" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">
-                        كابل / وزن جسم 🦾
-                    </button>
-                    <button data-equip="cardio" aria-label="تصفية حسب الكارديو" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">
-                        كارديو بالجهاز 🏃‍♂️
-                    </button>
+                    <button data-equip="all" aria-label="عرض جميع أدوات التمرين" class="equip-btn active px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-cyan-950 text-cyan-300 border border-cyan-800">الكل</button>
+                    <button data-equip="barbell" aria-label="تصفية حسب البار" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">أوزان حرة (بار) 🏋️‍♂️</button>
+                    <button data-equip="dumbbell" aria-label="تصفية حسب الدمبل" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">أوزان حرة (دمبل) 🏋️‍♀️</button>
+                    <button data-equip="machine" aria-label="تصفية حسب الأجهزة" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">أجهزة 🤖</button>
+                    <button data-equip="cable_body" aria-label="تصفية حسب الكابل أو وزن الجسم" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">كابل / وزن جسم 🦾</button>
+                    <button data-equip="cardio" aria-label="تصفية حسب الكارديو" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">كارديو بالجهاز 🏃‍♂️</button>
                 </div>
             </div>
 
-            <!-- Exercise Selector Card -->
             <div class="glass-card p-4 space-y-4">
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
                         <label for="exercise-dropdown" class="text-xs font-bold text-cyan-300">اختر التمرين:</label>
-                        <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">
-                            أوزان حرة (بار) 🏋️‍♂️
-                        </span>
+                        <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">أوزان حرة (بار) 🏋️‍♂️</span>
                     </div>
 
-                    <!-- Search Input -->
                     <div class="relative">
                         <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-slate-400 text-xs" aria-hidden="true"></i>
                         <input type="text" id="exercise-search-input" maxlength="50" placeholder="بحث سريع عن تمرين..." class="w-full glass-input pr-8 pl-3 py-2 rounded-xl text-xs">
                     </div>
 
-                    <!-- Dropdown -->
-                    <select id="exercise-dropdown" aria-label="قائمة اختيار التمرين" class="w-full glass-input px-3 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 border border-slate-700">
-                    </select>
+                    <select id="exercise-dropdown" aria-label="قائمة اختيار التمرين" class="w-full glass-input px-3 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 border border-slate-700"></select>
                 </div>
 
                 <hr class="border-slate-800">
 
-                <!-- Last Performance Badge -->
                 <div id="last-performance-container" class="bg-slate-900/90 p-2.5 rounded-xl border border-cyan-500/30 flex justify-between items-center text-xs">
                     <div class="flex items-center gap-2">
                         <span class="text-amber-400 font-bold text-base">📊</span>
@@ -317,10 +162,7 @@
                     </button>
                 </div>
 
-                <!-- Dynamic Form Inputs -->
                 <div id="dynamic-input-container">
-                    
-                    <!-- Form 1: Resistance / Weights -->
                     <div id="form-weights" class="space-y-4">
                         <div class="space-y-2">
                             <div class="flex justify-between items-center text-xs">
@@ -331,15 +173,12 @@
                                 </div>
                             </div>
 
-                            <!-- Touch-Friendly Weight Stepper Control -->
                             <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <div class="flex gap-1">
                                     <button type="button" data-step-target="input-weight" data-step="-5" aria-label="إنقاص الوزن بمقدار 5" class="stepper-btn w-11 h-11 rounded-xl font-black text-red-400 text-xs flex items-center justify-center">-5</button>
                                     <button type="button" data-step-target="input-weight" data-step="-2.5" aria-label="إنقاص الوزن بمقدار 2.5" class="stepper-btn w-11 h-11 rounded-xl font-black text-amber-400 text-xs flex items-center justify-center">-2.5</button>
                                 </div>
-
                                 <input type="number" id="input-weight" min="0" max="500" step="0.5" value="50" class="w-20 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
-
                                 <div class="flex gap-1">
                                     <button type="button" data-step-target="input-weight" data-step="2.5" aria-label="زيادة الوزن بمقدار 2.5" class="stepper-btn w-11 h-11 rounded-xl font-black text-emerald-400 text-xs flex items-center justify-center">+2.5</button>
                                     <button type="button" data-step-target="input-weight" data-step="5" aria-label="زيادة الوزن بمقدار 5" class="stepper-btn w-11 h-11 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
@@ -358,15 +197,12 @@
                                 <span class="text-cyan-400 font-bold text-xs"><span id="val-reps-display">10</span> عدات</span>
                             </div>
 
-                            <!-- Touch-Friendly Reps Stepper Control -->
                             <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <div class="flex gap-1">
                                     <button type="button" data-step-target="input-reps" data-step="-5" aria-label="إنقاص العدات بمقدار 5" class="stepper-btn w-11 h-11 rounded-xl font-black text-red-400 text-xs flex items-center justify-center">-5</button>
                                     <button type="button" data-step-target="input-reps" data-step="-1" aria-label="إنقاص عدة واحدة" class="stepper-btn w-11 h-11 rounded-xl font-black text-amber-400 text-sm flex items-center justify-center">-1</button>
                                 </div>
-
                                 <input type="number" id="input-reps" min="1" max="150" step="1" value="10" class="w-20 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
-
                                 <div class="flex gap-1">
                                     <button type="button" data-step-target="input-reps" data-step="1" aria-label="زيادة عدة واحدة" class="stepper-btn w-11 h-11 rounded-xl font-black text-emerald-400 text-sm flex items-center justify-center">+1</button>
                                     <button type="button" data-step-target="input-reps" data-step="5" aria-label="زيادة العدات بمقدار 5" class="stepper-btn w-11 h-11 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
@@ -374,7 +210,6 @@
                             </div>
                         </div>
 
-                        <!-- Touch-Friendly Set Type Buttons -->
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">نوع الجولة:</label>
                             <div id="set-type-container" class="grid grid-cols-5 gap-1.5 text-xs font-bold">
@@ -392,7 +227,6 @@
                         </button>
                     </div>
 
-                    <!-- Form 2: Treadmill Cardio -->
                     <div id="form-treadmill" class="hidden space-y-4">
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
@@ -432,7 +266,6 @@
                         </button>
                     </div>
 
-                    <!-- Form 3: Bike / Elliptical Cardio -->
                     <div id="form-bike-elliptical" class="hidden space-y-4">
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
@@ -460,11 +293,9 @@
                             <span>حفظ التمرين 🚴</span>
                         </button>
                     </div>
-
                 </div>
             </div>
 
-            <!-- Today's Workout Logs List -->
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
@@ -474,8 +305,7 @@
                     <span id="today-sets-count" class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">0 جولات</span>
                 </div>
 
-                <div id="today-logs-container" class="space-y-2">
-                </div>
+                <div id="today-logs-container" class="space-y-2"></div>
 
                 <div id="lazy-logs-load-more" class="hidden text-center pt-2">
                     <button id="btn-load-more-logs" class="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-cyan-300">
@@ -483,12 +313,10 @@
                     </button>
                 </div>
             </div>
-
         </section>
 
-        <!-- ==================== 2. ADD EXERCISE SCREEN ==================== -->
+        <!-- ADD EXERCISE SCREEN -->
         <section id="screen-exercises" class="screen-content space-y-5 hidden animate-fade-in">
-            
             <div class="glass-card p-5 space-y-4 border border-cyan-500/30">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center text-sm font-bold">
@@ -504,7 +332,6 @@
                     <div>
                         <label for="new-ex-name" class="block text-xs text-slate-400 mb-1">اسم التمرين المخصص:</label>
                         <input type="text" id="new-ex-name" maxlength="60" placeholder="مثال: Incline Dumbbell Press أو hip adduction" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
-                        
                         <div id="new-ex-status" class="hidden text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border flex items-center gap-1.5"></div>
                     </div>
 
@@ -545,15 +372,12 @@
                     <span id="custom-ex-count" class="text-xs bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full border border-slate-700">0 تمارِينَ</span>
                 </div>
 
-                <div id="manage-exercises-list" class="space-y-2">
-                </div>
+                <div id="manage-exercises-list" class="space-y-2"></div>
             </div>
-
         </section>
 
-        <!-- ==================== 3. PROGRESS SCREEN ==================== -->
+        <!-- PROGRESS SCREEN -->
         <section id="screen-progress" class="screen-content space-y-5 hidden animate-fade-in">
-            
             <div class="grid grid-cols-2 gap-3">
                 <div class="glass-card p-3.5 border-r-4 border-r-cyan-400">
                     <div class="text-[11px] text-slate-400">إجمالي أيام التمرين</div>
@@ -566,7 +390,6 @@
                 </div>
             </div>
 
-            <!-- Per-Exercise Volume Breakdown -->
             <div class="glass-card p-4 space-y-3">
                 <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">
                     <span class="flex items-center gap-1.5 text-cyan-300">
@@ -576,11 +399,9 @@
                     <span class="text-[10px] text-slate-400">لكل تمرين مستمر</span>
                 </h3>
                 
-                <div id="exercise-volume-breakdown-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                </div>
+                <div id="exercise-volume-breakdown-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
             </div>
 
-            <!-- Chart Section -->
             <div class="glass-card p-4 space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
@@ -588,20 +409,17 @@
                         <span>تطور أقصى وزن مرفوع</span>
                     </h3>
 
-                    <select id="chart-exercise-select" aria-label="اختر تمرين لعرض الرسم البياني" class="glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700 w-full sm:w-auto">
-                    </select>
+                    <select id="chart-exercise-select" aria-label="اختر تمرين لعرض الرسم البياني" class="glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700 w-full sm:w-auto"></select>
                 </div>
 
                 <div class="w-full h-64 relative">
                     <canvas id="progressChart"></canvas>
                 </div>
             </div>
-
         </section>
 
-        <!-- ==================== 4. BENTO ANALYTICS TAB ==================== -->
+        <!-- BENTO ANALYTICS TAB -->
         <section id="screen-bento" class="screen-content space-y-5 hidden animate-fade-in">
-            
             <div class="flex justify-between items-center">
                 <div>
                     <h2 class="font-black text-base text-cyan-300 flex items-center gap-2">
@@ -617,8 +435,7 @@
                     <i class="fa-solid fa-bullseye text-amber-400" aria-hidden="true"></i>
                     <span>أهداف السعرات اليومية المطلوبة</span>
                 </h3>
-                <div id="bento-calories-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                </div>
+                <div id="bento-calories-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
             </div>
 
             <div class="space-y-2.5">
@@ -626,8 +443,7 @@
                     <i class="fa-solid fa-weight-scale text-blue-400" aria-hidden="true"></i>
                     <span>مؤشرات تناسب الوزن والخصر</span>
                 </h3>
-                <div id="bento-health-container" class="grid grid-cols-2 gap-3">
-                </div>
+                <div id="bento-health-container" class="grid grid-cols-2 gap-3"></div>
             </div>
 
             <div class="space-y-2.5">
@@ -635,15 +451,12 @@
                     <i class="fa-solid fa-child-reaching text-teal-400" aria-hidden="true"></i>
                     <span>مؤشرات تركيب الجسم والعضلات</span>
                 </h3>
-                <div id="bento-comp-container" class="grid grid-cols-2 gap-3">
-                </div>
+                <div id="bento-comp-container" class="grid grid-cols-2 gap-3"></div>
             </div>
-
         </section>
 
-        <!-- ==================== 5. PROFILE SCREEN ==================== -->
+        <!-- PROFILE SCREEN -->
         <section id="screen-profile" class="screen-content space-y-5 hidden animate-fade-in">
-            
             <button id="gender-toggle-btn" aria-label="تبديل خيار الجنس بين رجل وأنثى" class="w-full p-3.5 rounded-2xl glass-card border border-cyan-500/40 text-center transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
                 <span class="text-lg" id="gender-icon">💪</span>
                 <span class="font-bold text-sm text-cyan-300" id="gender-text">هل أنت رجل؟ (تحديث النسبة والعضلات)</span>
@@ -708,8 +521,7 @@
 
             <div class="glass-card p-4 space-y-3">
                 <h3 class="font-bold text-xs text-slate-300">سجل تغيرات الوزن والقياسات</h3>
-                <div id="profile-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1">
-                </div>
+                <div id="profile-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
             </div>
 
             <div class="glass-card p-4 space-y-3">
@@ -742,72 +554,53 @@
                     </button>
                 </div>
             </div>
-
         </section>
-
     </main>
 
-    <!-- Scientific Disclaimer Banner -->
     <div class="fixed bottom-20 left-0 right-0 z-30 px-4 pointer-events-none">
         <div class="max-w-xl mx-auto glass p-2.5 rounded-xl border border-slate-700/60 text-[10px] text-slate-400 text-center leading-tight shadow-lg pointer-events-auto">
             💡 <span class="font-bold text-slate-300">تنويه:</span> حساب السعرات محسب بناءً على معادلات ACSM و Mifflin-St Jeor. تحليلات الجسم تعتمد على معايير ACE و FFMI الرياضية.
         </div>
     </div>
 
-    <!-- Floating Dock Navigation -->
     <nav id="floating-dock" class="floating-dock px-2 py-2">
         <div class="flex justify-around items-center">
-            
             <button data-tab="workout" id="nav-workout" aria-label="شاشة التمرين" class="dock-item active flex flex-col items-center gap-1">
                 <i class="fa-solid fa-dumbbell text-base" aria-hidden="true"></i>
                 <span class="text-[10px] font-bold">التمرين</span>
             </button>
-
             <button data-tab="exercises" id="nav-exercises" aria-label="شاشة إضافة تمرين" class="dock-item flex flex-col items-center gap-1">
                 <i class="fa-solid fa-plus-circle text-base" aria-hidden="true"></i>
                 <span class="text-[10px] font-bold">إضافة تمرين</span>
             </button>
-
             <button data-tab="progress" id="nav-progress" aria-label="شاشة تطور التمارين" class="dock-item flex flex-col items-center gap-1">
                 <i class="fa-solid fa-chart-line text-base" aria-hidden="true"></i>
                 <span class="text-[10px] font-bold">التطور</span>
             </button>
-
             <button data-tab="bento" id="nav-bento" aria-label="شاشة التحليل الذكي" class="dock-item flex flex-col items-center gap-1">
                 <i class="fa-solid fa-chart-pie text-base" aria-hidden="true"></i>
                 <span class="text-[10px] font-bold">التحليل</span>
             </button>
-
             <button data-tab="profile" id="nav-profile" aria-label="شاشة البروفايل الشخصي" class="dock-item flex flex-col items-center gap-1">
                 <i class="fa-solid fa-user-circle text-base" aria-hidden="true"></i>
                 <span class="text-[10px] font-bold">البروفايل</span>
             </button>
-
         </div>
     </nav>
 
-    <!-- Custom Reusable Modal -->
     <div id="custom-modal" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-slate-700 shadow-2xl animate-fade-in">
-            <h3 id="modal-title" class="font-black text-base text-slate-100 flex items-center gap-2">
-            </h3>
-            <p id="modal-message" class="text-xs text-slate-300 leading-relaxed">
-            </p>
+            <h3 id="modal-title" class="font-black text-base text-slate-100 flex items-center gap-2"></h3>
+            <p id="modal-message" class="text-xs text-slate-300 leading-relaxed"></p>
             <div class="flex justify-end gap-2 pt-2">
-                <button id="modal-cancel-btn" aria-label="إلغاء النافذة" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-bold border border-slate-700">
-                    إلغاء
-                </button>
-                <button id="modal-confirm-btn" aria-label="تأكيد النافذة" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs text-white font-bold shadow-lg neon-glow-red">
-                    تأكيد
-                </button>
+                <button id="modal-cancel-btn" aria-label="إلغاء النافذة" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-bold border border-slate-700">إلغاء</button>
+                <button id="modal-confirm-btn" aria-label="تأكيد النافذة" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs text-white font-bold shadow-lg neon-glow-red">تأكيد</button>
             </div>
         </div>
     </div>
 
-    <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 space-y-2 pointer-events-none w-full max-w-xs px-4"></div>
 
-    <!-- Application JavaScript Logic -->
     <script>
     (function () {
         'use strict';
@@ -1611,54 +1404,16 @@
             document.getElementById('rest-timer-widget').classList.add('hidden');
         }
 
-        // --- FIXED ROBUST HYBRID AUTO CLASSIFIER ---
-        async function fetchOnlineClassification(cleanName) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1200);
-
-            try {
-                const res = await fetch(`https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(cleanName)}`, {
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-                if (!res.ok) return null;
-                const data = await res.json();
-
-                if (data && data.suggestions && data.suggestions.length > 0) {
-                    const topMatch = data.suggestions[0].data;
-                    const combinedText = (topMatch.name + ' ' + (topMatch.category || '')).toLowerCase();
-
-                    let cat = null;
-                    let equip = null;
-
-                    if (/(chest|shoulder|triceps|push)/i.test(combinedText)) cat = 'push';
-                    else if (/(back|biceps|pull|lats)/i.test(combinedText)) cat = 'pull';
-                    else if (/(legs|quads|calves|glutes|hamstrings|adductor|abductor)/i.test(combinedText)) cat = 'legs';
-                    else if (/(abs|core|abdominal)/i.test(combinedText)) cat = 'abs';
-                    else if (/(cardio|run|bike)/i.test(combinedText)) cat = 'cardio';
-
-                    if (/barbell/i.test(combinedText)) equip = 'barbell';
-                    else if (/dumbbell/i.test(combinedText)) equip = 'dumbbell';
-                    else if (/(machine|smith)/i.test(combinedText)) equip = 'machine';
-                    else if (/(cable|body)/i.test(combinedText)) equip = 'cable_body';
-
-                    if (cat || equip) return { cat, equip };
-                }
-                return null;
-            } catch (err) {
-                return null;
-            }
-        }
-
+        // --- RELIABLE EXERCISE CLASSIFIER ENGINE ---
         function runLocalClassification(cleanName) {
-            // 1. Direct Dictionary Match (Substring check)
+            // 1. Direct Dictionary Match
             for (const [key, val] of Object.entries(EXERCISE_DICTIONARY)) {
                 if (cleanName.includes(key)) {
                     return { cat: val.cat, equip: val.equip };
                 }
             }
 
-            // 2. Broad Keyword Fallback
+            // 2. Regex Search Match
             let cat = null;
             let equip = null;
 
@@ -1706,33 +1461,16 @@
                 submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
 
-            // INSTANT LOCAL CLASSIFICATION (Guaranteed to match "hip adduction" via dictionary)
-            const localResult = runLocalClassification(cleanName);
-            if (localResult.cat) catSelect.value = localResult.cat;
-            if (localResult.equip) equipSelect.value = localResult.equip;
+            const result = runLocalClassification(cleanName);
+            if (result.cat) catSelect.value = result.cat;
+            if (result.equip) equipSelect.value = result.equip;
 
-            if (localResult.cat || localResult.equip) {
+            if (result.cat || result.equip) {
                 statusEl.className = "text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border bg-cyan-950/80 border-cyan-800 text-cyan-300 flex items-center gap-1.5";
-                statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400" aria-hidden="true"></i> تم تصنيف التمرين بنجاح ⚡`;
+                statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400" aria-hidden="true"></i> تم تصنيف التمرين تلقائياً بنجاح ⚡`;
                 statusEl.classList.remove('hidden');
             } else {
                 statusEl.classList.add('hidden');
-            }
-
-            // ONLINE API FALLBACK (If connected)
-            if (customInputDebounce) clearTimeout(customInputDebounce);
-            if (navigator.onLine) {
-                customInputDebounce = setTimeout(async () => {
-                    const onlineResult = await fetchOnlineClassification(cleanName);
-                    if (onlineResult && (onlineResult.cat || onlineResult.equip)) {
-                        if (onlineResult.cat) catSelect.value = onlineResult.cat;
-                        if (onlineResult.equip) equipSelect.value = onlineResult.equip;
-
-                        statusEl.className = "text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border bg-emerald-950/80 border-emerald-800 text-emerald-300 flex items-center gap-1.5";
-                        statusEl.innerHTML = `<i class="fa-solid fa-globe text-emerald-400" aria-hidden="true"></i> تم تدقيق التصنيف أونلاين 🌐`;
-                        statusEl.classList.remove('hidden');
-                    }
-                }, 300);
             }
         }
 
@@ -2417,7 +2155,6 @@
             setTimeout(() => { toast.remove(); }, 2500);
         }
 
-        // --- CENTRALIZED EVENT LISTENERS SETUP ---
         function initEventListeners() {
             document.body.addEventListener('click', function(e) {
                 const stepperBtn = e.target.closest('[data-step-target]');
@@ -2502,12 +2239,10 @@
         function registerServiceWorker() {
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(() => {
+                    .then((reg) => {
                         console.log('Service Worker Registered');
-                        // Force update controller check
-                        navigator.serviceWorker.addEventListener('controllerchange', () => {
-                            window.location.reload();
-                        });
+                        // Automatically update SW when new version is committed without breaking user data
+                        reg.update();
                     })
                     .catch((err) => console.warn('SW Failed:', err));
             }
