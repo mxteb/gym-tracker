@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-tracker-v3';
+const CACHE_NAME = 'gym-tracker-v4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -8,7 +8,6 @@ const ASSETS_TO_CACHE = [
     'https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap'
 ];
 
-// حفظ الموارد بشكل فردي لمنع انهيار الـ Cache عند تعثر رابط خارجي
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
@@ -22,7 +21,6 @@ self.addEventListener('install', (event) => {
     self.skipWaiting();
 });
 
-// تنظيف الذاكرة القديمة
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
@@ -36,7 +34,6 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// استدعاء البيانات من الذاكرة المحفوظة عند الأوفلاين
 self.addEventListener('fetch', (event) => {
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
