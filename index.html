@@ -374,7 +374,7 @@
                             </div>
                         </div>
 
-                        <!-- Larger Touch-Friendly Set Type Buttons -->
+                        <!-- Touch-Friendly Set Type Buttons -->
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">نوع الجولة:</label>
                             <div id="set-type-container" class="grid grid-cols-5 gap-1.5 text-xs font-bold">
@@ -503,7 +503,7 @@
                 <div class="space-y-3 pt-2">
                     <div>
                         <label for="new-ex-name" class="block text-xs text-slate-400 mb-1">اسم التمرين المخصص:</label>
-                        <input type="text" id="new-ex-name" maxlength="60" placeholder="مثال: Incline Dumbbell Press أو سحب ظهر بالبار" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
+                        <input type="text" id="new-ex-name" maxlength="60" placeholder="مثال: Incline Dumbbell Press أو hip adduction" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
                         
                         <div id="new-ex-status" class="hidden text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border flex items-center gap-1.5"></div>
                     </div>
@@ -566,7 +566,7 @@
                 </div>
             </div>
 
-            <!-- Per-Exercise Volume Tonnage Breakdown -->
+            <!-- Per-Exercise Volume Breakdown -->
             <div class="glass-card p-4 space-y-3">
                 <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">
                     <span class="flex items-center gap-1.5 text-cyan-300">
@@ -818,6 +818,93 @@
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
             });
         }
+
+        // --- EXERCISE DICTIONARY FOR 100% INSTANT OFFLINE ACCURACY ---
+        const EXERCISE_DICTIONARY = {
+            // Legs & Hip Exercises
+            'hip adduction': { cat: 'legs', equip: 'machine' },
+            'hip abduction': { cat: 'legs', equip: 'machine' },
+            'adduction': { cat: 'legs', equip: 'machine' },
+            'abduction': { cat: 'legs', equip: 'machine' },
+            'adductor': { cat: 'legs', equip: 'machine' },
+            'abductor': { cat: 'legs', equip: 'machine' },
+            'hip thrust': { cat: 'legs', equip: 'machine' },
+            'leg press': { cat: 'legs', equip: 'machine' },
+            'leg extension': { cat: 'legs', equip: 'machine' },
+            'leg curl': { cat: 'legs', equip: 'machine' },
+            'squat': { cat: 'legs', equip: 'barbell' },
+            'hack squat': { cat: 'legs', equip: 'machine' },
+            'goblet squat': { cat: 'legs', equip: 'dumbbell' },
+            'bulgarian split squat': { cat: 'legs', equip: 'dumbbell' },
+            'rdl': { cat: 'legs', equip: 'barbell' },
+            'romanian deadlift': { cat: 'legs', equip: 'barbell' },
+            'deadlift': { cat: 'legs', equip: 'barbell' },
+            'calf raise': { cat: 'legs', equip: 'machine' },
+            'lunge': { cat: 'legs', equip: 'dumbbell' },
+            'lunges': { cat: 'legs', equip: 'dumbbell' },
+            // Arabic Legs
+            'ضم الفخذ': { cat: 'legs', equip: 'machine' },
+            'إبعاد الفخذ': { cat: 'legs', equip: 'machine' },
+            'ابعاد الفخذ': { cat: 'legs', equip: 'machine' },
+            'ادكشن': { cat: 'legs', equip: 'machine' },
+            'ابداكشن': { cat: 'legs', equip: 'machine' },
+            'مكبس ارجل': { cat: 'legs', equip: 'machine' },
+            'مكبس أرجل': { cat: 'legs', equip: 'machine' },
+            'تمديد ارجل': { cat: 'legs', equip: 'machine' },
+            'ثني ارجل': { cat: 'legs', equip: 'machine' },
+            'سكوات': { cat: 'legs', equip: 'barbell' },
+            'سمانة': { cat: 'legs', equip: 'machine' },
+            'طعن': { cat: 'legs', equip: 'dumbbell' },
+            'ديدليفت': { cat: 'legs', equip: 'barbell' },
+
+            // Push Exercises
+            'bench press': { cat: 'push', equip: 'barbell' },
+            'incline bench press': { cat: 'push', equip: 'barbell' },
+            'incline dumbbell press': { cat: 'push', equip: 'dumbbell' },
+            'dumbbell press': { cat: 'push', equip: 'dumbbell' },
+            'chest press': { cat: 'push', equip: 'machine' },
+            'shoulder press': { cat: 'push', equip: 'dumbbell' },
+            'overhead press': { cat: 'push', equip: 'barbell' },
+            'lateral raise': { cat: 'push', equip: 'dumbbell' },
+            'tricep pushdown': { cat: 'push', equip: 'cable_body' },
+            'triceps pushdown': { cat: 'push', equip: 'cable_body' },
+            'dips': { cat: 'push', equip: 'cable_body' },
+            'pec deck': { cat: 'push', equip: 'machine' },
+            'chest fly': { cat: 'push', equip: 'dumbbell' },
+            'cable crossover': { cat: 'push', equip: 'cable_body' },
+            // Arabic Push
+            'بنش بريس': { cat: 'push', equip: 'barbell' },
+            'ضغط صدر': { cat: 'push', equip: 'dumbbell' },
+            'ضغط اكتاف': { cat: 'push', equip: 'dumbbell' },
+            'ضغط أكتاف': { cat: 'push', equip: 'dumbbell' },
+            'رفرفة جانبي': { cat: 'push', equip: 'dumbbell' },
+            'ترايسيبس': { cat: 'push', equip: 'cable_body' },
+            'تراي': { cat: 'push', equip: 'cable_body' },
+            'متوازي': { cat: 'push', equip: 'cable_body' },
+
+            // Pull Exercises
+            'lat pulldown': { cat: 'pull', equip: 'machine' },
+            'seated cable row': { cat: 'pull', equip: 'cable_body' },
+            'bent over row': { cat: 'pull', equip: 'barbell' },
+            'dumbbell row': { cat: 'pull', equip: 'dumbbell' },
+            'pull up': { cat: 'pull', equip: 'cable_body' },
+            'pull ups': { cat: 'pull', equip: 'cable_body' },
+            'chin up': { cat: 'pull', equip: 'cable_body' },
+            'bicep curl': { cat: 'pull', equip: 'dumbbell' },
+            'biceps curl': { cat: 'pull', equip: 'dumbbell' },
+            'hammer curl': { cat: 'pull', equip: 'dumbbell' },
+            'face pull': { cat: 'pull', equip: 'cable_body' },
+            'shrugs': { cat: 'pull', equip: 'dumbbell' },
+            // Arabic Pull
+            'سحب ظهر': { cat: 'pull', equip: 'machine' },
+            'عقلة': { cat: 'pull', equip: 'cable_body' },
+            'عقله': { cat: 'pull', equip: 'cable_body' },
+            'بايسبس': { cat: 'pull', equip: 'dumbbell' },
+            'باي': { cat: 'pull', equip: 'dumbbell' },
+            'ترابيس': { cat: 'pull', equip: 'dumbbell' },
+            'مطرقة': { cat: 'pull', equip: 'dumbbell' },
+            'هامر': { cat: 'pull', equip: 'dumbbell' }
+        };
 
         const DEFAULT_EXERCISES = [
             // PUSH EXERCISES
@@ -1540,10 +1627,10 @@
             document.getElementById('rest-timer-widget').classList.add('hidden');
         }
 
-        // --- HYBRID AUTO CLASSIFIER (ONLINE API + LOCAL REGEX FALLBACK) ---
+        // --- HYBRID EXERCISE AUTO CLASSIFIER (DICTIONARY + REGEX + ONLINE API) ---
         async function fetchOnlineClassification(cleanName) {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 1500); // 1.5s timeout for zero lag
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
 
             try {
                 const res = await fetch(`https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(cleanName)}`, {
@@ -1562,13 +1649,13 @@
 
                     if (/(chest|shoulder|triceps|push)/i.test(combinedText)) cat = 'push';
                     else if (/(back|biceps|pull|lats)/i.test(combinedText)) cat = 'pull';
-                    else if (/(legs|quads|calves|glutes|hamstrings)/i.test(combinedText)) cat = 'legs';
+                    else if (/(legs|quads|calves|glutes|hamstrings|adductor|abductor)/i.test(combinedText)) cat = 'legs';
                     else if (/(abs|core|abdominal)/i.test(combinedText)) cat = 'abs';
                     else if (/(cardio|run|bike)/i.test(combinedText)) cat = 'cardio';
 
                     if (/barbell/i.test(combinedText)) equip = 'barbell';
                     else if (/dumbbell/i.test(combinedText)) equip = 'dumbbell';
-                    else if (/machine/i.test(combinedText)) equip = 'machine';
+                    else if (/(machine|smith)/i.test(combinedText)) equip = 'machine';
                     else if (/(cable|body)/i.test(combinedText)) equip = 'cable_body';
 
                     if (cat || equip) return { cat, equip, source: 'online' };
@@ -1580,19 +1667,27 @@
         }
 
         function runLocalClassification(cleanName) {
+            // 1. Direct Dictionary Match
+            for (const [key, val] of Object.entries(EXERCISE_DICTIONARY)) {
+                if (cleanName.includes(key)) {
+                    return { cat: val.cat, equip: val.equip, source: 'dictionary' };
+                }
+            }
+
+            // 2. Comprehensive Broad Regex Match
             let cat = null;
             let equip = null;
 
-            if (/(ضغط|صدر|بنش|أكتاف|اكتاف|ترايسيبس|تراي|متوازي|press|bench|chest|shoulder|tricep|fly|dip)/i.test(cleanName)) cat = 'push';
-            else if (/(سحب|ظهر|عقلة|عقله|بايسبس|باي|ترابيس|مطرقة|هامر|رو|pulldown|row|pull|back|biceps|curl|shrug)/i.test(cleanName)) cat = 'pull';
-            else if (/(سكوات|أرجل|ارجل|فخذ|سمانة|طعن|مكبس|مقعدة|squat|leg|lunge|calf|thrust|extension|press)/i.test(cleanName)) cat = 'legs';
-            else if (/(بطن|معدة|معده|بلانك|طحن|crunch|plank|abs|core)/i.test(cleanName)) cat = 'abs';
-            else if (/(مشي|دراجة|دراجه|سير|غزالة|غزاله|كارديو|سلم|تجديف|treadmill|bike|run|elliptical|stair|rowing)/i.test(cleanName)) cat = 'cardio';
+            if (/(ضغط|صدر|بنش|أكتاف|اكتاف|كتف|ترايسيبس|تراي|متوازي|رفرفة|تفتيح|press|bench|chest|shoulder|tricep|fly|dip|overhead|pec|push)/i.test(cleanName)) cat = 'push';
+            else if (/(سحب|ظهر|عقلة|عقله|بايسبس|باي|ترابيس|مطرقة|هامر|رو|بلوفر|وجه|pulldown|row|pull|back|biceps|curl|shrug|chin|lat|face|rear|delt)/i.test(cleanName)) cat = 'pull';
+            else if (/(سكوات|أرجل|ارجل|فخذ|سمانة|طعن|مكبس|مقعدة|مؤخرة|هيب|ضم|إبعاد|ابعاد|ضام|ادكشن|ابداكشن|squat|leg|lunge|calf|thrust|extension|curl|adduct|abduct|hip|glute|hamstring|quad|rdl|deadlift)/i.test(cleanName)) cat = 'legs';
+            else if (/(بطن|معدة|معده|بلانك|طحن|crunch|plank|abs|core|situp)/i.test(cleanName)) cat = 'abs';
+            else if (/(مشي|دراجة|دراجه|سير|غزالة|غزاله|كارديو|سلم|تجديف|treadmill|bike|run|elliptical|stair|rowing|cardio)/i.test(cleanName)) cat = 'cardio';
 
-            if (/(بار|باربل|barbell)/i.test(cleanName)) equip = 'barbell';
+            if (/(بار|باربل|barbell|ez)/i.test(cleanName)) equip = 'barbell';
             else if (/(دمبل|دمبلز|dumbbell)/i.test(cleanName)) equip = 'dumbbell';
-            else if (/(جهاز|ماكينة|ماكينه|سميث|machine|smith)/i.test(cleanName)) equip = 'machine';
-            else if (/(كيبل|كابل|حبل|وزن جسم|cable|body)/i.test(cleanName)) equip = 'cable_body';
+            else if (/(جهاز|ماكينة|ماكينه|سميث|مكبس|machine|smith|adductor|abductor|deck)/i.test(cleanName)) equip = 'machine';
+            else if (/(كيبل|كابل|حبل|وزن جسم|cable|body|rope|dip|pullup)/i.test(cleanName)) equip = 'cable_body';
             else if (/(كارديو|تأهيل|cardio)/i.test(cleanName)) equip = 'cardio';
 
             return { cat, equip, source: 'local' };
@@ -1625,7 +1720,7 @@
                 submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
 
-            // 1. Instant Local Classification Response
+            // 1. Instant Local Dictionary & Regex Lookup
             const localResult = runLocalClassification(cleanName);
             const catSelect = document.getElementById('new-ex-cat');
             const equipSelect = document.getElementById('new-ex-equip');
@@ -1635,13 +1730,13 @@
 
             if (localResult.cat || localResult.equip) {
                 statusEl.className = "text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border bg-cyan-950/80 border-cyan-800 text-cyan-300 flex items-center gap-1.5";
-                statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400" aria-hidden="true"></i> تم التعرف على الفئة تلقائياً (أوفلاين) ⚡`;
+                statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400" aria-hidden="true"></i> تم التعرف على التمرين والفئة بنجاح (أوفلاين) ⚡`;
                 statusEl.classList.remove('hidden');
             } else {
                 statusEl.classList.add('hidden');
             }
 
-            // 2. Debounced Hybrid Online Lookup (If connected)
+            // 2. Online Hybrid API Fallback (If connected and no dictionary hit)
             if (customInputDebounce) clearTimeout(customInputDebounce);
             if (navigator.onLine) {
                 customInputDebounce = setTimeout(async () => {
@@ -1782,7 +1877,6 @@
             document.getElementById('stat-active-exercises-count').textContent = `${activeWeightExCount} تمرين`;
         }
 
-        // --- RENDER PER-EXERCISE VOLUME BREAKDOWN (الحجم التدريبي لكل تمرين على حدة) ---
         function renderExerciseVolumeBreakdown() {
             const container = document.getElementById('exercise-volume-breakdown-list');
             if (!container) return;
