@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>متتبع التمارين - Gym Tracker ⚡ PWA</title>
 
-    <!-- PWA & Mobile Meta Tags -->
+    <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -98,56 +98,30 @@
             outline: none;
         }
 
-        .neon-glow-cyan {
-            box-shadow: 0 0 15px rgba(0, 242, 254, 0.4);
+        .stepper-btn {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.15s ease-in-out;
+            touch-action: manipulation;
         }
 
-        .neon-glow-green {
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        .stepper-btn:active {
+            transform: scale(0.92);
+            background: rgba(0, 242, 254, 0.25);
+            border-color: #00f2fe;
         }
 
-        .neon-glow-red {
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
-        }
-
-        .neon-glow-amber {
-            box-shadow: 0 0 15px rgba(245, 158, 11, 0.5);
-        }
-
-        input[type="range"] {
-            -webkit-appearance: none;
-            appearance: none;
-            background: rgba(30, 41, 59, 0.8);
-            height: 8px;
-            border-radius: 4px;
-            outline: none;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00f2fe, #4facfe);
-            cursor: pointer;
-            box-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
-            transition: transform 0.1s ease;
-        }
-
-        input[type="range"]::-webkit-slider-thumb:active {
-            transform: scale(1.2);
-        }
+        .neon-glow-cyan { box-shadow: 0 0 15px rgba(0, 242, 254, 0.4); }
+        .neon-glow-green { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+        .neon-glow-red { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+        .neon-glow-amber { box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); }
 
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
             -webkit-appearance: none;
             margin: 0;
         }
-        input[type=number] {
-            -moz-appearance: textfield;
-        }
+        input[type=number] { -moz-appearance: textfield; }
 
         .floating-dock {
             position: fixed;
@@ -176,17 +150,9 @@
             text-shadow: 0 0 10px rgba(0, 242, 254, 0.6);
         }
 
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: rgba(15, 23, 42, 0.5);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: rgba(56, 189, 248, 0.3);
-            border-radius: 3px;
-        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 3px; }
 
         .modal-overlay {
             background: rgba(7, 11, 25, 0.85);
@@ -233,7 +199,7 @@
         <span>تنبيه: التخزين المحلي (LocalStorage) محجوب في متصفحك. قد لا تحفظ البيانات.</span>
     </div>
 
-    <!-- Rest Countdown Widget -->
+    <!-- Rest Countdown Widget (Sleek Non-Intrusive Floating Pill) -->
     <div id="rest-timer-widget" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 glass-card px-4 py-2 border border-cyan-500/60 shadow-2xl neon-glow-cyan animate-fade-in flex items-center gap-3 rounded-full">
         <div class="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-400 flex items-center justify-center text-cyan-300 font-black text-xs" id="timer-display">
             90s
@@ -352,10 +318,18 @@
                                 </div>
                             </div>
 
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="input-weight" min="0" max="300" step="0.5" value="50" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400 border border-cyan-500/30">
-                                <div class="flex-1">
-                                    <input type="range" id="slider-weight" aria-label="شريط تحديد الوزن" min="0" max="300" step="0.5" value="50" class="w-full">
+                            <!-- Touch-Friendly Weight Stepper Control -->
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <div class="flex gap-1">
+                                    <button type="button" data-step-target="input-weight" data-step="-5" aria-label="إنقاص الوزن بمقدار 5" class="stepper-btn w-10 h-10 rounded-xl font-black text-red-400 text-xs flex items-center justify-center">-5</button>
+                                    <button type="button" data-step-target="input-weight" data-step="-2.5" aria-label="إنقاص الوزن بمقدار 2.5" class="stepper-btn w-10 h-10 rounded-xl font-black text-amber-400 text-xs flex items-center justify-center">-2.5</button>
+                                </div>
+
+                                <input type="number" id="input-weight" min="0" max="500" step="0.5" value="50" class="w-20 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+
+                                <div class="flex gap-1">
+                                    <button type="button" data-step-target="input-weight" data-step="2.5" aria-label="زيادة الوزن بمقدار 2.5" class="stepper-btn w-10 h-10 rounded-xl font-black text-emerald-400 text-xs flex items-center justify-center">+2.5</button>
+                                    <button type="button" data-step-target="input-weight" data-step="5" aria-label="زيادة الوزن بمقدار 5" class="stepper-btn w-10 h-10 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
                                 </div>
                             </div>
 
@@ -371,10 +345,18 @@
                                 <span class="text-cyan-400 font-bold text-xs"><span id="val-reps-display">10</span> عدات</span>
                             </div>
 
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="input-reps" min="1" max="100" step="1" value="10" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400 border border-cyan-500/30">
-                                <div class="flex-1">
-                                    <input type="range" id="slider-reps" aria-label="شريط تحديد عدد العدات" min="1" max="50" step="1" value="10" class="w-full">
+                            <!-- Touch-Friendly Reps Stepper Control -->
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <div class="flex gap-1">
+                                    <button type="button" data-step-target="input-reps" data-step="-5" aria-label="إنقاص العدات بمقدار 5" class="stepper-btn w-10 h-10 rounded-xl font-black text-red-400 text-xs flex items-center justify-center">-5</button>
+                                    <button type="button" data-step-target="input-reps" data-step="-1" aria-label="إنقاص عدة واحدة" class="stepper-btn w-10 h-10 rounded-xl font-black text-amber-400 text-sm flex items-center justify-center">-1</button>
+                                </div>
+
+                                <input type="number" id="input-reps" min="1" max="150" step="1" value="10" class="w-20 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+
+                                <div class="flex gap-1">
+                                    <button type="button" data-step-target="input-reps" data-step="1" aria-label="زيادة عدة واحدة" class="stepper-btn w-10 h-10 rounded-xl font-black text-emerald-400 text-sm flex items-center justify-center">+1</button>
+                                    <button type="button" data-step-target="input-reps" data-step="5" aria-label="زيادة العدات بمقدار 5" class="stepper-btn w-10 h-10 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
                                 </div>
                             </div>
                         </div>
@@ -383,15 +365,15 @@
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">نوع الجولة:</label>
                             <div id="set-type-container" class="grid grid-cols-5 gap-1 text-[10px] font-bold">
-                                <button type="button" data-settype="normal" aria-label="جولة عادية" class="set-type-btn active py-1.5 rounded-lg border bg-cyan-950 text-cyan-300 border-cyan-700 text-center transition">عادية</button>
-                                <button type="button" data-settype="warmup" aria-label="جولة تسخين" class="set-type-btn py-1.5 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200">تسخين ☀️</button>
-                                <button type="button" data-settype="dropset" aria-label="جولة دروب سيت" class="set-type-btn py-1.5 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200">دروب 📉</button>
-                                <button type="button" data-settype="superset" aria-label="جولة سوبر سيت" class="set-type-btn py-1.5 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200">سوبر ⚡</button>
-                                <button type="button" data-settype="failure" aria-label="جولة للفشل العضلي" class="set-type-btn py-1.5 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200">فشل 🔥</button>
+                                <button type="button" data-settype="normal" aria-label="جولة عادية" class="set-type-btn active py-2 rounded-lg border bg-cyan-950 text-cyan-300 border-cyan-700 text-center transition">عادية</button>
+                                <button type="button" data-settype="warmup" aria-label="جولة تسخين" class="set-type-btn py-2 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200">تسخين ☀️</button>
+                                <button type="button" data-settype="dropset" aria-label="جولة دروب سيت" class="set-type-btn py-2 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200">دروب 📉</button>
+                                <button type="button" data-settype="superset" aria-label="جولة سوبر سيت" class="set-type-btn py-2 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200">سوبر ⚡</button>
+                                <button type="button" data-settype="failure" aria-label="جولة للفشل العضلي" class="set-type-btn py-2 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200">فشل 🔥</button>
                             </div>
                         </div>
 
-                        <button id="btn-save-weights" aria-label="حفظ جولة الوزن" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
+                        <button id="btn-save-weights" aria-label="حفظ جولة الوزن" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
                             <i class="fa-solid fa-floppy-disk text-sm" aria-hidden="true"></i>
                             <span>حفظ الجولة ✔️</span>
                         </button>
@@ -403,11 +385,10 @@
                             <div class="flex justify-between items-center text-xs mb-1">
                                 <label for="input-tm-speed" class="text-slate-300 font-medium">السرعة (كم/س):</label>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="input-tm-speed" min="1.0" max="25.0" step="0.1" value="8.0" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
-                                <div class="flex-1">
-                                    <input type="range" id="slider-tm-speed" aria-label="شريط تحديد سرعة سير المشي" min="1.0" max="22.0" step="0.1" value="8.0" class="w-full">
-                                </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-tm-speed" data-step="-0.5" class="stepper-btn w-12 h-10 rounded-xl font-black text-amber-400 text-xs">-0.5</button>
+                                <input type="number" id="input-tm-speed" min="1.0" max="25.0" step="0.1" value="8.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                                <button type="button" data-step-target="input-tm-speed" data-step="0.5" class="stepper-btn w-12 h-10 rounded-xl font-black text-emerald-400 text-xs">+0.5</button>
                             </div>
                         </div>
 
@@ -415,11 +396,10 @@
                             <div class="flex justify-between items-center text-xs mb-1">
                                 <label for="input-tm-incline" class="text-slate-300 font-medium">مستوى الارتفاع (Incline):</label>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="input-tm-incline" min="0.0" max="25.0" step="0.5" value="1.0" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
-                                <div class="flex-1">
-                                    <input type="range" id="slider-tm-incline" aria-label="شريط تحديد الارتفاع" min="0.0" max="20.0" step="0.5" value="1.0" class="w-full">
-                                </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-tm-incline" data-step="-1" class="stepper-btn w-12 h-10 rounded-xl font-black text-amber-400 text-xs">-1</button>
+                                <input type="number" id="input-tm-incline" min="0.0" max="25.0" step="0.5" value="1.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                                <button type="button" data-step-target="input-tm-incline" data-step="1" class="stepper-btn w-12 h-10 rounded-xl font-black text-emerald-400 text-xs">+1</button>
                             </div>
                         </div>
 
@@ -427,15 +407,14 @@
                             <div class="flex justify-between items-center text-xs mb-1">
                                 <label for="input-tm-duration" class="text-slate-300 font-medium">المدة (بالدقائق):</label>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="input-tm-duration" min="1" max="180" step="1" value="20" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
-                                <div class="flex-1">
-                                    <input type="range" id="slider-tm-duration" aria-label="شريط تحديد المدة" min="1" max="120" step="1" value="20" class="w-full">
-                                </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-tm-duration" data-step="-5" class="stepper-btn w-12 h-10 rounded-xl font-black text-amber-400 text-xs">-5</button>
+                                <input type="number" id="input-tm-duration" min="1" max="180" step="1" value="20" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                                <button type="button" data-step-target="input-tm-duration" data-step="5" class="stepper-btn w-12 h-10 rounded-xl font-black text-emerald-400 text-xs">+5</button>
                             </div>
                         </div>
 
-                        <button id="btn-save-treadmill" aria-label="حفظ تمرين سير المشي" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg neon-glow-cyan flex items-center justify-center gap-2">
+                        <button id="btn-save-treadmill" aria-label="حفظ تمرين سير المشي" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg neon-glow-cyan flex items-center justify-center gap-2">
                             <span>حفظ التمرين 🏃</span>
                         </button>
                     </div>
@@ -446,11 +425,10 @@
                             <div class="flex justify-between items-center text-xs mb-1">
                                 <label for="input-be-level" class="text-slate-300 font-medium">مستوى الجهد (Level):</label>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="input-be-level" min="1.0" max="30.0" step="0.5" value="5.0" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
-                                <div class="flex-1">
-                                    <input type="range" id="slider-be-level" aria-label="شريط تحديد مستوى الجهد" min="1.0" max="25.0" step="0.5" value="5.0" class="w-full">
-                                </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-be-level" data-step="-1" class="stepper-btn w-12 h-10 rounded-xl font-black text-amber-400 text-xs">-1</button>
+                                <input type="number" id="input-be-level" min="1.0" max="30.0" step="0.5" value="5.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                                <button type="button" data-step-target="input-be-level" data-step="1" class="stepper-btn w-12 h-10 rounded-xl font-black text-emerald-400 text-xs">+1</button>
                             </div>
                         </div>
 
@@ -458,15 +436,14 @@
                             <div class="flex justify-between items-center text-xs mb-1">
                                 <label for="input-be-duration" class="text-slate-300 font-medium">المدة (بالدقائق):</label>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <input type="number" id="input-be-duration" min="1" max="180" step="1" value="15" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
-                                <div class="flex-1">
-                                    <input type="range" id="slider-be-duration" aria-label="شريط تحديد المدة بالدقائق" min="1" max="120" step="1" value="15" class="w-full">
-                                </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-be-duration" data-step="-5" class="stepper-btn w-12 h-10 rounded-xl font-black text-amber-400 text-xs">-5</button>
+                                <input type="number" id="input-be-duration" min="1" max="180" step="1" value="15" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                                <button type="button" data-step-target="input-be-duration" data-step="5" class="stepper-btn w-12 h-10 rounded-xl font-black text-emerald-400 text-xs">+5</button>
                             </div>
                         </div>
 
-                        <button id="btn-save-bike" aria-label="حفظ تمرين الدراجة أو الأوربتراك" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg neon-glow-cyan flex items-center justify-center gap-2">
+                        <button id="btn-save-bike" aria-label="حفظ تمرين الدراجة أو الأوربتراك" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg neon-glow-cyan flex items-center justify-center gap-2">
                             <span>حفظ التمرين 🚴</span>
                         </button>
                     </div>
@@ -485,6 +462,12 @@
                 </div>
 
                 <div id="today-logs-container" class="space-y-2">
+                </div>
+
+                <div id="lazy-logs-load-more" class="hidden text-center pt-2">
+                    <button id="btn-load-more-logs" class="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-cyan-300">
+                        عرض باقي الجولات 🔽
+                    </button>
                 </div>
             </div>
 
@@ -796,12 +779,11 @@
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 space-y-2 pointer-events-none w-full max-w-xs px-4"></div>
 
-    <!-- Application JavaScript Logic encapsulated in IIFE for Security and Performance -->
+    <!-- Application JavaScript Logic -->
     <script>
     (function () {
         'use strict';
 
-        // --- UTILITY: HTML ESCAPE FUNCTION TO PREVENT XSS THREATS ---
         function escapeHTML(str) {
             if (typeof str !== 'string') return '';
             return str.replace(/[&<>"']/g, function(m) {
@@ -928,10 +910,20 @@
         let activeWeightUnit = 'kg';
         let activeSetType = 'normal';
         let lastPerfData = null;
+        let logsRenderLimit = 15;
 
         function sanitizeString(str, maxLen = 50) {
             if (typeof str !== 'string') return '';
             return str.replace(/[<>"'&]/g, '').trim().substring(0, maxLen);
+        }
+
+        // --- STRICT FORM VALIDATION & CLAMPING HELPER ---
+        function validateAndClamp(rawVal, min, max, defaultVal) {
+            let num = Math.abs(parseFloat(rawVal));
+            if (isNaN(num)) return defaultVal;
+            if (num < min) return min;
+            if (num > max) return max;
+            return num;
         }
 
         function isLocalStorageAvailable() {
@@ -1244,11 +1236,9 @@
             
             const wVal = lastPerfData.displayWeight || lastPerfData.weight;
             document.getElementById('input-weight').value = wVal;
-            document.getElementById('slider-weight').value = wVal;
             updateWeightConvertedDisplay();
 
             document.getElementById('input-reps').value = lastPerfData.reps;
-            document.getElementById('slider-reps').value = lastPerfData.reps;
             document.getElementById('val-reps-display').textContent = lastPerfData.reps;
 
             showToast('تم نسخ وزن وعدات الأداء السابق 📋');
@@ -1257,10 +1247,10 @@
         function setSetType(type, btnEl) {
             activeSetType = type;
             document.querySelectorAll('.set-type-btn').forEach(btn => {
-                btn.className = "set-type-btn py-1.5 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200";
+                btn.className = "set-type-btn py-2 rounded-lg border bg-slate-900 text-slate-400 border-slate-800 text-center transition hover:text-slate-200";
             });
             if (btnEl) {
-                btnEl.className = "set-type-btn active py-1.5 rounded-lg border bg-cyan-950 text-cyan-300 border-cyan-700 text-center transition";
+                btnEl.className = "set-type-btn active py-2 rounded-lg border bg-cyan-950 text-cyan-300 border-cyan-700 text-center transition";
             }
         }
 
@@ -1268,7 +1258,6 @@
             if (activeWeightUnit === unit) return;
 
             const inputWeight = document.getElementById('input-weight');
-            const sliderWeight = document.getElementById('slider-weight');
             const currentVal = parseFloat(inputWeight.value) || 0;
 
             activeWeightUnit = unit;
@@ -1279,35 +1268,38 @@
             if (unit === 'kg') {
                 kgBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all";
                 lbsBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all";
-
-                const newValKg = Math.round((currentVal / 2.20462) * 2) / 2;
-                sliderWeight.min = "0"; sliderWeight.max = "300"; sliderWeight.step = "0.5";
-                inputWeight.value = newValKg; sliderWeight.value = newValKg;
+                inputWeight.value = Math.round((currentVal / 2.20462) * 2) / 2;
             } else {
                 lbsBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all";
                 kgBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all";
-
-                const newValLbs = Math.round(currentVal * 2.20462);
-                sliderWeight.min = "0"; sliderWeight.max = "660"; sliderWeight.step = "1";
-                inputWeight.value = newValLbs; sliderWeight.value = newValLbs;
+                inputWeight.value = Math.round(currentVal * 2.20462);
             }
 
             updateWeightConvertedDisplay();
         }
 
-        function syncWeightFromSlider(val) {
-            document.getElementById('input-weight').value = val;
-            updateWeightConvertedDisplay();
-        }
+        function handleStepperClick(targetInputId, stepDelta) {
+            const input = document.getElementById(targetInputId);
+            if (!input) return;
 
-        function syncWeightFromInput(val) {
-            const num = parseFloat(val) || 0;
-            document.getElementById('slider-weight').value = num;
-            updateWeightConvertedDisplay();
+            let min = parseFloat(input.min) || 0;
+            let max = parseFloat(input.max) || 999;
+            let current = parseFloat(input.value) || 0;
+
+            let updated = current + stepDelta;
+            updated = validateAndClamp(updated, min, max, current);
+
+            input.value = updated;
+
+            if (targetInputId === 'input-weight') updateWeightConvertedDisplay();
+            else if (targetInputId === 'input-reps') document.getElementById('val-reps-display').textContent = updated;
         }
 
         function updateWeightConvertedDisplay() {
-            const val = parseFloat(document.getElementById('input-weight').value) || 0;
+            const inputWeight = document.getElementById('input-weight');
+            const val = validateAndClamp(inputWeight.value, 0, 500, 0);
+            inputWeight.value = val;
+            
             const convertedSpan = document.getElementById('val-weight-converted');
 
             if (activeWeightUnit === 'kg') {
@@ -1319,36 +1311,14 @@
             }
         }
 
-        function syncRepsFromSlider(val) {
-            document.getElementById('input-reps').value = val;
-            document.getElementById('val-reps-display').textContent = val;
-        }
-
-        function syncRepsFromInput(val) {
-            const num = parseInt(val) || 1;
-            document.getElementById('slider-reps').value = num;
-            document.getElementById('val-reps-display').textContent = num;
-        }
-
-        function syncTmSpeedFromSlider(val) { document.getElementById('input-tm-speed').value = val; }
-        function syncTmSpeedFromInput(val) { document.getElementById('slider-tm-speed').value = val; }
-        function syncTmInclineFromSlider(val) { document.getElementById('input-tm-incline').value = val; }
-        function syncTmInclineFromInput(val) { document.getElementById('slider-tm-incline').value = val; }
-        function syncTmDurationFromSlider(val) { document.getElementById('input-tm-duration').value = val; }
-        function syncTmDurationFromInput(val) { document.getElementById('slider-tm-duration').value = val; }
-        function syncBeLevelFromSlider(val) { document.getElementById('input-be-level').value = val; }
-        function syncBeLevelFromInput(val) { document.getElementById('slider-be-level').value = val; }
-        function syncBeDurationFromSlider(val) { document.getElementById('input-be-duration').value = val; }
-        function syncBeDurationFromInput(val) { document.getElementById('slider-be-duration').value = val; }
-
         function saveSet() {
             const dropdown = document.getElementById('exercise-dropdown');
             const exId = dropdown.value;
             const ex = state.exercises.find(e => e.id === exId);
             if (!ex) return;
 
-            const rawWeight = parseFloat(document.getElementById('input-weight').value) || 0;
-            const reps = parseInt(document.getElementById('input-reps').value) || 1;
+            const rawWeight = validateAndClamp(document.getElementById('input-weight').value, 0, 500, 0);
+            const reps = validateAndClamp(document.getElementById('input-reps').value, 1, 150, 10);
 
             let weightInKg = rawWeight;
             if (activeWeightUnit === 'lbs') {
@@ -1405,16 +1375,16 @@
             };
 
             if (cardioType === 'treadmill') {
-                const speed = parseFloat(document.getElementById('input-tm-speed').value) || 6.0;
-                const incline = parseFloat(document.getElementById('input-tm-incline').value) || 0.0;
-                const duration = parseFloat(document.getElementById('input-tm-duration').value) || 15;
+                const speed = validateAndClamp(document.getElementById('input-tm-speed').value, 1, 25, 8.0);
+                const incline = validateAndClamp(document.getElementById('input-tm-incline').value, 0, 25, 1.0);
+                const duration = validateAndClamp(document.getElementById('input-tm-duration').value, 1, 180, 20);
 
                 calories = calculateCalories('treadmill', { speed, incline, duration });
                 logData = { ...logData, speed, incline, duration, calories };
 
             } else {
-                const level = parseFloat(document.getElementById('input-be-level').value) || 5.0;
-                const duration = parseFloat(document.getElementById('input-be-duration').value) || 15;
+                const level = validateAndClamp(document.getElementById('input-be-level').value, 1, 30, 5.0);
+                const duration = validateAndClamp(document.getElementById('input-be-duration').value, 1, 180, 15);
 
                 calories = calculateCalories('bike_elliptical', { level, duration });
                 logData = { ...logData, level, duration, calories };
@@ -1446,9 +1416,10 @@
             });
         }
 
-        // --- OPTIMIZED LIST RENDERERS WITH DOCUMENT FRAGMENTS TO PREVENT DOM THRASHING ---
+        // --- OPTIMIZED LAZY-PAGINATED LOGS RENDERER ---
         function renderTodayLogs() {
             const container = document.getElementById('today-logs-container');
+            const loadMoreWrapper = document.getElementById('lazy-logs-load-more');
             const today = new Date().toISOString().split('T')[0];
             const todayLogs = state.logs.filter(l => l.date === today).reverse();
 
@@ -1460,11 +1431,20 @@
                         لا توجد جولات مسجلة اليوم حتى الآن. ابدأ بتسجيل جولتك الأولى! 💪
                     </div>
                 `;
+                loadMoreWrapper.classList.add('hidden');
                 return;
             }
 
+            const visibleLogs = todayLogs.slice(0, logsRenderLimit);
+
+            if (todayLogs.length > logsRenderLimit) {
+                loadMoreWrapper.classList.remove('hidden');
+            } else {
+                loadMoreWrapper.classList.add('hidden');
+            }
+
             const fragment = document.createDocumentFragment();
-            todayLogs.forEach(log => {
+            visibleLogs.forEach(log => {
                 const item = document.createElement('div');
                 item.className = 'glass-card p-3 flex justify-between items-center border border-slate-800 hover:border-slate-700 transition';
                 
@@ -1818,13 +1798,13 @@
 
         function saveProfile() {
             const name = sanitizeString(document.getElementById('prof-name').value, 40);
-            const weight = Math.abs(parseFloat(document.getElementById('prof-weight').value)) || '';
-            const height = Math.abs(parseFloat(document.getElementById('prof-height').value)) || '';
-            const waist = Math.abs(parseFloat(document.getElementById('prof-waist').value)) || '';
-            const age = Math.abs(parseInt(document.getElementById('prof-age').value)) || '';
-            const fat = Math.abs(parseFloat(document.getElementById('prof-fat').value)) || '';
-            const muscle = Math.abs(parseFloat(document.getElementById('prof-muscle').value)) || '';
-            const water = Math.abs(parseFloat(document.getElementById('prof-water').value)) || '';
+            const weight = validateAndClamp(document.getElementById('prof-weight').value, 20, 350, '');
+            const height = validateAndClamp(document.getElementById('prof-height').value, 50, 250, '');
+            const waist = validateAndClamp(document.getElementById('prof-waist').value, 30, 250, '');
+            const age = validateAndClamp(document.getElementById('prof-age').value, 5, 120, '');
+            const fat = validateAndClamp(document.getElementById('prof-fat').value, 1, 70, '');
+            const muscle = validateAndClamp(document.getElementById('prof-muscle').value, 1, 80, '');
+            const water = validateAndClamp(document.getElementById('prof-water').value, 1, 90, '');
 
             state.profile.name = name;
             state.profile.weight = weight;
@@ -2084,7 +2064,6 @@
             showToast('تم تحميل ملف النسخة الاحتياطية 📁');
         }
 
-        // --- DEEP JSON SCHEMA VALIDATION FOR IMPORT SECURITY ---
         function isValidJSONBackup(parsed) {
             if (!parsed || typeof parsed !== 'object') return false;
             if (!parsed.profile || typeof parsed.profile !== 'object') return false;
@@ -2230,14 +2209,22 @@
             setTimeout(() => { toast.remove(); }, 2500);
         }
 
-        // --- CENTRALIZED EVENT LISTENERS SETUP (NO INLINE JS EVENT HANDLERS) ---
+        // --- CENTRALIZED EVENT LISTENERS SETUP ---
         function initEventListeners() {
+            // Global Steppers Delegation
+            document.body.addEventListener('click', function(e) {
+                const stepperBtn = e.target.closest('[data-step-target]');
+                if (stepperBtn) {
+                    const targetId = stepperBtn.dataset.stepTarget;
+                    const stepDelta = parseFloat(stepperBtn.dataset.step) || 0;
+                    handleStepperClick(targetId, stepDelta);
+                }
+            });
+
             // Navigation Dock
             document.getElementById('floating-dock').addEventListener('click', function (e) {
                 const btn = e.target.closest('[data-tab]');
-                if (btn) {
-                    switchTab(btn.dataset.tab);
-                }
+                if (btn) switchTab(btn.dataset.tab);
             });
 
             // Split Buttons
@@ -2247,17 +2234,13 @@
             // Dynamic Category Filter Tabs Event Delegation
             document.getElementById('category-tabs-container').addEventListener('click', function (e) {
                 const btn = e.target.closest('.cat-btn');
-                if (btn && btn.dataset.cat) {
-                    setWorkoutCategoryFilter(btn.dataset.cat, btn);
-                }
+                if (btn && btn.dataset.cat) setWorkoutCategoryFilter(btn.dataset.cat, btn);
             });
 
             // Equipment Filters Event Delegation
             document.getElementById('equip-filters-container').addEventListener('click', function (e) {
                 const btn = e.target.closest('.equip-btn');
-                if (btn && btn.dataset.equip) {
-                    setEquipFilter(btn.dataset.equip, btn);
-                }
+                if (btn && btn.dataset.equip) setEquipFilter(btn.dataset.equip, btn);
             });
 
             // Search & Exercise Select
@@ -2269,19 +2252,18 @@
             document.getElementById('unit-btn-kg').addEventListener('click', function () { setWeightUnit('kg'); });
             document.getElementById('unit-btn-lbs').addEventListener('click', function () { setWeightUnit('lbs'); });
 
-            // Inputs & Sliders Sync
-            document.getElementById('slider-weight').addEventListener('input', function () { syncWeightFromSlider(this.value); });
-            document.getElementById('input-weight').addEventListener('input', function () { syncWeightFromInput(this.value); });
-
-            document.getElementById('slider-reps').addEventListener('input', function () { syncRepsFromSlider(this.value); });
-            document.getElementById('input-reps').addEventListener('input', function () { syncRepsFromInput(this.value); });
+            // Direct Inputs Validation Sync
+            document.getElementById('input-weight').addEventListener('change', updateWeightConvertedDisplay);
+            document.getElementById('input-reps').addEventListener('change', function() {
+                const val = validateAndClamp(this.value, 1, 150, 10);
+                this.value = val;
+                document.getElementById('val-reps-display').textContent = val;
+            });
 
             // Set Type Buttons Event Delegation
             document.getElementById('set-type-container').addEventListener('click', function (e) {
                 const btn = e.target.closest('.set-type-btn');
-                if (btn && btn.dataset.settype) {
-                    setSetType(btn.dataset.settype, btn);
-                }
+                if (btn && btn.dataset.settype) setSetType(btn.dataset.settype, btn);
             });
 
             // Save Buttons
@@ -2289,39 +2271,25 @@
             document.getElementById('btn-save-treadmill').addEventListener('click', function () { saveCardioSet('treadmill'); });
             document.getElementById('btn-save-bike').addEventListener('click', function () { saveCardioSet('bike_elliptical'); });
 
-            // Cardio Sliders & Inputs Sync
-            document.getElementById('slider-tm-speed').addEventListener('input', function () { syncTmSpeedFromSlider(this.value); });
-            document.getElementById('input-tm-speed').addEventListener('input', function () { syncTmSpeedFromInput(this.value); });
-
-            document.getElementById('slider-tm-incline').addEventListener('input', function () { syncTmInclineFromSlider(this.value); });
-            document.getElementById('input-tm-incline').addEventListener('input', function () { syncTmInclineFromInput(this.value); });
-
-            document.getElementById('slider-tm-duration').addEventListener('input', function () { syncTmDurationFromSlider(this.value); });
-            document.getElementById('input-tm-duration').addEventListener('input', function () { syncTmDurationFromInput(this.value); });
-
-            document.getElementById('slider-be-level').addEventListener('input', function () { syncBeLevelFromSlider(this.value); });
-            document.getElementById('input-be-level').addEventListener('input', function () { syncBeLevelFromInput(this.value); });
-
-            document.getElementById('slider-be-duration').addEventListener('input', function () { syncBeDurationFromSlider(this.value); });
-            document.getElementById('input-be-duration').addEventListener('input', function () { syncBeDurationFromInput(this.value); });
-
             // Rest Timer
             document.getElementById('btn-stop-timer').addEventListener('click', stopRestTimer);
 
-            // Today Logs Container Delegation (Delete Action)
+            // Lazy Load More Logs Button
+            document.getElementById('btn-load-more-logs').addEventListener('click', function() {
+                logsRenderLimit += 15;
+                renderTodayLogs();
+            });
+
+            // Today Logs Delegation (Delete Action)
             document.getElementById('today-logs-container').addEventListener('click', function (e) {
                 const deleteBtn = e.target.closest('[data-action="delete-log"]');
-                if (deleteBtn && deleteBtn.dataset.id) {
-                    deleteLogItem(deleteBtn.dataset.id);
-                }
+                if (deleteBtn && deleteBtn.dataset.id) deleteLogItem(deleteBtn.dataset.id);
             });
 
             // Manage Custom Exercises Delegation (Delete Action)
             document.getElementById('manage-exercises-list').addEventListener('click', function (e) {
                 const deleteBtn = e.target.closest('[data-action="delete-custom-ex"]');
-                if (deleteBtn && deleteBtn.dataset.id) {
-                    deleteExercise(deleteBtn.dataset.id);
-                }
+                if (deleteBtn && deleteBtn.dataset.id) deleteExercise(deleteBtn.dataset.id);
             });
 
             // New Exercise Input & Submit
@@ -2340,6 +2308,15 @@
             document.getElementById('btn-wipe-all-data').addEventListener('click', confirmWipeAllData);
         }
 
+        // Service Worker Registration for PWA Offline Functionality
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(() => console.log('PWA Service Worker Registered Successfully'))
+                    .catch((err) => console.warn('PWA Service Worker Registration Failed:', err));
+            }
+        }
+
         // Initialization
         window.addEventListener('DOMContentLoaded', () => {
             loadState();
@@ -2350,6 +2327,7 @@
             updateTopHeaderStats();
             renderProfileUI();
             updateWeightConvertedDisplay();
+            registerServiceWorker();
         });
 
     })();
