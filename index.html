@@ -118,8 +118,8 @@
             -webkit-appearance: none;
             appearance: none;
             background: rgba(30, 41, 59, 0.8);
-            height: 10px;
-            border-radius: 5px;
+            height: 8px;
+            border-radius: 4px;
             outline: none;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
@@ -127,8 +127,8 @@
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
             background: linear-gradient(135deg, #00f2fe, #4facfe);
             cursor: pointer;
@@ -138,6 +138,16 @@
 
         input[type="range"]::-webkit-slider-thumb:active {
             transform: scale(1.2);
+        }
+
+        /* Chrome, Safari, Edge, Opera: hide number input arrows for cleaner look */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
         }
 
         .floating-dock {
@@ -264,7 +274,6 @@
 
             <!-- Dynamic Category Filter Tabs -->
             <div id="category-tabs-container" class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                <!-- Rendered dynamically via JavaScript based on currentSplit -->
             </div>
 
             <!-- Equipment Type Filters (فلاتر أدوات التمرين) -->
@@ -300,7 +309,6 @@
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
                         <label class="text-xs font-bold text-cyan-300">اختر التمرين:</label>
-                        <!-- Equipment Clarification Label (نوع الأداة) -->
                         <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">
                             أوزان حرة (بار) 🏋️‍♂️
                         </span>
@@ -309,7 +317,7 @@
                     <!-- Search Input -->
                     <div class="relative">
                         <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-slate-400 text-xs"></i>
-                        <input type="text" id="exercise-search-input" oninput="filterExerciseDropdown()" placeholder="بحث سريع عن تمرين..." class="w-full glass-input pr-8 pl-3 py-2 rounded-xl text-xs">
+                        <input type="text" id="exercise-search-input" maxlength="50" oninput="filterExerciseDropdown()" placeholder="بحث سريع عن تمرين..." class="w-full glass-input pr-8 pl-3 py-2 rounded-xl text-xs">
                     </div>
 
                     <!-- Dropdown -->
@@ -324,20 +332,42 @@
                     
                     <!-- Form 1: Resistance / Weights -->
                     <div id="form-weights" class="space-y-4">
-                        <div>
-                            <div class="flex justify-between items-center text-xs mb-1">
+                        <!-- Weight Selection & Unit Toggle -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-xs">
                                 <span class="text-slate-300 font-medium">الوزن المرفوع:</span>
-                                <span class="text-cyan-400 font-black text-sm"><span id="val-weight">50</span> كجم</span>
+                                <div class="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+                                    <button type="button" id="unit-btn-kg" onclick="setWeightUnit('kg')" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all">كجم (kg)</button>
+                                    <button type="button" id="unit-btn-lbs" onclick="setWeightUnit('lbs')" class="px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all">باوند (lbs)</button>
+                                </div>
                             </div>
-                            <input type="range" id="slider-weight" min="0" max="250" step="2.5" value="50" oninput="document.getElementById('val-weight').innerText = this.value" class="w-full">
+
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-weight" min="0" max="300" step="0.5" value="50" oninput="syncWeightFromInput(this.value)" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400 border border-cyan-500/30">
+                                <div class="flex-1">
+                                    <input type="range" id="slider-weight" min="0" max="300" step="0.5" value="50" oninput="syncWeightFromSlider(this.value)" class="w-full">
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between items-center text-[11px] text-slate-400 px-1 pt-0.5">
+                                <span>المعادل بالوحدة الأخرى:</span>
+                                <span id="val-weight-converted" class="font-bold text-cyan-300">110.2 باوند</span>
+                            </div>
                         </div>
 
-                        <div>
-                            <div class="flex justify-between items-center text-xs mb-1">
+                        <!-- Reps Selection -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center text-xs">
                                 <span class="text-slate-300 font-medium">عدد العدات:</span>
-                                <span class="text-cyan-400 font-black text-sm"><span id="val-reps">10</span> عدات</span>
+                                <span class="text-cyan-400 font-bold text-xs"><span id="val-reps-display">10</span> عدات</span>
                             </div>
-                            <input type="range" id="slider-reps" min="1" max="45" step="1" value="10" oninput="document.getElementById('val-reps').innerText = this.value" class="w-full">
+
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-reps" min="1" max="100" step="1" value="10" oninput="syncRepsFromInput(this.value)" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400 border border-cyan-500/30">
+                                <div class="flex-1">
+                                    <input type="range" id="slider-reps" min="1" max="50" step="1" value="10" oninput="syncRepsFromSlider(this.value)" class="w-full">
+                                </div>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-2 gap-3 pt-2">
@@ -354,26 +384,38 @@
                     <div id="form-treadmill" class="hidden space-y-4">
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
-                                <span class="text-slate-300 font-medium">السرعة:</span>
-                                <span class="text-cyan-400 font-black text-sm"><span id="val-tm-speed">8.0</span> كم/س</span>
+                                <span class="text-slate-300 font-medium">السرعة (كم/س):</span>
                             </div>
-                            <input type="range" id="slider-tm-speed" min="1.0" max="22.0" step="0.1" value="8.0" oninput="document.getElementById('val-tm-speed').innerText = parseFloat(this.value).toFixed(1)" class="w-full">
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-tm-speed" min="1.0" max="25.0" step="0.1" value="8.0" oninput="syncTmSpeedFromInput(this.value)" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
+                                <div class="flex-1">
+                                    <input type="range" id="slider-tm-speed" min="1.0" max="22.0" step="0.1" value="8.0" oninput="syncTmSpeedFromSlider(this.value)" class="w-full">
+                                </div>
+                            </div>
                         </div>
 
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
                                 <span class="text-slate-300 font-medium">مستوى الارتفاع (Incline):</span>
-                                <span class="text-cyan-400 font-black text-sm"><span id="val-tm-incline">1.0</span></span>
                             </div>
-                            <input type="range" id="slider-tm-incline" min="0.0" max="20.0" step="0.1" value="1.0" oninput="document.getElementById('val-tm-incline').innerText = parseFloat(this.value).toFixed(1)" class="w-full">
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-tm-incline" min="0.0" max="25.0" step="0.5" value="1.0" oninput="syncTmInclineFromInput(this.value)" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
+                                <div class="flex-1">
+                                    <input type="range" id="slider-tm-incline" min="0.0" max="20.0" step="0.5" value="1.0" oninput="syncTmInclineFromSlider(this.value)" class="w-full">
+                                </div>
+                            </div>
                         </div>
 
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
-                                <span class="text-slate-300 font-medium">المدة:</span>
-                                <span class="text-cyan-400 font-black text-sm"><span id="val-tm-duration">20</span> دقيقة</span>
+                                <span class="text-slate-300 font-medium">المدة (بالدقائق):</span>
                             </div>
-                            <input type="range" id="slider-tm-duration" min="1" max="120" step="1" value="20" oninput="document.getElementById('val-tm-duration').innerText = this.value" class="w-full">
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-tm-duration" min="1" max="180" step="1" value="20" oninput="syncTmDurationFromInput(this.value)" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
+                                <div class="flex-1">
+                                    <input type="range" id="slider-tm-duration" min="1" max="120" step="1" value="20" oninput="syncTmDurationFromSlider(this.value)" class="w-full">
+                                </div>
+                            </div>
                         </div>
 
                         <button onclick="saveCardioSet('treadmill')" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg neon-glow-cyan flex items-center justify-center gap-2">
@@ -386,17 +428,25 @@
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
                                 <span class="text-slate-300 font-medium">مستوى الجهد (Level):</span>
-                                <span class="text-cyan-400 font-black text-sm"><span id="val-be-level">5.0</span></span>
                             </div>
-                            <input type="range" id="slider-be-level" min="1.0" max="25.0" step="0.1" value="5.0" oninput="document.getElementById('val-be-level').innerText = parseFloat(this.value).toFixed(1)" class="w-full">
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-be-level" min="1.0" max="30.0" step="0.5" value="5.0" oninput="syncBeLevelFromInput(this.value)" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
+                                <div class="flex-1">
+                                    <input type="range" id="slider-be-level" min="1.0" max="25.0" step="0.5" value="5.0" oninput="syncBeLevelFromSlider(this.value)" class="w-full">
+                                </div>
+                            </div>
                         </div>
 
                         <div>
                             <div class="flex justify-between items-center text-xs mb-1">
-                                <span class="text-slate-300 font-medium">المدة:</span>
-                                <span class="text-cyan-400 font-black text-sm"><span id="val-be-duration">15</span> دقيقة</span>
+                                <span class="text-slate-300 font-medium">المدة (بالدقائق):</span>
                             </div>
-                            <input type="range" id="slider-be-duration" min="1" max="120" step="1" value="15" oninput="document.getElementById('val-be-duration').innerText = this.value" class="w-full">
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="input-be-duration" min="1" max="180" step="1" value="15" oninput="syncBeDurationFromInput(this.value)" class="w-24 glass-input text-center py-2 rounded-xl text-sm font-bold text-cyan-400">
+                                <div class="flex-1">
+                                    <input type="range" id="slider-be-duration" min="1" max="120" step="1" value="15" oninput="syncBeDurationFromSlider(this.value)" class="w-full">
+                                </div>
+                            </div>
                         </div>
 
                         <button onclick="saveCardioSet('bike_elliptical')" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg neon-glow-cyan flex items-center justify-center gap-2">
@@ -441,7 +491,7 @@
                 <div class="space-y-3 pt-2">
                     <div>
                         <label class="block text-xs text-slate-400 mb-1">اسم التمرين المخصص:</label>
-                        <input type="text" id="new-ex-name" placeholder="مثال: ضغط صدور دمبل زاوية حادة" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
+                        <input type="text" id="new-ex-name" maxlength="60" placeholder="مثال: ضغط صدور دمبل زاوية حادة" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -587,27 +637,27 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="col-span-2">
                         <label class="block text-[11px] text-slate-400 mb-1">الاسم الأول:</label>
-                        <input type="text" id="prof-name" placeholder="مثال: أحمد" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                        <input type="text" id="prof-name" maxlength="40" placeholder="مثال: أحمد" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
                     </div>
 
                     <div>
                         <label class="block text-[11px] text-slate-400 mb-1">الوزن (كجم):</label>
-                        <input type="number" id="prof-weight" placeholder="مثال: 75" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                        <input type="number" id="prof-weight" min="20" max="350" step="0.1" placeholder="مثال: 75" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
                     </div>
 
                     <div>
                         <label class="block text-[11px] text-slate-400 mb-1">الطول (سم):</label>
-                        <input type="number" id="prof-height" placeholder="مثال: 175" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                        <input type="number" id="prof-height" min="50" max="250" step="1" placeholder="مثال: 175" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
                     </div>
 
                     <div>
                         <label class="block text-[11px] text-slate-400 mb-1">محيط البطن/الخصر (سم):</label>
-                        <input type="number" id="prof-waist" placeholder="مثال: 80" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                        <input type="number" id="prof-waist" min="30" max="250" step="0.5" placeholder="مثال: 80" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
                     </div>
 
                     <div>
                         <label class="block text-[11px] text-slate-400 mb-1">العمر:</label>
-                        <input type="number" id="prof-age" placeholder="مثال: 25" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                        <input type="number" id="prof-age" min="5" max="120" step="1" placeholder="مثال: 25" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
                     </div>
                 </div>
 
@@ -617,15 +667,15 @@
                     <div class="grid grid-cols-3 gap-2">
                         <div>
                             <label class="block text-[10px] text-slate-500 mb-1">الدهون %:</label>
-                            <input type="number" id="prof-fat" placeholder="18" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                            <input type="number" id="prof-fat" min="1" max="70" step="0.1" placeholder="18" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
                         </div>
                         <div>
                             <label class="block text-[10px] text-slate-500 mb-1">العضلات %:</label>
-                            <input type="number" id="prof-muscle" placeholder="42" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                            <input type="number" id="prof-muscle" min="1" max="80" step="0.1" placeholder="42" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
                         </div>
                         <div>
                             <label class="block text-[10px] text-slate-500 mb-1">السوائل %:</label>
-                            <input type="number" id="prof-water" placeholder="55" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                            <input type="number" id="prof-water" min="1" max="90" step="0.1" placeholder="55" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
                         </div>
                     </div>
                 </div>
@@ -686,7 +736,7 @@
         </div>
     </div>
 
-    <!-- Floating Dock Navigation (5 Tab Navigation Dock) -->
+    <!-- Floating Dock Navigation -->
     <nav class="floating-dock px-2 py-2">
         <div class="flex justify-around items-center">
             
@@ -861,6 +911,15 @@
         let currentSplit = 'ppl'; // 'ppl' or 'upper_lower'
         let currentFilterCat = 'all';
         let currentFilterEquip = 'all';
+        let activeWeightUnit = 'kg'; // 'kg' or 'lbs'
+
+        function sanitizeInput(str, maxLen = 50) {
+            if (typeof str !== 'string') return '';
+            return str
+                .replace(/[<>"'&]/g, '')
+                .trim()
+                .substring(0, maxLen);
+        }
 
         function isLocalStorageAvailable() {
             try {
@@ -889,7 +948,6 @@
                 if (savedExercises) {
                     state.exercises = JSON.parse(savedExercises);
                     
-                    // Deduplicate existing saved exercises by name
                     const uniqueMap = new Map();
                     state.exercises.forEach(ex => {
                         const key = ex.name.trim().toLowerCase();
@@ -898,13 +956,11 @@
                         }
                     });
                     
-                    // Smart Sync missing default exercises & ensure equip field exists
                     DEFAULT_EXERCISES.forEach(defEx => {
                         const key = defEx.name.trim().toLowerCase();
                         if (!uniqueMap.has(key)) {
                             uniqueMap.set(key, defEx);
                         } else {
-                            // Update equip field if missing
                             const existing = uniqueMap.get(key);
                             if (!existing.equip) {
                                 existing.equip = defEx.equip;
@@ -944,9 +1000,8 @@
             let netCalories = 0;
 
             if (type === 'weights') {
-                const weight = parseFloat(data.weight) || 0;
+                const weight = parseFloat(data.weight) || 0; // weight in kg
                 const isFailure = data.isFailure;
-
                 const setDurationMins = 0.75;
                 
                 const intensityRatio = weight / Math.max(userWeight, 45);
@@ -991,6 +1046,7 @@
         function setSplitSystem(split) {
             currentSplit = split;
             currentFilterCat = 'all';
+            document.getElementById('exercise-search-input').value = '';
 
             const pplBtn = document.getElementById('split-btn-ppl');
             const ulBtn = document.getElementById('split-btn-ul');
@@ -1052,6 +1108,8 @@
 
         function setEquipFilter(equip, btnEl) {
             currentFilterEquip = equip;
+            document.getElementById('exercise-search-input').value = '';
+
             document.querySelectorAll('.equip-btn').forEach(btn => {
                 btn.className = "equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200";
             });
@@ -1063,11 +1121,10 @@
 
         function renderExerciseDropdown() {
             const dropdown = document.getElementById('exercise-dropdown');
-            const searchVal = document.getElementById('exercise-search-input').value.trim().toLowerCase();
+            const searchVal = sanitizeInput(document.getElementById('exercise-search-input').value, 50).toLowerCase();
 
             let filtered = state.exercises;
 
-            // Category Filter
             if (currentFilterCat !== 'all') {
                 if (currentFilterCat === 'upper') {
                     filtered = filtered.filter(e => e.category === 'push' || e.category === 'pull');
@@ -1078,12 +1135,10 @@
                 }
             }
 
-            // Equipment Filter
             if (currentFilterEquip !== 'all') {
                 filtered = filtered.filter(e => e.equip === currentFilterEquip);
             }
 
-            // Search Filter
             if (searchVal) {
                 filtered = filtered.filter(e => e.name.toLowerCase().includes(searchVal));
             }
@@ -1109,6 +1164,8 @@
 
         function setWorkoutCategoryFilter(cat, btnEl) {
             currentFilterCat = cat;
+            document.getElementById('exercise-search-input').value = '';
+
             document.querySelectorAll('.cat-btn').forEach(btn => {
                 btn.classList.remove('bg-gradient-to-r', 'from-cyan-500', 'to-blue-600', 'text-white', 'shadow-md');
                 btn.classList.add('bg-slate-800/80', 'text-slate-300');
@@ -1140,7 +1197,6 @@
                 return;
             }
 
-            // Update Equipment Badge Label
             equipBadge.innerText = EQUIP_NAMES[ex.equip] || (ex.category === 'cardio' ? 'كارديو بالجهاز 🏃‍♂️' : 'أوزان حرة 🏋️‍♂️');
 
             if (ex.type === 'weights') {
@@ -1152,16 +1208,113 @@
             }
         }
 
+        // --- WEIGHT UNIT TOGGLE & SLIDER/INPUT SYNCRONIZATION ENGINE ---
+        function setWeightUnit(unit) {
+            if (activeWeightUnit === unit) return;
+
+            const inputWeight = document.getElementById('input-weight');
+            const sliderWeight = document.getElementById('slider-weight');
+            const currentVal = parseFloat(inputWeight.value) || 0;
+
+            activeWeightUnit = unit;
+
+            const kgBtn = document.getElementById('unit-btn-kg');
+            const lbsBtn = document.getElementById('unit-btn-lbs');
+
+            if (unit === 'kg') {
+                kgBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all";
+                lbsBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all";
+
+                const newValKg = Math.round((currentVal / 2.20462) * 2) / 2;
+                sliderWeight.min = "0";
+                sliderWeight.max = "300";
+                sliderWeight.step = "0.5";
+                
+                inputWeight.value = newValKg;
+                sliderWeight.value = newValKg;
+            } else {
+                lbsBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all";
+                kgBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all";
+
+                const newValLbs = Math.round(currentVal * 2.20462);
+                sliderWeight.min = "0";
+                sliderWeight.max = "660";
+                sliderWeight.step = "1";
+
+                inputWeight.value = newValLbs;
+                sliderWeight.value = newValLbs;
+            }
+
+            updateWeightConvertedDisplay();
+        }
+
+        function syncWeightFromSlider(val) {
+            document.getElementById('input-weight').value = val;
+            updateWeightConvertedDisplay();
+        }
+
+        function syncWeightFromInput(val) {
+            const num = parseFloat(val) || 0;
+            document.getElementById('slider-weight').value = num;
+            updateWeightConvertedDisplay();
+        }
+
+        function updateWeightConvertedDisplay() {
+            const val = parseFloat(document.getElementById('input-weight').value) || 0;
+            const convertedSpan = document.getElementById('val-weight-converted');
+
+            if (activeWeightUnit === 'kg') {
+                const lbs = (val * 2.20462).toFixed(1);
+                convertedSpan.innerText = `${lbs} باوند (lbs)`;
+            } else {
+                const kg = (val / 2.20462).toFixed(1);
+                convertedSpan.innerText = `${kg} كجم (kg)`;
+            }
+        }
+
+        function syncRepsFromSlider(val) {
+            document.getElementById('input-reps').value = val;
+            document.getElementById('val-reps-display').innerText = val;
+        }
+
+        function syncRepsFromInput(val) {
+            const num = parseInt(val) || 1;
+            document.getElementById('slider-reps').value = num;
+            document.getElementById('val-reps-display').innerText = num;
+        }
+
+        // Cardio Sync Handlers
+        function syncTmSpeedFromSlider(val) { document.getElementById('input-tm-speed').value = val; }
+        function syncTmSpeedFromInput(val) { document.getElementById('slider-tm-speed').value = val; }
+
+        function syncTmInclineFromSlider(val) { document.getElementById('input-tm-incline').value = val; }
+        function syncTmInclineFromInput(val) { document.getElementById('slider-tm-incline').value = val; }
+
+        function syncTmDurationFromSlider(val) { document.getElementById('input-tm-duration').value = val; }
+        function syncTmDurationFromInput(val) { document.getElementById('slider-tm-duration').value = val; }
+
+        function syncBeLevelFromSlider(val) { document.getElementById('input-be-level').value = val; }
+        function syncBeLevelFromInput(val) { document.getElementById('slider-be-level').value = val; }
+
+        function syncBeDurationFromSlider(val) { document.getElementById('input-be-duration').value = val; }
+        function syncBeDurationFromInput(val) { document.getElementById('slider-be-duration').value = val; }
+
+
         function saveSet(isFailure) {
             const dropdown = document.getElementById('exercise-dropdown');
             const exId = dropdown.value;
             const ex = state.exercises.find(e => e.id === exId);
             if (!ex) return;
 
-            const weight = parseFloat(document.getElementById('slider-weight').value);
-            const reps = parseInt(document.getElementById('slider-reps').value);
+            const rawWeight = parseFloat(document.getElementById('input-weight').value) || 0;
+            const reps = parseInt(document.getElementById('input-reps').value) || 1;
 
-            const calories = calculateCalories('weights', { weight, reps, isFailure });
+            let weightInKg = rawWeight;
+            if (activeWeightUnit === 'lbs') {
+                weightInKg = Math.round((rawWeight / 2.20462) * 10) / 10;
+            }
+
+            const calories = calculateCalories('weights', { weight: weightInKg, reps, isFailure });
 
             const today = new Date().toISOString().split('T')[0];
             const logEntry = {
@@ -1172,7 +1325,9 @@
                 exerciseName: ex.name,
                 category: ex.category,
                 type: 'weights',
-                weight,
+                weight: weightInKg,
+                displayWeight: rawWeight,
+                unit: activeWeightUnit,
                 reps,
                 isFailure,
                 calories
@@ -1207,16 +1362,16 @@
             };
 
             if (cardioType === 'treadmill') {
-                const speed = parseFloat(document.getElementById('slider-tm-speed').value);
-                const incline = parseFloat(document.getElementById('slider-tm-incline').value);
-                const duration = parseFloat(document.getElementById('slider-tm-duration').value);
+                const speed = parseFloat(document.getElementById('input-tm-speed').value) || 6.0;
+                const incline = parseFloat(document.getElementById('input-tm-incline').value) || 0.0;
+                const duration = parseFloat(document.getElementById('input-tm-duration').value) || 15;
 
                 calories = calculateCalories('treadmill', { speed, incline, duration });
                 logData = { ...logData, speed, incline, duration, calories };
 
             } else {
-                const level = parseFloat(document.getElementById('slider-be-level').value);
-                const duration = parseFloat(document.getElementById('slider-be-duration').value);
+                const level = parseFloat(document.getElementById('input-be-level').value) || 5.0;
+                const duration = parseFloat(document.getElementById('input-be-duration').value) || 15;
 
                 calories = calculateCalories('bike_elliptical', { level, duration });
                 logData = { ...logData, level, duration, calories };
@@ -1266,7 +1421,9 @@
             todayLogs.forEach(log => {
                 let detailText = '';
                 if (log.type === 'weights') {
-                    detailText = `<span class="font-bold text-cyan-300">${log.weight} كجم</span> × <span class="font-bold text-cyan-300">${log.reps} عدات</span> ${log.isFailure ? '<span class="text-red-400 font-black px-1 rounded bg-red-950/80 border border-red-800/50">🔥 للفشل</span>' : ''}`;
+                    const unitLabel = log.unit === 'lbs' ? 'باوند' : 'كجم';
+                    const printWeight = log.displayWeight || log.weight;
+                    detailText = `<span class="font-bold text-cyan-300">${printWeight} ${unitLabel}</span> × <span class="font-bold text-cyan-300">${log.reps} عدات</span> ${log.isFailure ? '<span class="text-red-400 font-black px-1 rounded bg-red-950/80 border border-red-800/50">🔥 للفشل</span>' : ''}`;
                 } else if (log.type === 'treadmill') {
                     detailText = `سرعة: <span class="text-cyan-300 font-bold">${log.speed} كم/س</span> | ارتفاع: <span class="text-cyan-300 font-bold">${log.incline}</span> | <span class="text-cyan-300 font-bold">${log.duration} د</span>`;
                 } else if (log.type === 'bike_elliptical') {
@@ -1325,7 +1482,7 @@
         }
 
         function addNewExercise() {
-            const name = document.getElementById('new-ex-name').value.trim();
+            const name = sanitizeInput(document.getElementById('new-ex-name').value, 60);
             const category = document.getElementById('new-ex-cat').value;
             const equip = document.getElementById('new-ex-equip').value;
             const type = (category === 'cardio' || equip === 'cardio') ? 'bike_elliptical' : 'weights';
@@ -1373,7 +1530,6 @@
             const container = document.getElementById('manage-exercises-list');
             const countEl = document.getElementById('custom-ex-count');
 
-            // Show only user custom exercises
             const customExercises = state.exercises.filter(e => e.isCustom === true);
             countEl.innerText = `${customExercises.length} تمارِينَ`;
 
@@ -1401,14 +1557,12 @@
         function initProgressScreen() {
             const select = document.getElementById('chart-exercise-select');
             
-            // Get all exercise IDs that have logged data in state.logs
             const loggedExIds = new Set(
                 state.logs
                     .filter(l => l.type === 'weights')
                     .map(l => l.exerciseId)
             );
 
-            // Filter exercises to only show those with existing logs
             const weightExercisesWithLogs = state.exercises.filter(e => e.type === 'weights' && loggedExIds.has(e.id));
 
             select.innerHTML = '';
@@ -1541,14 +1695,14 @@
         }
 
         function saveProfile() {
-            const name = document.getElementById('prof-name').value.trim();
-            const weight = document.getElementById('prof-weight').value;
-            const height = document.getElementById('prof-height').value;
-            const waist = document.getElementById('prof-waist').value;
-            const age = document.getElementById('prof-age').value;
-            const fat = document.getElementById('prof-fat').value;
-            const muscle = document.getElementById('prof-muscle').value;
-            const water = document.getElementById('prof-water').value;
+            const name = sanitizeInput(document.getElementById('prof-name').value, 40);
+            const weight = Math.abs(parseFloat(document.getElementById('prof-weight').value)) || '';
+            const height = Math.abs(parseFloat(document.getElementById('prof-height').value)) || '';
+            const waist = Math.abs(parseFloat(document.getElementById('prof-waist').value)) || '';
+            const age = Math.abs(parseInt(document.getElementById('prof-age').value)) || '';
+            const fat = Math.abs(parseFloat(document.getElementById('prof-fat').value)) || '';
+            const muscle = Math.abs(parseFloat(document.getElementById('prof-muscle').value)) || '';
+            const water = Math.abs(parseFloat(document.getElementById('prof-water').value)) || '';
 
             state.profile.name = name;
             state.profile.weight = weight;
@@ -1589,7 +1743,6 @@
             renderProfileHistoryList();
         }
 
-        // --- ADVANCED SMART BENTO GRID ENGINE WITH DETAILED SCIENTIFIC GUIDANCE ---
         function createBentoCard(title, value, statusText, statusClass, valueColorClass, description) {
             return `
                 <div class="glass-card p-4 space-y-2.5 relative overflow-hidden flex flex-col justify-between hover:border-cyan-500/40 transition-all shadow-md">
@@ -1640,7 +1793,7 @@
 
             const heightM = height / 100;
 
-            // SECTION 1: Calorie Targets (Mifflin-St Jeor)
+            // SECTION 1: Calorie Targets
             let bmr = (10 * weight) + (6.25 * height) - (5 * age) + (isMan ? 5 : -161);
             const tdee = Math.round(bmr * 1.375);
             const calsMaintain = tdee;
@@ -1952,6 +2105,7 @@
             renderTodayLogs();
             updateTopHeaderStats();
             renderProfileUI();
+            updateWeightConvertedDisplay();
         });
     </script>
 </body>
