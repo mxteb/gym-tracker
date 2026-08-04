@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gym-tracker-v4';
+const CACHE_NAME = 'gym-tracker-v5';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -23,7 +23,7 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((keys) => {
+        caches.keys().keys().then((keys) => {
             return Promise.all(
                 keys.map((key) => {
                     if (key !== CACHE_NAME) return caches.delete(key);
