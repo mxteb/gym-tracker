@@ -621,7 +621,7 @@
     (function () {
         'use strict';
 
-        // --- INDEXEDDB STORAGE ENGINE ---
+        // --- DUAL-STORAGE ENGINE (IndexedDB + LocalStorage) ---
         const DB_NAME = 'GymTrackerDB';
         const DB_VERSION = 1;
         let dbInstance = null;
@@ -657,37 +657,75 @@
 
         function dbGetAll(storeName) {
             return new Promise((resolve) => {
-                if (!dbInstance) {
+                const getFromLS = () => {
                     try {
                         const ls = localStorage.getItem('gym_' + storeName);
-                        resolve(ls ? JSON.parse(ls) : []);
-                    } catch(e) { resolve([]); }
+                        return ls ? JSON.parse(ls) : [];
+                    } catch(e) { return []; }
+                };
+
+                if (!dbInstance) {
+                    resolve(getFromLS());
                     return;
                 }
+
                 try {
                     const tx = dbInstance.transaction(storeName, 'readonly');
                     const store = tx.objectStore(storeName);
                     const req = store.getAll();
-                    req.onsuccess = () => resolve(req.result || []);
-                    req.onerror = () => resolve([]);
-                } catch(e) { resolve([]); }
+
+                    req.onsuccess = () => {
+                        let results = req.result || [];
+                        if (results.length === 0) {
+                            const lsData = getFromLS();
+                            if (lsData && lsData.length > 0) {
+                                results = lsData;
+                                dbSaveAll(storeName, results);
+                            }
+                        }
+                        resolve(results);
+                    };
+
+                    req.onerror = () => resolve(getFromLS());
+                } catch(e) {
+                    resolve(getFromLS());
+                }
             });
         }
 
         function dbSaveAll(storeName, items) {
             return new Promise((resolve) => {
-                try { localStorage.setItem('gym_' + storeName, JSON.stringify(items)); } catch(e){}
+                try {
+                    localStorage.setItem('gym_' + storeName, JSON.stringify(items));
+                } catch(e) {
+                    console.warn('LocalStorage save failed:', e);
+                }
+
                 if (!dbInstance) return resolve();
-                
+
                 try {
                     const tx = dbInstance.transaction(storeName, 'readwrite');
                     const store = tx.objectStore(storeName);
-                    store.clear().onsuccess = function() {
-                        items.forEach(item => store.put(item));
+
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = (err) => {
+                        console.error(`IndexedDB write error on ${storeName}:`, err);
                         resolve();
                     };
-                    tx.onerror = () => resolve();
-                } catch(e) { resolve(); }
+
+                    const clearReq = store.clear();
+                    clearReq.onsuccess = () => {
+                        items.forEach(item => {
+                            if (!item.id) {
+                                item.id = (storeName === 'profile' ? 'user_profile' : 'id_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4));
+                            }
+                            store.put(item);
+                        });
+                    };
+                } catch(e) {
+                    console.error(`dbSaveAll exception on ${storeName}:`, e);
+                    resolve();
+                }
             });
         }
 
@@ -859,8 +897,10 @@
             
             const fetchedProfile = await dbGetAll('profile');
             if (fetchedProfile.length > 0) {
-                state.profile = fetchedProfile[0];
-                if (state.profile.isMan === undefined) state.profile.isMan = true;
+                state.profile = Object.assign({ id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] }, fetchedProfile[0]);
+            } else {
+                state.profile = { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] };
+                await dbSaveAll('profile', [state.profile]);
             }
 
             const fetchedEx = await dbGetAll('exercises');
@@ -1735,9 +1775,10 @@
             }
         }
 
-        function toggleGender() {
+        async function toggleGender() {
             state.profile.isMan = !(state.profile.isMan !== false);
-            dbSaveAll('profile', [state.profile]);
+            if (!state.profile.id) state.profile.id = 'user_profile';
+            await dbSaveAll('profile', [state.profile]);
             updateGenderUI();
             renderBentoGridAnalysis();
             updateTopHeaderStats();
@@ -1764,6 +1805,10 @@
         }
 
         async function saveProfile() {
+            if (!state.profile) {
+                state.profile = { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] };
+            }
+            state.profile.id = 'user_profile';
             state.profile.name = document.getElementById('prof-name').value.trim();
             state.profile.weight = validateAndClamp(document.getElementById('prof-weight').value, 20, 350, '');
             state.profile.height = validateAndClamp(document.getElementById('prof-height').value, 50, 250, '');
@@ -1785,7 +1830,7 @@
             renderBentoGridAnalysis();
             renderProfileHistoryList();
             updateTopHeaderStats();
-            showToast('تم حفظ القياسات في IndexedDB 🎯');
+            showToast('تم حفظ القياسات والبروفايل بنجاح 🎯');
         }
 
         function renderProfileUI() {
