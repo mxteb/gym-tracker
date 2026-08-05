@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>متتبع التمارين - Gym Tracker Pro ⚡ PWA</title>
+    <title>متتبع التمارين - Gym Tracker ⚡ PWA</title>
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -29,7 +29,15 @@
             theme: {
                 extend: {
                     fontFamily: { sans: ['Tajawal', 'sans-serif'] },
-                    colors: { darkBg: '#070b19', navyCard: 'rgba(15, 23, 42, 0.75)', neonCyan: '#00f2fe', neonBlue: '#4facfe', neonGreen: '#10b981', neonRed: '#ef4444', neonAmber: '#f59e0b' }
+                    colors: {
+                        darkBg: '#070b19',
+                        navyCard: 'rgba(15, 23, 42, 0.75)',
+                        neonCyan: '#00f2fe',
+                        neonBlue: '#4facfe',
+                        neonGreen: '#10b981',
+                        neonRed: '#ef4444',
+                        neonAmber: '#f59e0b',
+                    }
                 }
             }
         }
@@ -48,11 +56,16 @@
         .set-type-btn.active { background: rgba(0, 242, 254, 0.15); border-color: #00f2fe; color: #00f2fe; box-shadow: 0 0 10px rgba(0, 242, 254, 0.2); }
         .neon-glow-cyan { box-shadow: 0 0 15px rgba(0, 242, 254, 0.4); }
         .neon-glow-green { box-shadow: 0 0 15px rgba(16, 185, 129, 0.4); }
+        .neon-glow-red { box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); }
+        .neon-glow-amber { box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); }
         input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-        .floating-dock { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); width: calc(100% - 1.5rem); max-width: 500px; z-index: 50; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+        .floating-dock { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); width: calc(100% - 1.5rem); max-width: 500px; z-index: 50; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 242, 254, 0.15); }
         .dock-item { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); color: #94a3b8; }
         .dock-item.active { color: #00f2fe; transform: translateY(-4px); text-shadow: 0 0 10px rgba(0, 242, 254, 0.6); }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+        ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 3px; }
         .modal-overlay { background: rgba(7, 11, 25, 0.85); backdrop-filter: blur(12px); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -60,16 +73,14 @@
 </head>
 <body class="antialiased selection:bg-cyan-500 selection:text-white">
 
-    <!-- Header Bar -->
     <header class="sticky top-0 z-40 glass px-4 py-3 mb-4 border-b border-slate-800 flex justify-between items-center">
         <div class="flex items-center space-x-3 space-x-reverse">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-cyan-500/30">🏋️</div>
             <div>
-                <h1 class="font-extrabold text-base sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 leading-tight">متتبع التمارين - Gym Tracker Pro</h1>
+                <h1 class="font-extrabold text-base sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 leading-tight">متتبع التمارين - Gym Tracker</h1>
                 <p class="text-[11px] text-slate-400 font-medium">مُتتبع التمارين والسعرات الذكي</p>
             </div>
         </div>
-
         <div id="top-quick-stats" class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-300">
             <span class="flex items-center gap-1 text-amber-400 font-bold">
                 <i class="fa-solid fa-fire text-xs" aria-hidden="true"></i>
@@ -80,20 +91,17 @@
 
     <div id="ls-warning" class="hidden mx-4 mb-4 p-3 bg-red-950/80 border border-red-500/50 text-red-200 rounded-xl text-xs flex items-center gap-2">
         <i class="fa-solid fa-triangle-exclamation text-base text-red-400" aria-hidden="true"></i>
-        <span>تنبيه: التخزين المحلي محجوب في متصفحك.</span>
+        <span>تنبيه: التخزين المحلي (LocalStorage) محجوب في متصفحك. قد لا تحفظ البيانات.</span>
     </div>
 
-    <!-- Rest Countdown Widget -->
     <div id="rest-timer-widget" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 glass-card px-4 py-2 border border-cyan-500/60 shadow-2xl neon-glow-cyan animate-fade-in flex items-center gap-3 rounded-full">
         <div class="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-400 flex items-center justify-center text-cyan-300 font-black text-xs" id="timer-display">90s</div>
         <div class="text-xs"><span class="font-bold text-cyan-200">راحة بين الجولات ⏱️</span></div>
         <button id="btn-stop-timer" aria-label="إلغاء المؤقت" class="text-slate-400 hover:text-red-400 text-xs px-1 transition">✖</button>
     </div>
 
-    <!-- Main Container -->
     <main class="max-w-xl mx-auto px-4 space-y-6">
-
-        <!-- 1. WORKOUT SCREEN -->
+        <!-- WORKOUT SCREEN -->
         <section id="screen-workout" class="screen-content space-y-4 animate-fade-in">
             <div class="flex items-center justify-between bg-slate-900/90 p-2 rounded-2xl border border-slate-800 shadow-md">
                 <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
@@ -101,8 +109,8 @@
                     <span>نظام الجدول:</span>
                 </span>
                 <div class="flex gap-1.5">
-                    <button id="split-btn-ppl" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">PPL (دفع/سحب/أرجل)</button>
-                    <button id="split-btn-ul" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 hover:bg-slate-700">علوي / سفلي</button>
+                    <button id="split-btn-ppl" aria-label="اختيار نظام PPL" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">PPL (دفع/سحب/أرجل)</button>
+                    <button id="split-btn-ul" aria-label="اختيار نظام علوي وسفلي" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 hover:bg-slate-700">علوي / سفلي (Upper/Lower)</button>
                 </div>
             </div>
 
@@ -111,36 +119,31 @@
             <div class="space-y-1.5">
                 <div class="text-[11px] text-slate-400 font-bold px-1 flex items-center gap-1">
                     <i class="fa-solid fa-filter text-cyan-400" aria-hidden="true"></i>
-                    <span>تصفية حسب الأداة:</span>
+                    <span>تصفية حسب نوع الجهاز / الأداة:</span>
                 </div>
                 <div id="equip-filters-container" class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                    <button data-equip="all" class="equip-btn active px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-cyan-950 text-cyan-300 border border-cyan-800">الكل</button>
-                    <button data-equip="barbell" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">بار 🏋️‍♂️</button>
-                    <button data-equip="dumbbell" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">دمبل 🏋️‍♀️</button>
-                    <button data-equip="machine" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">أجهزة 🤖</button>
-                    <button data-equip="cable_body" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">كابل/جسم 🦾</button>
-                    <button data-equip="cardio" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">كارديو 🏃‍♂️</button>
+                    <button data-equip="all" aria-label="عرض جميع أدوات التمرين" class="equip-btn active px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-cyan-950 text-cyan-300 border border-cyan-800">الكل</button>
+                    <button data-equip="barbell" aria-label="تصفية حسب البار" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">أوزان حرة (بار) 🏋️‍♂️</button>
+                    <button data-equip="dumbbell" aria-label="تصفية حسب الدمبل" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">أوزان حرة (دمبل) 🏋️‍♀️</button>
+                    <button data-equip="machine" aria-label="تصفية حسب الأجهزة" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">أجهزة 🤖</button>
+                    <button data-equip="cable_body" aria-label="تصفية حسب الكابل أو وزن الجسم" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">كابل / وزن جسم 🦾</button>
+                    <button data-equip="cardio" aria-label="تصفية حسب الكارديو" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200">كارديو بالجهاز 🏃‍♂️</button>
                 </div>
             </div>
 
-            <!-- Exercise Card -->
             <div class="glass-card p-4 space-y-4">
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
                         <label for="exercise-dropdown" class="text-xs font-bold text-cyan-300">اختر التمرين:</label>
-                        <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">بار 🏋️‍♂️</span>
+                        <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">أوزان حرة (بار) 🏋️‍♂️</span>
                     </div>
 
                     <div class="relative">
                         <i class="fa-solid fa-magnifying-glass absolute right-3 top-3 text-slate-400 text-xs" aria-hidden="true"></i>
-                        <input type="text" id="exercise-search-input" maxlength="50" placeholder="بحث سريع..." class="w-full glass-input pr-8 pl-3 py-2 rounded-xl text-xs">
+                        <input type="text" id="exercise-search-input" maxlength="50" placeholder="بحث سريع عن تمرين..." class="w-full glass-input pr-8 pl-3 py-2 rounded-xl text-xs">
                     </div>
 
                     <select id="exercise-dropdown" aria-label="قائمة اختيار التمرين" class="w-full glass-input px-3 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 border border-slate-700"></select>
-                </div>
-
-                <div>
-                    <input type="text" id="exercise-note-input" maxlength="100" placeholder="📝 ملاحظات التمرين (مثل: مقعد رقم 3)..." class="w-full glass-input px-3 py-1.5 rounded-lg text-[11px] text-slate-300 border-slate-800">
                 </div>
 
                 <hr class="border-slate-800">
@@ -159,36 +162,31 @@
                     </button>
                 </div>
 
-                <!-- Forms Container -->
                 <div id="dynamic-input-container">
-                    <!-- Weights Form -->
                     <div id="form-weights" class="space-y-4">
                         <div class="space-y-2">
                             <div class="flex justify-between items-center text-xs">
-                                <label for="input-weight" class="text-slate-300 font-medium flex items-center gap-1.5">
-                                    <span>الوزن المرفوع:</span>
-                                    <button type="button" id="btn-open-plate-calc" class="text-cyan-400 hover:text-cyan-300 text-[11px] font-bold bg-cyan-950 px-2 py-0.5 rounded border border-cyan-800">🧮 حاسبة البار</button>
-                                </label>
+                                <label for="input-weight" class="text-slate-300 font-medium">الوزن المرفوع:</label>
                                 <div class="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
-                                    <button type="button" id="unit-btn-kg" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all">كجم</button>
-                                    <button type="button" id="unit-btn-lbs" class="px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all">باوند</button>
+                                    <button type="button" id="unit-btn-kg" aria-label="استخدام وحدة الكيلوجرام" class="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all">كجم (kg)</button>
+                                    <button type="button" id="unit-btn-lbs" aria-label="استخدام وحدة الباوند" class="px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all">باوند (lbs)</button>
                                 </div>
                             </div>
 
                             <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <div class="flex gap-1">
-                                    <button type="button" data-step-target="input-weight" data-step="-5" class="stepper-btn w-11 h-11 rounded-xl font-black text-red-400 text-xs flex items-center justify-center">-5</button>
-                                    <button type="button" data-step-target="input-weight" data-step="-2.5" class="stepper-btn w-11 h-11 rounded-xl font-black text-amber-400 text-xs flex items-center justify-center">-2.5</button>
+                                    <button type="button" data-step-target="input-weight" data-step="-5" aria-label="إنقاص الوزن بمقدار 5" class="stepper-btn w-11 h-11 rounded-xl font-black text-red-400 text-xs flex items-center justify-center">-5</button>
+                                    <button type="button" data-step-target="input-weight" data-step="-2.5" aria-label="إنقاص الوزن بمقدار 2.5" class="stepper-btn w-11 h-11 rounded-xl font-black text-amber-400 text-xs flex items-center justify-center">-2.5</button>
                                 </div>
                                 <input type="number" id="input-weight" min="0" max="500" step="0.5" value="50" class="w-20 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <div class="flex gap-1">
-                                    <button type="button" data-step-target="input-weight" data-step="2.5" class="stepper-btn w-11 h-11 rounded-xl font-black text-emerald-400 text-xs flex items-center justify-center">+2.5</button>
-                                    <button type="button" data-step-target="input-weight" data-step="5" class="stepper-btn w-11 h-11 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
+                                    <button type="button" data-step-target="input-weight" data-step="2.5" aria-label="زيادة الوزن بمقدار 2.5" class="stepper-btn w-11 h-11 rounded-xl font-black text-emerald-400 text-xs flex items-center justify-center">+2.5</button>
+                                    <button type="button" data-step-target="input-weight" data-step="5" aria-label="زيادة الوزن بمقدار 5" class="stepper-btn w-11 h-11 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
                                 </div>
                             </div>
 
                             <div class="flex justify-between items-center text-[11px] text-slate-400 px-1 pt-0.5">
-                                <span>المعادل:</span>
+                                <span>المعادل بالوحدة الأخرى:</span>
                                 <span id="val-weight-converted" class="font-bold text-cyan-300">110.2 باوند</span>
                             </div>
                         </div>
@@ -201,13 +199,13 @@
 
                             <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <div class="flex gap-1">
-                                    <button type="button" data-step-target="input-reps" data-step="-5" class="stepper-btn w-11 h-11 rounded-xl font-black text-red-400 text-xs flex items-center justify-center">-5</button>
-                                    <button type="button" data-step-target="input-reps" data-step="-1" class="stepper-btn w-11 h-11 rounded-xl font-black text-amber-400 text-sm flex items-center justify-center">-1</button>
+                                    <button type="button" data-step-target="input-reps" data-step="-5" aria-label="إنقاص العدات بمقدار 5" class="stepper-btn w-11 h-11 rounded-xl font-black text-red-400 text-xs flex items-center justify-center">-5</button>
+                                    <button type="button" data-step-target="input-reps" data-step="-1" aria-label="إنقاص عدة واحدة" class="stepper-btn w-11 h-11 rounded-xl font-black text-amber-400 text-sm flex items-center justify-center">-1</button>
                                 </div>
                                 <input type="number" id="input-reps" min="1" max="150" step="1" value="10" class="w-20 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <div class="flex gap-1">
-                                    <button type="button" data-step-target="input-reps" data-step="1" class="stepper-btn w-11 h-11 rounded-xl font-black text-emerald-400 text-sm flex items-center justify-center">+1</button>
-                                    <button type="button" data-step-target="input-reps" data-step="5" class="stepper-btn w-11 h-11 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
+                                    <button type="button" data-step-target="input-reps" data-step="1" aria-label="زيادة عدة واحدة" class="stepper-btn w-11 h-11 rounded-xl font-black text-emerald-400 text-sm flex items-center justify-center">+1</button>
+                                    <button type="button" data-step-target="input-reps" data-step="5" aria-label="زيادة العدات بمقدار 5" class="stepper-btn w-11 h-11 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
                                 </div>
                             </div>
                         </div>
@@ -215,212 +213,388 @@
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">نوع الجولة:</label>
                             <div id="set-type-container" class="grid grid-cols-5 gap-1.5 text-xs font-bold">
-                                <button type="button" data-settype="normal" class="set-type-btn active py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5">عادية</button>
-                                <button type="button" data-settype="warmup" class="set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5"><span>تسخين</span><span>☀️</span></button>
-                                <button type="button" data-settype="dropset" class="set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5"><span>دروب</span><span>📉</span></button>
-                                <button type="button" data-settype="superset" class="set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5"><span>سوبر</span><span>⚡</span></button>
-                                <button type="button" data-settype="failure" class="set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5"><span>فشل</span><span>🔥</span></button>
+                                <button type="button" data-settype="normal" aria-label="جولة عادية" class="set-type-btn active py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5">عادية</button>
+                                <button type="button" data-settype="warmup" aria-label="جولة تسخين" class="set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5"><span>تسخين</span><span>☀️</span></button>
+                                <button type="button" data-settype="dropset" aria-label="جولة دروب سيت" class="set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5"><span>دروب</span><span>📉</span></button>
+                                <button type="button" data-settype="superset" aria-label="جولة سوبر سيت" class="set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5"><span>سوبر</span><span>⚡</span></button>
+                                <button type="button" data-settype="failure" aria-label="جولة للفشل العضلي" class="set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5"><span>فشل</span><span>🔥</span></button>
                             </div>
                         </div>
 
-                        <button id="btn-save-weights" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
+                        <button id="btn-save-weights" aria-label="حفظ جولة الوزن" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
                             <i class="fa-solid fa-floppy-disk text-sm" aria-hidden="true"></i>
                             <span>حفظ الجولة ✔️</span>
                         </button>
                     </div>
 
-                    <!-- Cardio Forms -->
                     <div id="form-treadmill" class="hidden space-y-4">
                         <div>
-                            <label for="input-tm-speed" class="text-slate-300 font-medium text-xs">السرعة (كم/س):</label>
-                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800 mt-1">
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <label for="input-tm-speed" class="text-slate-300 font-medium">السرعة (كم/س):</label>
+                            </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <button type="button" data-step-target="input-tm-speed" data-step="-0.5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-0.5</button>
                                 <input type="number" id="input-tm-speed" min="1.0" max="25.0" step="0.1" value="8.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <button type="button" data-step-target="input-tm-speed" data-step="0.5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+0.5</button>
                             </div>
                         </div>
+
                         <div>
-                            <label for="input-tm-incline" class="text-slate-300 font-medium text-xs">مستوى الارتفاع:</label>
-                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800 mt-1">
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <label for="input-tm-incline" class="text-slate-300 font-medium">مستوى الارتفاع (Incline):</label>
+                            </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <button type="button" data-step-target="input-tm-incline" data-step="-1" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-1</button>
                                 <input type="number" id="input-tm-incline" min="0.0" max="25.0" step="0.5" value="1.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <button type="button" data-step-target="input-tm-incline" data-step="1" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+1</button>
                             </div>
                         </div>
+
                         <div>
-                            <label for="input-tm-duration" class="text-slate-300 font-medium text-xs">المدة (بالدقائق):</label>
-                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800 mt-1">
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <label for="input-tm-duration" class="text-slate-300 font-medium">المدة (بالدقائق):</label>
+                            </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <button type="button" data-step-target="input-tm-duration" data-step="-5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-5</button>
                                 <input type="number" id="input-tm-duration" min="1" max="180" step="1" value="20" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <button type="button" data-step-target="input-tm-duration" data-step="5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+5</button>
                             </div>
                         </div>
-                        <button id="btn-save-treadmill" class="w-full py-3.5 rounded-xl bg-cyan-600 text-white font-bold text-xs">حفظ تمرين المشي 🏃</button>
+
+                        <button id="btn-save-treadmill" aria-label="حفظ تمرين سير المشي" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg neon-glow-cyan flex items-center justify-center gap-2">
+                            <span>حفظ التمرين 🏃</span>
+                        </button>
                     </div>
 
                     <div id="form-bike-elliptical" class="hidden space-y-4">
                         <div>
-                            <label for="input-be-level" class="text-slate-300 font-medium text-xs">مستوى الجهد:</label>
-                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800 mt-1">
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <label for="input-be-level" class="text-slate-300 font-medium">مستوى الجهد (Level):</label>
+                            </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <button type="button" data-step-target="input-be-level" data-step="-1" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-1</button>
                                 <input type="number" id="input-be-level" min="1.0" max="30.0" step="0.5" value="5.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <button type="button" data-step-target="input-be-level" data-step="1" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+1</button>
                             </div>
                         </div>
+
                         <div>
-                            <label for="input-be-duration" class="text-slate-300 font-medium text-xs">المدة (بالدقائق):</label>
-                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800 mt-1">
+                            <div class="flex justify-between items-center text-xs mb-1">
+                                <label for="input-be-duration" class="text-slate-300 font-medium">المدة (بالدقائق):</label>
+                            </div>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <button type="button" data-step-target="input-be-duration" data-step="-5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-5</button>
                                 <input type="number" id="input-be-duration" min="1" max="180" step="1" value="15" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <button type="button" data-step-target="input-be-duration" data-step="5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+5</button>
                             </div>
                         </div>
-                        <button id="btn-save-bike" class="w-full py-3.5 rounded-xl bg-cyan-600 text-white font-bold text-xs">حفظ تمرين الدراجة 🚴</button>
+
+                        <button id="btn-save-bike" aria-label="حفظ تمرين الدراجة أو الأوربتراك" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold text-xs shadow-lg neon-glow-cyan flex items-center justify-center gap-2">
+                            <span>حفظ التمرين 🚴</span>
+                        </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Today's Logs -->
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-sm text-slate-200">سجل جولات اليوم</h3>
-                    <span id="today-sets-count" class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">0 جولات</span>
+                    <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-list text-cyan-400" aria-hidden="true"></i>
+                        <span>سجل جولات اليوم</span>
+                    </h3>
+                    <span id="today-sets-count" class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">0 جولات</span>
                 </div>
+
                 <div id="today-logs-container" class="space-y-2"></div>
+
+                <div id="lazy-logs-load-more" class="hidden text-center pt-2">
+                    <button id="btn-load-more-logs" class="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-cyan-300">
+                        عرض باقي الجولات 🔽
+                    </button>
+                </div>
             </div>
         </section>
 
-        <!-- 2. ROUTINES SCREEN -->
-        <section id="screen-routines" class="screen-content space-y-4 hidden animate-fade-in">
-            <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-sm text-cyan-300">الجداول الجاهزة للتمرين</h3>
-                <div id="routines-list-container" class="space-y-2 pt-1"></div>
-            </div>
-        </section>
-
-        <!-- 3. ADD EXERCISE SCREEN -->
+        <!-- ADD EXERCISE SCREEN -->
         <section id="screen-exercises" class="screen-content space-y-5 hidden animate-fade-in">
             <div class="glass-card p-5 space-y-4 border border-cyan-500/30">
-                <h3 class="font-bold text-sm text-cyan-300">إضافة تمرين مخصص جديد</h3>
-                <div class="space-y-3 pt-2">
-                    <input type="text" id="new-ex-name" maxlength="60" placeholder="مثال: hip adduction" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
-                    <div id="new-ex-status" class="hidden text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border"></div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <select id="new-ex-cat" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
-                            <option value="push">دفع 🏋️</option>
-                            <option value="pull">سحب 🧗</option>
-                            <option value="legs">أرجل 🦵</option>
-                            <option value="abs">بطن 🧱</option>
-                            <option value="cardio">كارديو 🏃</option>
-                        </select>
-                        <select id="new-ex-equip" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
-                            <option value="barbell">بار</option>
-                            <option value="dumbbell">دمبل</option>
-                            <option value="machine">أجهزة</option>
-                            <option value="cable_body">كابل/جسم</option>
-                            <option value="cardio">كارديو</option>
-                        </select>
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center text-sm font-bold">
+                        <i class="fa-solid fa-plus" aria-hidden="true"></i>
                     </div>
-                    <button id="add-ex-submit-btn" class="w-full py-3 rounded-xl bg-cyan-600 text-white font-bold text-xs">حفظ التمرين</button>
+                    <div>
+                        <h3 class="font-bold text-sm text-cyan-300">إضافة تمرين مخصص جديد</h3>
+                        <p class="text-[11px] text-slate-400">اكتب اسم التمرين وسيقوم التطبيق بفحصه وتصنيفه تلقائياً</p>
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-2">
+                    <div>
+                        <label for="new-ex-name" class="block text-xs text-slate-400 mb-1">اسم التمرين المخصص:</label>
+                        <input type="text" id="new-ex-name" maxlength="60" placeholder="مثال: Incline Dumbbell Press أو hip adduction" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
+                        <div id="new-ex-status" class="hidden text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border flex items-center gap-1.5"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="new-ex-cat" class="block text-xs text-slate-400 mb-1">الفئة التدريبية (تلقائي):</label>
+                            <select id="new-ex-cat" aria-label="الفئة التدريبية للتمرين المخصص" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                                <option value="push">دفع 🏋️</option>
+                                <option value="pull">سحب 🧗</option>
+                                <option value="legs">أرجل 🦵</option>
+                                <option value="abs">بطن 🧱</option>
+                                <option value="cardio">كارديو 🏃</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label for="new-ex-equip" class="block text-xs text-slate-400 mb-1">نوع الجهاز/الأداة (تلقائي):</label>
+                            <select id="new-ex-equip" aria-label="نوع أداة التمرين المخصص" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                                <option value="barbell">أوزان حرة (بار)</option>
+                                <option value="dumbbell">أوزان حرة (دمبل)</option>
+                                <option value="machine">أجهزة</option>
+                                <option value="cable_body">كابل / وزن الجسم</option>
+                                <option value="cardio">كارديو بالجهاز</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button id="add-ex-submit-btn" aria-label="حفظ التمرين المخصص جديد" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md hover:from-cyan-600 hover:to-blue-700 flex items-center justify-center gap-2 mt-2">
+                        <i class="fa-solid fa-square-plus text-sm" aria-hidden="true"></i>
+                        <span>حفظ التمرين المخصص</span>
+                    </button>
                 </div>
             </div>
+
             <div class="space-y-3">
-                <h3 class="font-bold text-sm text-slate-200">التمارين المخصصة</h3>
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-sm text-slate-200">التمارين المخصصة التي أضفتها</h3>
+                    <span id="custom-ex-count" class="text-xs bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full border border-slate-700">0 تمارِينَ</span>
+                </div>
+
                 <div id="manage-exercises-list" class="space-y-2"></div>
             </div>
         </section>
 
-        <!-- 4. PROGRESS SCREEN -->
+        <!-- PROGRESS SCREEN -->
         <section id="screen-progress" class="screen-content space-y-5 hidden animate-fade-in">
             <div class="grid grid-cols-2 gap-3">
                 <div class="glass-card p-3.5 border-r-4 border-r-cyan-400">
-                    <div class="text-[11px] text-slate-400">إجمالي الأيام</div>
+                    <div class="text-[11px] text-slate-400">إجمالي أيام التمرين</div>
                     <div class="text-xl font-black text-cyan-300 mt-1" id="stat-total-days">0 يوم</div>
                 </div>
+
                 <div class="glass-card p-3.5 border-r-4 border-r-blue-500">
-                    <div class="text-[11px] text-slate-400">التمارين النشطة</div>
+                    <div class="text-[11px] text-slate-400">عدد التمارين النشطة</div>
                     <div class="text-xl font-black text-blue-300 mt-1" id="stat-active-exercises-count">0 تمرين</div>
                 </div>
             </div>
 
             <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-xs text-cyan-300">تقويم الاستمرارية الشهري</h3>
-                <div id="calendar-streak-container" class="grid grid-cols-7 gap-1 text-center text-[10px] pt-1"></div>
-            </div>
-
-            <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-xs text-slate-200 border-b border-slate-800 pb-2 text-cyan-300">الحجم التدريبي لكل تمرين</h3>
+                <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span class="flex items-center gap-1.5 text-cyan-300">
+                        <i class="fa-solid fa-weight-hanging text-cyan-400" aria-hidden="true"></i>
+                        <span>الحجم التدريبي لكل تمرين (Volume Per Exercise)</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400">لكل تمرين مستمر</span>
+                </h3>
+                
                 <div id="exercise-volume-breakdown-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
             </div>
 
             <div class="glass-card p-4 space-y-4">
-                <select id="chart-exercise-select" class="glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700 w-full"></select>
-                <div class="w-full h-64 relative"><canvas id="progressChart"></canvas></div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-cyan-400" aria-hidden="true"></i>
+                        <span>تطور أقصى وزن مرفوع</span>
+                    </h3>
+
+                    <select id="chart-exercise-select" aria-label="اختر تمرين لعرض الرسم البياني" class="glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700 w-full sm:w-auto"></select>
+                </div>
+
+                <div class="w-full h-64 relative">
+                    <canvas id="progressChart"></canvas>
+                </div>
             </div>
         </section>
 
-        <!-- 5. BENTO ANALYTICS TAB -->
+        <!-- BENTO ANALYTICS TAB -->
         <section id="screen-bento" class="screen-content space-y-5 hidden animate-fade-in">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="font-black text-base text-cyan-300 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-pie text-cyan-400" aria-hidden="true"></i>
+                        <span>لوحة التحليل الذكي (Bento Grid)</span>
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-0.5">تحليل طبي ورياضي متكامل يعتمد على مدخلات بروفايلك</p>
+                </div>
+            </div>
+
             <div class="space-y-2.5">
-                <h3 class="font-bold text-xs text-slate-300">أهداف السعرات</h3>
+                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
+                    <i class="fa-solid fa-bullseye text-amber-400" aria-hidden="true"></i>
+                    <span>أهداف السعرات اليومية المطلوبة</span>
+                </h3>
                 <div id="bento-calories-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
             </div>
+
             <div class="space-y-2.5">
-                <h3 class="font-bold text-xs text-slate-300">مؤشرات الجسم</h3>
+                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
+                    <i class="fa-solid fa-weight-scale text-blue-400" aria-hidden="true"></i>
+                    <span>مؤشرات تناسب الوزن والخصر</span>
+                </h3>
                 <div id="bento-health-container" class="grid grid-cols-2 gap-3"></div>
+            </div>
+
+            <div class="space-y-2.5">
+                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
+                    <i class="fa-solid fa-child-reaching text-teal-400" aria-hidden="true"></i>
+                    <span>مؤشرات تركيب الجسم والعضلات</span>
+                </h3>
+                <div id="bento-comp-container" class="grid grid-cols-2 gap-3"></div>
             </div>
         </section>
 
-        <!-- 6. PROFILE SCREEN -->
+        <!-- PROFILE SCREEN -->
         <section id="screen-profile" class="screen-content space-y-5 hidden animate-fade-in">
-            <button id="gender-toggle-btn" class="w-full p-3.5 rounded-2xl glass-card border border-cyan-500/40 text-center font-bold text-sm text-cyan-300">💪 وضع الرجل</button>
+            <button id="gender-toggle-btn" aria-label="تبديل خيار الجنس بين رجل وأنثى" class="w-full p-3.5 rounded-2xl glass-card border border-cyan-500/40 text-center transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
+                <span class="text-lg" id="gender-icon">💪</span>
+                <span class="font-bold text-sm text-cyan-300" id="gender-text">هل أنت رجل؟ (تحديث النسبة والعضلات)</span>
+            </button>
+
             <div class="glass-card p-4 space-y-4">
-                <h3 class="font-bold text-sm text-cyan-300">القياسات</h3>
+                <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-2">
+                    <i class="fa-solid fa-user-gear" aria-hidden="true"></i>
+                    <span>البيانات الشخصية والقياسات</span>
+                </h3>
+
                 <div class="grid grid-cols-2 gap-3">
-                    <input type="text" id="prof-name" placeholder="الاسم" class="col-span-2 glass-input px-3 py-2 rounded-xl text-xs">
-                    <input type="number" id="prof-weight" placeholder="الوزن كجم" class="glass-input px-3 py-2 rounded-xl text-xs">
-                    <input type="number" id="prof-height" placeholder="الطول سم" class="glass-input px-3 py-2 rounded-xl text-xs">
-                    <input type="number" id="prof-waist" placeholder="الخصر سم" class="glass-input px-3 py-2 rounded-xl text-xs">
-                    <input type="number" id="prof-age" placeholder="العمر" class="glass-input px-3 py-2 rounded-xl text-xs">
+                    <div class="col-span-2">
+                        <label for="prof-name" class="block text-[11px] text-slate-400 mb-1">الاسم الأول:</label>
+                        <input type="text" id="prof-name" maxlength="40" placeholder="مثال: أحمد" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+
+                    <div>
+                        <label for="prof-weight" class="block text-[11px] text-slate-400 mb-1">الوزن (كجم):</label>
+                        <input type="number" id="prof-weight" min="20" max="350" step="0.1" placeholder="مثال: 75" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+
+                    <div>
+                        <label for="prof-height" class="block text-[11px] text-slate-400 mb-1">الطول (سم):</label>
+                        <input type="number" id="prof-height" min="50" max="250" step="1" placeholder="مثال: 175" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+
+                    <div>
+                        <label for="prof-waist" class="block text-[11px] text-slate-400 mb-1">محيط البطن/الخصر (سم):</label>
+                        <input type="number" id="prof-waist" min="30" max="250" step="0.5" placeholder="مثال: 80" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+
+                    <div>
+                        <label for="prof-age" class="block text-[11px] text-slate-400 mb-1">العمر:</label>
+                        <input type="number" id="prof-age" min="5" max="120" step="1" placeholder="مثال: 25" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
                 </div>
-                <button id="btn-save-profile" class="w-full py-2.5 rounded-xl bg-cyan-600 text-white font-bold text-xs">حفظ القياسات</button>
+
+                <div class="pt-2 border-t border-slate-800 space-y-2">
+                    <div class="text-[11px] font-bold text-slate-400">نسب الجسم المتقدمة (اختياري):</div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label for="prof-fat" class="block text-[10px] text-slate-500 mb-1">الدهون %:</label>
+                            <input type="number" id="prof-fat" min="1" max="70" step="0.1" placeholder="18" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                        </div>
+                        <div>
+                            <label for="prof-muscle" class="block text-[10px] text-slate-500 mb-1">العضلات %:</label>
+                            <input type="number" id="prof-muscle" min="1" max="80" step="0.1" placeholder="42" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                        </div>
+                        <div>
+                            <label for="prof-water" class="block text-[10px] text-slate-500 mb-1">السوائل %:</label>
+                            <input type="number" id="prof-water" min="1" max="90" step="0.1" placeholder="55" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="btn-save-profile" aria-label="حفظ قياسات البروفايل" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md hover:from-cyan-600 hover:to-blue-700 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
+                    <span>حفظ القياسات وتحليل النتائج</span>
+                </button>
             </div>
+
             <div class="glass-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-slate-300">سجل تغيرات الوزن والقياسات</h3>
+                <div id="profile-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
+            </div>
+
+            <div class="glass-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-slate-300">إدارة البيانات والنسخ الاحتياطي</h3>
+                
                 <div class="grid grid-cols-2 gap-3">
-                    <button id="btn-export-json" class="py-2 px-3 rounded-xl bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-700">تصدير JSON</button>
-                    <label class="py-2 px-3 rounded-xl bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-700 text-center cursor-pointer">استيراد JSON<input type="file" id="import-file-input" accept=".json" class="hidden"></label>
+                    <button id="btn-export-json" aria-label="تصدير النسخة الاحتياطية بصيغة JSON" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-download text-cyan-400" aria-hidden="true"></i>
+                        <span>تصدير JSON</span>
+                    </button>
+                    
+                    <label class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fa-solid fa-upload text-blue-400" aria-hidden="true"></i>
+                        <span>استيراد JSON</span>
+                        <input type="file" id="import-file-input" accept=".json" class="hidden">
+                    </label>
+                </div>
+
+                <hr class="border-slate-800">
+
+                <div class="space-y-2">
+                    <button id="btn-clear-today-logs" aria-label="مسح جولات اليوم" class="w-full py-2 px-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 font-semibold text-xs border border-amber-800/50 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trash-arrow-up" aria-hidden="true"></i>
+                        <span>مسح سجلات جولات اليوم فقط</span>
+                    </button>
+
+                    <button id="btn-wipe-all-data" aria-label="إعادة ضبط التطبيق ومسح شامل" class="w-full py-2 px-3 rounded-xl bg-red-950/50 hover:bg-red-900/80 text-red-300 font-semibold text-xs border border-red-800/60 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                        <span>إعادة ضبط التطبيق بالكامل (مسح الشامل)</span>
+                    </button>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- Plate Calculator Modal -->
-    <div id="plate-calc-modal" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-cyan-500/50 shadow-2xl">
-            <h3 class="font-black text-base text-cyan-300">🧮 حاسبة أطباق البار</h3>
-            <div id="plate-calc-results" class="space-y-2 bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs text-cyan-300 font-bold"></div>
-            <div class="flex justify-end pt-2"><button id="btn-close-plate-modal" class="px-4 py-2 rounded-xl bg-cyan-600 text-xs text-white font-bold">إغلاق</button></div>
+    <div class="fixed bottom-20 left-0 right-0 z-30 px-4 pointer-events-none">
+        <div class="max-w-xl mx-auto glass p-2.5 rounded-xl border border-slate-700/60 text-[10px] text-slate-400 text-center leading-tight shadow-lg pointer-events-auto">
+            💡 <span class="font-bold text-slate-300">تنويه:</span> حساب السعرات محسب بناءً على معادلات ACSM و Mifflin-St Jeor. تحليلات الجسم تعتمد على معايير ACE و FFMI الرياضية.
         </div>
     </div>
 
-    <!-- Navigation Dock -->
     <nav id="floating-dock" class="floating-dock px-2 py-2">
         <div class="flex justify-around items-center">
-            <button data-tab="workout" id="nav-workout" class="dock-item active flex flex-col items-center gap-1"><i class="fa-solid fa-dumbbell text-base"></i><span class="text-[10px]">التمرين</span></button>
-            <button data-tab="routines" id="nav-routines" class="dock-item flex flex-col items-center gap-1"><i class="fa-solid fa-list-check text-base"></i><span class="text-[10px]">الجداول</span></button>
-            <button data-tab="exercises" id="nav-exercises" class="dock-item flex flex-col items-center gap-1"><i class="fa-solid fa-plus-circle text-base"></i><span class="text-[10px]">إضافة</span></button>
-            <button data-tab="progress" id="nav-progress" class="dock-item flex flex-col items-center gap-1"><i class="fa-solid fa-chart-line text-base"></i><span class="text-[10px]">التطور</span></button>
-            <button data-tab="profile" id="nav-profile" class="dock-item flex flex-col items-center gap-1"><i class="fa-solid fa-user-circle text-base"></i><span class="text-[10px]">البروفايل</span></button>
+            <button data-tab="workout" id="nav-workout" aria-label="شاشة التمرين" class="dock-item active flex flex-col items-center gap-1">
+                <i class="fa-solid fa-dumbbell text-base" aria-hidden="true"></i>
+                <span class="text-[10px] font-bold">التمرين</span>
+            </button>
+            <button data-tab="exercises" id="nav-exercises" aria-label="شاشة إضافة تمرين" class="dock-item flex flex-col items-center gap-1">
+                <i class="fa-solid fa-plus-circle text-base" aria-hidden="true"></i>
+                <span class="text-[10px] font-bold">إضافة تمرين</span>
+            </button>
+            <button data-tab="progress" id="nav-progress" aria-label="شاشة تطور التمارين" class="dock-item flex flex-col items-center gap-1">
+                <i class="fa-solid fa-chart-line text-base" aria-hidden="true"></i>
+                <span class="text-[10px] font-bold">التطور</span>
+            </button>
+            <button data-tab="bento" id="nav-bento" aria-label="شاشة التحليل الذكي" class="dock-item flex flex-col items-center gap-1">
+                <i class="fa-solid fa-chart-pie text-base" aria-hidden="true"></i>
+                <span class="text-[10px] font-bold">التحليل</span>
+            </button>
+            <button data-tab="profile" id="nav-profile" aria-label="شاشة البروفايل الشخصي" class="dock-item flex flex-col items-center gap-1">
+                <i class="fa-solid fa-user-circle text-base" aria-hidden="true"></i>
+                <span class="text-[10px] font-bold">البروفايل</span>
+            </button>
         </div>
     </nav>
 
     <div id="custom-modal" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-slate-700 shadow-2xl">
-            <h3 id="modal-title" class="font-black text-base text-slate-100"></h3>
-            <p id="modal-message" class="text-xs text-slate-300"></p>
+        <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-slate-700 shadow-2xl animate-fade-in">
+            <h3 id="modal-title" class="font-black text-base text-slate-100 flex items-center gap-2"></h3>
+            <p id="modal-message" class="text-xs text-slate-300 leading-relaxed"></p>
             <div class="flex justify-end gap-2 pt-2">
-                <button id="modal-cancel-btn" class="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-300">إلغاء</button>
-                <button id="modal-confirm-btn" class="px-4 py-2 rounded-xl bg-red-600 text-xs text-white">تأكيد</button>
+                <button id="modal-cancel-btn" aria-label="إلغاء النافذة" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-bold border border-slate-700">إلغاء</button>
+                <button id="modal-confirm-btn" aria-label="تأكيد النافذة" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs text-white font-bold shadow-lg neon-glow-red">تأكيد</button>
             </div>
         </div>
     </div>
@@ -430,192 +604,1662 @@
     <script>
     (function () {
         'use strict';
-        function escapeHTML(str) { return typeof str !== 'string' ? '' : str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+
+        function escapeHTML(str) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+            });
+        }
 
         const EXERCISE_DICTIONARY = {
             'hip adduction': { cat: 'legs', equip: 'machine' },
             'hip abduction': { cat: 'legs', equip: 'machine' },
             'adduction': { cat: 'legs', equip: 'machine' },
             'abduction': { cat: 'legs', equip: 'machine' },
+            'adductor': { cat: 'legs', equip: 'machine' },
+            'abductor': { cat: 'legs', equip: 'machine' },
+            'hip thrust': { cat: 'legs', equip: 'machine' },
+            'leg press': { cat: 'legs', equip: 'machine' },
+            'leg extension': { cat: 'legs', equip: 'machine' },
+            'leg curl': { cat: 'legs', equip: 'machine' },
+            'squat': { cat: 'legs', equip: 'barbell' },
+            'hack squat': { cat: 'legs', equip: 'machine' },
+            'goblet squat': { cat: 'legs', equip: 'dumbbell' },
+            'bulgarian split squat': { cat: 'legs', equip: 'dumbbell' },
+            'rdl': { cat: 'legs', equip: 'barbell' },
+            'romanian deadlift': { cat: 'legs', equip: 'barbell' },
+            'deadlift': { cat: 'legs', equip: 'barbell' },
+            'calf raise': { cat: 'legs', equip: 'machine' },
+            'lunge': { cat: 'legs', equip: 'dumbbell' },
+            'lunges': { cat: 'legs', equip: 'dumbbell' },
+            'ضم الفخذ': { cat: 'legs', equip: 'machine' },
+            'إبعاد الفخذ': { cat: 'legs', equip: 'machine' },
+            'ابعاد الفخذ': { cat: 'legs', equip: 'machine' },
+            'ادكشن': { cat: 'legs', equip: 'machine' },
+            'ابداكشن': { cat: 'legs', equip: 'machine' },
+            'مكبس ارجل': { cat: 'legs', equip: 'machine' },
+            'مكبس أرجل': { cat: 'legs', equip: 'machine' },
+            'تمديد ارجل': { cat: 'legs', equip: 'machine' },
+            'ثني ارجل': { cat: 'legs', equip: 'machine' },
+            'سكوات': { cat: 'legs', equip: 'barbell' },
+            'سمانة': { cat: 'legs', equip: 'machine' },
+            'طعن': { cat: 'legs', equip: 'dumbbell' },
+            'ديدليفت': { cat: 'legs', equip: 'barbell' },
+
             'bench press': { cat: 'push', equip: 'barbell' },
-            'lat pulldown': { cat: 'pull', equip: 'machine' }
+            'incline bench press': { cat: 'push', equip: 'barbell' },
+            'incline dumbbell press': { cat: 'push', equip: 'dumbbell' },
+            'dumbbell press': { cat: 'push', equip: 'dumbbell' },
+            'chest press': { cat: 'push', equip: 'machine' },
+            'shoulder press': { cat: 'push', equip: 'dumbbell' },
+            'overhead press': { cat: 'push', equip: 'barbell' },
+            'lateral raise': { cat: 'push', equip: 'dumbbell' },
+            'tricep pushdown': { cat: 'push', equip: 'cable_body' },
+            'triceps pushdown': { cat: 'push', equip: 'cable_body' },
+            'dips': { cat: 'push', equip: 'cable_body' },
+            'pec deck': { cat: 'push', equip: 'machine' },
+            'chest fly': { cat: 'push', equip: 'dumbbell' },
+            'cable crossover': { cat: 'push', equip: 'cable_body' },
+            'بنش بريس': { cat: 'push', equip: 'barbell' },
+            'ضغط صدر': { cat: 'push', equip: 'dumbbell' },
+            'ضغط اكتاف': { cat: 'push', equip: 'dumbbell' },
+            'ضغط أكتاف': { cat: 'push', equip: 'dumbbell' },
+            'رفرفة جانبي': { cat: 'push', equip: 'dumbbell' },
+            'ترايسيبس': { cat: 'push', equip: 'cable_body' },
+            'تراي': { cat: 'push', equip: 'cable_body' },
+            'متوازي': { cat: 'push', equip: 'cable_body' },
+
+            'lat pulldown': { cat: 'pull', equip: 'machine' },
+            'seated cable row': { cat: 'pull', equip: 'cable_body' },
+            'bent over row': { cat: 'pull', equip: 'barbell' },
+            'dumbbell row': { cat: 'pull', equip: 'dumbbell' },
+            'pull up': { cat: 'pull', equip: 'cable_body' },
+            'pull ups': { cat: 'pull', equip: 'cable_body' },
+            'chin up': { cat: 'pull', equip: 'cable_body' },
+            'bicep curl': { cat: 'pull', equip: 'dumbbell' },
+            'biceps curl': { cat: 'pull', equip: 'dumbbell' },
+            'hammer curl': { cat: 'pull', equip: 'dumbbell' },
+            'face pull': { cat: 'pull', equip: 'cable_body' },
+            'shrugs': { cat: 'pull', equip: 'dumbbell' },
+            'سحب ظهر': { cat: 'pull', equip: 'machine' },
+            'عقلة': { cat: 'pull', equip: 'cable_body' },
+            'عقله': { cat: 'pull', equip: 'cable_body' },
+            'بايسبس': { cat: 'pull', equip: 'dumbbell' },
+            'باي': { cat: 'pull', equip: 'dumbbell' },
+            'ترابيس': { cat: 'pull', equip: 'dumbbell' },
+            'مطرقة': { cat: 'pull', equip: 'dumbbell' },
+            'هامر': { cat: 'pull', equip: 'dumbbell' }
         };
 
         const DEFAULT_EXERCISES = [
             { id: 'ex_1', name: 'بنش بريس مستوي بالبار (Barbell Bench Press)', category: 'push', type: 'weights', equip: 'barbell' },
-            { id: 'ex_2', name: 'سحب ظهر عريض عالي (Lat Pulldown Machine)', category: 'pull', type: 'weights', equip: 'machine' },
-            { id: 'ex_3', name: 'سكوات بالبار (Barbell Squat)', category: 'legs', type: 'weights', equip: 'barbell' },
-            { id: 'ex_4', name: 'طحن معدة (Crunches)', category: 'abs', type: 'weights', equip: 'cable_body' }
+            { id: 'ex_2', name: 'بنش بريس مائل بالبار (Incline Barbell Bench Press)', category: 'push', type: 'weights', equip: 'barbell' },
+            { id: 'ex_3', name: 'ضغط صدر بالدمبل مستوي (Flat Dumbbell Bench Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_4', name: 'ضغط صدر بالدمبل مائل (Incline Dumbbell Bench Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_5', name: 'ضغط صدر بالدمبل سفلي (Decline Dumbbell Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_6', name: 'تفتيح صدر بالدمبل (Dumbbell Flyes)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_7', name: 'ضغط صدر بالماكينة (Chest Press Machine)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_8', name: 'ضغط صدر مائل بالماكينة (Incline Chest Press Machine)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_9', name: 'تفتيح صدر جهاز الفراشة (Pec Deck / Fly Machine)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_10', name: 'سحب كيبل متقاطع للصدر (Cable Crossover)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_11', name: 'ضغط أكتاف بالبار واقف (Overhead Barbell Press)', category: 'push', type: 'weights', equip: 'barbell' },
+            { id: 'ex_12', name: 'ضغط أكتاف بالدمبل جالس (Seated Dumbbell Shoulder Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_13', name: 'ضغط أكتاف أرنولد (Arnold Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_14', name: 'ضغط أكتاف ماكينة (Shoulder Press Machine)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_15', name: 'رفرفة أكتاف جانبي بالدمبل (Dumbbell Lateral Raise)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_16', name: 'رفرفة أكتاف جانبي كيبل (Cable Lateral Raise)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_17', name: 'رفرفة أكتاف جانبي جهاز (Lateral Raise Machine)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_18', name: 'رفرفة أمامي بالدمبل (Dumbbell Front Raise)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_19', name: 'متوازي (Dips)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_20', name: 'تمديد ترايسيبس بالكيبل (Cable Triceps Pushdown)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_21', name: 'ترايسيبس كيبل بالحبل (Rope Triceps Pushdown)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_22', name: 'ترايسيبس بالدمبل خلف الرأس (Dumbbell Overhead Extension)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_23', name: 'ترايسيبس كيك باك بالدمبل (Dumbbell Kickbacks)', category: 'push', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_24', name: 'سحب ظهر عريض عالي (Lat Pulldown Machine)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_25', name: 'سحب ظهر قبضة ضيقة (Close-Grip Lat Pulldown)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_26', name: 'سحب ظهر أرضي كيبل (Seated Cable Row)', category: 'pull', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_27', name: 'سحب ظهر فردي بالدمبل (Single-Arm Dumbbell Row)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_28', name: 'سحب ظهر بالبار (Barbell Bent-Over Row)', category: 'pull', type: 'weights', equip: 'barbell' },
+            { id: 'ex_29', name: 'جهاز T-Bar Row', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_30', name: 'جهاز سحب ظهر علوي (High Row Machine)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_31', name: 'عقلة (Pull-ups / Chin-ups)', category: 'pull', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_32', name: 'جهاز العقلة المساعد (Assisted Pull-Up Machine)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_33', name: 'بلوفر بالدمبل (Dumbbell Pullover)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_34', name: 'رفرفة أكتاف خلفي جهاز (Reverse Pec Deck)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_35', name: 'رفرفة خلفي بالدمبل (Rear Delt Dumbbell Fly)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_36', name: 'سحب كيبل للوجه - أكتاف خلفية (Cable Face Pull)', category: 'pull', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_37', name: 'هز أكتاف / ترابيس بالدمبل (Dumbbell Shrugs)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_38', name: 'مرجحة بايسبس بالبار (Barbell Biceps Curl)', category: 'pull', type: 'weights', equip: 'barbell' },
+            { id: 'ex_39', name: 'مرجحة بايسبس بالدمبل (Dumbbell Biceps Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_40', name: 'مرجحة بايسبس هامر / مطرقة (Dumbbell Hammer Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_41', name: 'مرجحة بايسبس على بنش مائل (Incline Dumbbell Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_42', name: 'مرجحة بايسبس بالكيبل (Cable Biceps Curl)', category: 'pull', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_43', name: 'مرجحة بايسبس تركيز (Concentration Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_44', name: 'سكوات بالبار (Barbell Squat)', category: 'legs', type: 'weights', equip: 'barbell' },
+            { id: 'ex_45', name: 'سكوات على جهاز السميث (Smith Machine Squat)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_46', name: 'هاك سكوات ماكينة (Hack Squat Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_47', name: 'مكبس أرجل (Leg Press Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_48', name: 'سكوات كوب بالدمبل (Dumbbell Goblet Squat)', category: 'legs', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_49', name: 'جهاز تمديد الأرجل أمامي (Leg Extension Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_50', name: 'جهاز ثني الأرجل خلفي جالس (Seated Leg Curl)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_51', name: 'جهاز ثني الأرجل خلفي مستلقي (Lying Leg Curl)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_52', name: 'ديدليفت روماني بالبار (Barbell RDL)', category: 'legs', type: 'weights', equip: 'barbell' },
+            { id: 'ex_53', name: 'ديدليفت روماني بالدمبل (Dumbbell RDL)', category: 'legs', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_54', name: 'طعن / لانجز بالدمبل (Dumbbell Lunges)', category: 'legs', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_55', name: 'سكوات بلغاري بالدمبل (Bulgarian Split Squat)', category: 'legs', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_56', name: 'جهاز ضم وإبعاد الفخذ (Abductor / Adductor Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_57', name: 'جهاز هيب ثرست للمقعدة (Hip Thrust Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_58', name: 'جهاز سمانة واقف (Standing Calf Raise Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_59', name: 'جهاز سمانة جالس (Seated Calf Raise Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_60', name: 'طحن معدة (Crunches)', category: 'abs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_61', name: 'رفع الأرجل معلق (Hanging Leg Raise)', category: 'abs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_62', name: 'تمرين البلانك (Plank)', category: 'abs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_63', name: 'طحن معدة بالكيبل (Cable Crunch)', category: 'abs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_64', name: 'جهاز المشي (Treadmill)', category: 'cardio', type: 'treadmill', equip: 'cardio' },
+            { id: 'ex_65', name: 'دراجة تمارين ثابتة (Stationary Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
+            { id: 'ex_66', name: 'جهاز الغزالة / أوبتكال (Elliptical Trainer)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
+            { id: 'ex_67', name: 'جهاز سلالم الدرج (Stair Master)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
+            { id: 'ex_68', name: 'جهاز التجديف (Rowing Machine)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
+            { id: 'ex_69', name: 'دراجة هوائية (Air Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' }
         ];
 
-        const DEFAULT_ROUTINES = [
-            { id: 'rout_1', name: 'تمرين يوم الدفع (Push Day)', exercises: ['ex_1'] },
-            { id: 'rout_2', name: 'تمرين يوم السحب (Pull Day)', exercises: ['ex_2'] },
-            { id: 'rout_3', name: 'تمرين يوم الأرجل (Legs Day)', exercises: ['ex_3'] }
-        ];
+        const CATEGORY_NAMES = {
+            push: 'دفع 🏋️',
+            pull: 'سحب 🧗',
+            legs: 'أرجل 🦵',
+            abs: 'بطن 🧱',
+            cardio: 'كارديو 🏃'
+        };
 
-        let state = { profile: { name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] }, exercises: [], logs: [], notes: {} };
-        let restTimerInterval = null, currentSplit = 'ppl', currentFilterCat = 'all', currentFilterEquip = 'all', activeWeightUnit = 'kg', activeSetType = 'normal', lastPerfData = null;
+        const EQUIP_NAMES = {
+            barbell: 'أوزان حرة (بار) 🏋️‍♂️',
+            dumbbell: 'أوزان حرة (دمبل) 🏋️‍♀️',
+            machine: 'أجهزة 🤖',
+            cable_body: 'كابل / وزن جسم 🦾',
+            cardio: 'كارديو بالجهاز 🏃‍♂️'
+        };
 
-        function sanitizeString(str, maxLen = 50) { return typeof str !== 'string' ? '' : str.replace(/[<>"'&]/g, '').trim().substring(0, maxLen); }
-        function validateAndClamp(rawVal, min, max, defaultVal) { let num = Math.abs(parseFloat(rawVal)); return isNaN(num) ? defaultVal : Math.round(Math.min(Math.max(num, min), max) * 10) / 10; }
+        const SET_TYPE_BADGES = {
+            normal: '',
+            warmup: '<span class="text-amber-300 font-bold px-1 rounded bg-amber-950/80 border border-amber-800/50 text-[10px]">☀️ تسخين</span>',
+            dropset: '<span class="text-purple-300 font-bold px-1 rounded bg-purple-950/80 border border-purple-800/50 text-[10px]">📉 دروب</span>',
+            superset: '<span class="text-blue-300 font-bold px-1 rounded bg-blue-950/80 border border-blue-800/50 text-[10px]">⚡ سوبر</span>',
+            failure: '<span class="text-red-400 font-black px-1 rounded bg-red-950/80 border border-red-800/50 text-[10px]">🔥 للفشل</span>'
+        };
+
+        let state = {
+            profile: { name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] },
+            exercises: [],
+            logs: []
+        };
+
+        let restTimerInterval = null;
+        let chartInstance = null;
+        let currentSplit = 'ppl';
+        let currentFilterCat = 'all';
+        let currentFilterEquip = 'all';
+        let activeWeightUnit = 'kg';
+        let activeSetType = 'normal';
+        let lastPerfData = null;
+        let logsRenderLimit = 15;
+        let customInputDebounce = null;
+
+        function sanitizeString(str, maxLen = 50) {
+            if (typeof str !== 'string') return '';
+            return str.replace(/[<>"'&]/g, '').trim().substring(0, maxLen);
+        }
+
+        function validateAndClamp(rawVal, min, max, defaultVal) {
+            let num = Math.abs(parseFloat(rawVal));
+            if (isNaN(num)) return defaultVal;
+            if (num < min) return min;
+            if (num > max) return max;
+            return Math.round(num * 10) / 10;
+        }
+
+        function isLocalStorageAvailable() {
+            try {
+                const test = '__ls_test__';
+                localStorage.setItem(test, test);
+                localStorage.removeItem(test);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
 
         function loadState() {
-            try {
-                const sp = localStorage.getItem('gym_profile'); if (sp) state.profile = JSON.parse(sp);
-                const se = localStorage.getItem('gym_exercises'); state.exercises = se ? JSON.parse(se) : [...DEFAULT_EXERCISES];
-                const sl = localStorage.getItem('gym_logs'); state.logs = sl ? JSON.parse(sl) : [];
-                const sn = localStorage.getItem('gym_notes'); state.notes = sn ? JSON.parse(sn) : {};
-            } catch (e) {}
-        }
-
-        function saveToLS(key, data) { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {} }
-
-        function runLocalClassification(cleanName) {
-            for (const [key, val] of Object.entries(EXERCISE_DICTIONARY)) {
-                if (cleanName.includes(key)) return { cat: val.cat, equip: val.equip };
+            if (!isLocalStorageAvailable()) {
+                document.getElementById('ls-warning').classList.remove('hidden');
             }
-            let cat = 'push', equip = 'barbell';
-            if (/(سحب|ظهر|باي|pull|row|lat)/i.test(cleanName)) cat = 'pull';
-            else if (/(سكوات|ارجل|فخذ|رجل|squat|leg|hip)/i.test(cleanName)) cat = 'legs';
-            else if (/(بطن|معدة|abs|crunch)/i.test(cleanName)) cat = 'abs';
-            return { cat, equip };
+
+            try {
+                const savedProfile = localStorage.getItem('gym_profile');
+                if (savedProfile) {
+                    state.profile = JSON.parse(savedProfile);
+                    if (state.profile.isMan === undefined) state.profile.isMan = true;
+                }
+
+                const savedExercises = localStorage.getItem('gym_exercises');
+                if (savedExercises) {
+                    state.exercises = JSON.parse(savedExercises);
+                    
+                    const uniqueMap = new Map();
+                    state.exercises.forEach(ex => {
+                        const key = ex.name.trim().toLowerCase();
+                        if (!uniqueMap.has(key)) uniqueMap.set(key, ex);
+                    });
+                    
+                    DEFAULT_EXERCISES.forEach(defEx => {
+                        const key = defEx.name.trim().toLowerCase();
+                        if (!uniqueMap.has(key)) {
+                            uniqueMap.set(key, defEx);
+                        } else {
+                            const existing = uniqueMap.get(key);
+                            if (!existing.equip) existing.equip = defEx.equip;
+                        }
+                    });
+
+                    state.exercises = Array.from(uniqueMap.values());
+                    saveToLS('gym_exercises', state.exercises);
+                } else {
+                    state.exercises = [...DEFAULT_EXERCISES];
+                    saveToLS('gym_exercises', state.exercises);
+                }
+
+                const savedLogs = localStorage.getItem('gym_logs');
+                if (savedLogs) state.logs = JSON.parse(savedLogs);
+            } catch (err) {
+                console.error("Error loading state from localStorage", err);
+            }
         }
 
-        function onCustomExerciseInput(val) {
-            const cleanName = sanitizeString(val, 60).toLowerCase(), statusEl = document.getElementById('new-ex-status');
-            if (!cleanName) { statusEl.classList.add('hidden'); return; }
-            const res = runLocalClassification(cleanName);
-            document.getElementById('new-ex-cat').value = res.cat;
-            document.getElementById('new-ex-equip').value = res.equip;
-            statusEl.className = "text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border bg-cyan-950/80 border-cyan-800 text-cyan-300 flex items-center gap-1.5";
-            statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400"></i> تم التصنيف تلقائياً ⚡`;
-            statusEl.classList.remove('hidden');
+        function saveToLS(key, data) {
+            try {
+                if (isLocalStorageAvailable()) {
+                    localStorage.setItem(key, JSON.stringify(data));
+                }
+            } catch (e) {
+                console.warn("Unable to save to localStorage", e);
+            }
+        }
+
+        function calculateCalories(type, data) {
+            const userWeight = parseFloat(state.profile.weight) || 75;
+            const isMan = state.profile.isMan !== false;
+            const genderMultiplier = isMan ? 1.15 : 1.0;
+            let netCalories = 0;
+
+            if (type === 'weights') {
+                const weight = parseFloat(data.weight) || 0;
+                const setDurationMins = 0.75;
+                
+                const intensityRatio = weight / Math.max(userWeight, 45);
+                let grossMET = 3.5 + Math.min(intensityRatio * 2.0, 3.5);
+                
+                if (data.setType === 'warmup') grossMET = 3.0;
+                else if (data.setType === 'failure' || data.setType === 'dropset') grossMET += 1.2;
+                else if (data.setType === 'superset') grossMET += 0.8;
+
+                const netMET = Math.max(grossMET - 1.0, 1.0);
+                netCalories = netMET * userWeight * (setDurationMins / 60);
+
+            } else if (type === 'treadmill') {
+                const speedKmH = parseFloat(data.speed) || 6.0;
+                const inclineLevel = parseFloat(data.incline) || 1.0;
+                const durationMins = parseFloat(data.duration) || 15;
+
+                const speedMMin = speedKmH * (1000 / 60);
+                const inclineFrac = inclineLevel / 100;
+
+                let vo2 = (speedKmH < 6.0) 
+                    ? 3.5 + (0.1 * speedMMin) + (1.8 * speedMMin * inclineFrac)
+                    : 3.5 + (0.2 * speedMMin) + (0.9 * speedMMin * inclineFrac);
+
+                const netVO2 = Math.max(vo2 - 3.5, 0.5);
+                netCalories = ((netVO2 * userWeight) / 200) * durationMins;
+
+            } else if (type === 'bike_elliptical') {
+                const level = parseFloat(data.level) || 5.0;
+                const durationMins = parseFloat(data.duration) || 15;
+
+                const grossMET = 3.5 + (level * 0.35);
+                const netMET = Math.max(grossMET - 1.0, 1.0);
+                netCalories = netMET * userWeight * (durationMins / 60);
+            }
+
+            return Math.round(netCalories * genderMultiplier * 10) / 10;
+        }
+
+        function setSplitSystem(split) {
+            currentSplit = split;
+            currentFilterCat = 'all';
+            document.getElementById('exercise-search-input').value = '';
+
+            const pplBtn = document.getElementById('split-btn-ppl');
+            const ulBtn = document.getElementById('split-btn-ul');
+
+            if (split === 'ppl') {
+                pplBtn.className = "px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md";
+                ulBtn.className = "px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 hover:bg-slate-700";
+            } else {
+                ulBtn.className = "px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md";
+                pplBtn.className = "px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 hover:bg-slate-700";
+            }
+
+            renderCategoryTabs();
+            renderExerciseDropdown();
         }
 
         function renderCategoryTabs() {
-            const container = document.getElementById('category-tabs-container'), fragment = document.createDocumentFragment();
-            ['all', 'push', 'pull', 'legs', 'abs'].forEach(id => {
-                const btn = document.createElement('button'); btn.type = 'button'; btn.dataset.cat = id;
-                btn.className = `cat-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap ${id === currentFilterCat ? 'active bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md' : 'bg-slate-800/80 text-slate-300'}`;
-                btn.textContent = id === 'all' ? 'الكل 🎯' : (id === 'push' ? 'دفع 🏋️' : id === 'pull' ? 'سحب 🧗' : id === 'legs' ? 'أرجل 🦵' : 'بطن 🧱');
+            const container = document.getElementById('category-tabs-container');
+            const fragment = document.createDocumentFragment();
+
+            const categories = currentSplit === 'ppl' ? [
+                { id: 'all', label: 'الكل 🎯' },
+                { id: 'push', label: 'دفع 🏋️' },
+                { id: 'pull', label: 'سحب 🧗' },
+                { id: 'legs', label: 'أرجل 🦵' },
+                { id: 'abs', label: 'بطن 🧱' },
+                { id: 'cardio', label: 'كارديو 🏃' }
+            ] : [
+                { id: 'all', label: 'الكل 🎯' },
+                { id: 'upper', label: 'جسم علوي (Upper 🦾)' },
+                { id: 'lower', label: 'جسم سفلي (Lower 🦵)' },
+                { id: 'cardio', label: 'كارديو 🏃' }
+            ];
+
+            categories.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.cat = cat.id;
+                btn.setAttribute('aria-label', `تصفية حسب ${escapeHTML(cat.label)}`);
+                btn.className = `cat-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    cat.id === currentFilterCat 
+                        ? 'active bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md' 
+                        : 'bg-slate-800/80 text-slate-300 hover:bg-slate-700'
+                }`;
+                btn.textContent = cat.label;
                 fragment.appendChild(btn);
             });
-            container.innerHTML = ''; container.appendChild(fragment);
+
+            container.innerHTML = '';
+            container.appendChild(fragment);
+        }
+
+        function setEquipFilter(equip, btnEl) {
+            currentFilterEquip = equip;
+            document.getElementById('exercise-search-input').value = '';
+
+            document.querySelectorAll('.equip-btn').forEach(btn => {
+                btn.className = "equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200";
+            });
+            if (btnEl) {
+                btnEl.className = "equip-btn active px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-cyan-950 text-cyan-300 border border-cyan-800";
+            }
+            renderExerciseDropdown();
         }
 
         function renderExerciseDropdown() {
-            const dropdown = document.getElementById('exercise-dropdown'), searchVal = sanitizeString(document.getElementById('exercise-search-input').value, 50).toLowerCase();
+            const dropdown = document.getElementById('exercise-dropdown');
+            const searchVal = sanitizeString(document.getElementById('exercise-search-input').value, 50).toLowerCase();
+
             let filtered = state.exercises;
-            if (currentFilterCat !== 'all') filtered = filtered.filter(e => e.category === currentFilterCat);
+
+            if (currentFilterCat !== 'all') {
+                if (currentFilterCat === 'upper') filtered = filtered.filter(e => e.category === 'push' || e.category === 'pull');
+                else if (currentFilterCat === 'lower') filtered = filtered.filter(e => e.category === 'legs' || e.category === 'abs');
+                else filtered = filtered.filter(e => e.category === currentFilterCat);
+            }
+
+            if (currentFilterEquip !== 'all') filtered = filtered.filter(e => e.equip === currentFilterEquip);
             if (searchVal) filtered = filtered.filter(e => e.name.toLowerCase().includes(searchVal));
 
             dropdown.innerHTML = '';
-            if (filtered.length === 0) { dropdown.innerHTML = `<option value="">لا توجد تمارين</option>`; onExerciseSelectChange(); return; }
+            if (filtered.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'لا توجد تمارين تطابق خيارات البحث';
+                dropdown.appendChild(opt);
+                onExerciseSelectChange();
+                return;
+            }
+
             const fragment = document.createDocumentFragment();
-            filtered.forEach(ex => { const opt = document.createElement('option'); opt.value = ex.id; opt.textContent = ex.name; fragment.appendChild(opt); });
-            dropdown.appendChild(fragment); onExerciseSelectChange();
+            filtered.forEach(ex => {
+                const catEmoji = CATEGORY_NAMES[ex.category] || '';
+                const opt = document.createElement('option');
+                opt.value = ex.id;
+                opt.textContent = `${ex.name} (${catEmoji})`;
+                fragment.appendChild(opt);
+            });
+
+            dropdown.appendChild(fragment);
+            onExerciseSelectChange();
+        }
+
+        function filterExerciseDropdown() { renderExerciseDropdown(); }
+
+        function setWorkoutCategoryFilter(cat, btnEl) {
+            currentFilterCat = cat;
+            document.getElementById('exercise-search-input').value = '';
+
+            document.querySelectorAll('.cat-btn').forEach(btn => {
+                btn.classList.remove('bg-gradient-to-r', 'from-cyan-500', 'to-blue-600', 'text-white', 'shadow-md', 'active');
+                btn.classList.add('bg-slate-800/80', 'text-slate-300');
+            });
+            if (btnEl) {
+                btnEl.classList.remove('bg-slate-800/80', 'text-slate-300');
+                btnEl.classList.add('bg-gradient-to-r', 'from-cyan-500', 'to-blue-600', 'text-white', 'shadow-md', 'active');
+            }
+
+            renderExerciseDropdown();
         }
 
         function onExerciseSelectChange() {
-            const selectedId = document.getElementById('exercise-dropdown').value;
-            document.getElementById('exercise-note-input').value = state.notes[selectedId] || '';
-            const exLogs = state.logs.filter(l => l.exerciseId === selectedId);
-            const textEl = document.getElementById('last-performance-text'), copyBtn = document.getElementById('btn-copy-last-perf');
-            if (exLogs.length === 0) { textEl.textContent = 'لا يوجد أداء سابق مسجل'; copyBtn.classList.add('hidden'); lastPerfData = null; }
-            else {
-                lastPerfData = exLogs[exLogs.length - 1];
-                textEl.innerHTML = `<span class="text-cyan-300 font-bold">${lastPerfData.weight} كجم</span> × <span class="text-cyan-300 font-bold">${lastPerfData.reps} عدات</span>`;
+            const dropdown = document.getElementById('exercise-dropdown');
+            const selectedId = dropdown.value;
+            const ex = state.exercises.find(e => e.id === selectedId);
+
+            const formWeights = document.getElementById('form-weights');
+            const formTm = document.getElementById('form-treadmill');
+            const formBe = document.getElementById('form-bike-elliptical');
+            const equipBadge = document.getElementById('selected-exercise-equip-badge');
+
+            formWeights.classList.add('hidden');
+            formTm.classList.add('hidden');
+            formBe.classList.add('hidden');
+
+            updateLastPerformanceDisplay(selectedId);
+
+            if (!ex) {
+                equipBadge.textContent = 'غير محدد';
+                return;
+            }
+
+            equipBadge.textContent = EQUIP_NAMES[ex.equip] || (ex.category === 'cardio' ? 'كارديو بالجهاز 🏃‍♂️' : 'أوزان حرة 🏋️‍♂️');
+
+            if (ex.type === 'weights') formWeights.classList.remove('hidden');
+            else if (ex.type === 'treadmill') formTm.classList.remove('hidden');
+            else if (ex.type === 'bike_elliptical') formBe.classList.remove('hidden');
+        }
+
+        function updateLastPerformanceDisplay(exerciseId) {
+            const textEl = document.getElementById('last-performance-text');
+            const copyBtn = document.getElementById('btn-copy-last-perf');
+
+            if (!exerciseId) {
+                textEl.textContent = 'اختر تمرين للعرض';
+                copyBtn.classList.add('hidden');
+                lastPerfData = null;
+                return;
+            }
+
+            const exLogs = state.logs.filter(l => l.exerciseId === exerciseId && l.type === 'weights');
+
+            if (exLogs.length === 0) {
+                textEl.textContent = 'لا يوجد أداء سابق مسجل لهذا التمرين';
+                textEl.className = 'text-xs font-medium text-slate-400';
+                copyBtn.classList.add('hidden');
+                lastPerfData = null;
+            } else {
+                const latest = exLogs[exLogs.length - 1];
+                lastPerfData = latest;
+                const unitStr = latest.unit === 'lbs' ? 'باوند' : 'كجم';
+                const weightVal = latest.displayWeight || latest.weight;
+                
+                const todayStr = new Date().toISOString().split('T')[0];
+                let timeDesc = latest.date;
+                if (latest.date === todayStr) timeDesc = 'اليوم';
+
+                textEl.innerHTML = `<span class="text-cyan-300 font-bold">${escapeHTML(String(weightVal))} ${unitStr}</span> × <span class="text-cyan-300 font-bold">${escapeHTML(String(latest.reps))} عدات</span> <span class="text-[10px] text-slate-400">(${escapeHTML(timeDesc)})</span>`;
+                textEl.className = 'text-xs font-bold text-cyan-300';
                 copyBtn.classList.remove('hidden');
             }
         }
 
+        function copyLastPerformance() {
+            if (!lastPerfData) return;
+            
+            if (lastPerfData.unit && lastPerfData.unit !== activeWeightUnit) {
+                setWeightUnit(lastPerfData.unit);
+            }
+            
+            const wVal = lastPerfData.displayWeight || lastPerfData.weight;
+            document.getElementById('input-weight').value = wVal;
+            updateWeightConvertedDisplay();
+
+            document.getElementById('input-reps').value = lastPerfData.reps;
+            document.getElementById('val-reps-display').textContent = lastPerfData.reps;
+
+            showToast('تم نسخ وزن وعدات الأداء السابق 📋');
+        }
+
+        function setSetType(type, btnEl) {
+            activeSetType = type;
+            document.querySelectorAll('.set-type-btn').forEach(btn => {
+                btn.className = "set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5";
+            });
+            if (btnEl) {
+                btnEl.className = "set-type-btn active py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5";
+            }
+        }
+
+        function setWeightUnit(unit) {
+            if (activeWeightUnit === unit) return;
+
+            const inputWeight = document.getElementById('input-weight');
+            const currentVal = parseFloat(inputWeight.value) || 0;
+
+            activeWeightUnit = unit;
+
+            const kgBtn = document.getElementById('unit-btn-kg');
+            const lbsBtn = document.getElementById('unit-btn-lbs');
+
+            if (unit === 'kg') {
+                kgBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all";
+                lbsBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all";
+                inputWeight.value = Math.round((currentVal / 2.20462) * 2) / 2;
+            } else {
+                lbsBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all";
+                kgBtn.className = "px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all";
+                inputWeight.value = Math.round(currentVal * 2.20462);
+            }
+
+            updateWeightConvertedDisplay();
+        }
+
+        function handleStepperClick(targetInputId, stepDelta) {
+            const input = document.getElementById(targetInputId);
+            if (!input) return;
+
+            let min = parseFloat(input.min) || 0;
+            let max = parseFloat(input.max) || 999;
+            let current = parseFloat(input.value) || 0;
+
+            let updated = current + stepDelta;
+            updated = validateAndClamp(updated, min, max, current);
+
+            input.value = updated;
+
+            if (targetInputId === 'input-weight') updateWeightConvertedDisplay();
+            else if (targetInputId === 'input-reps') document.getElementById('val-reps-display').textContent = updated;
+        }
+
+        function updateWeightConvertedDisplay() {
+            const inputWeight = document.getElementById('input-weight');
+            const val = validateAndClamp(inputWeight.value, 0, 500, 0);
+            inputWeight.value = val;
+            
+            const convertedSpan = document.getElementById('val-weight-converted');
+
+            if (activeWeightUnit === 'kg') {
+                const lbs = (val * 2.20462).toFixed(1);
+                convertedSpan.textContent = `${lbs} باوند (lbs)`;
+            } else {
+                const kg = (val / 2.20462).toFixed(1);
+                convertedSpan.textContent = `${kg} كجم (kg)`;
+            }
+        }
+
         function saveSet() {
-            const exId = document.getElementById('exercise-dropdown').value, ex = state.exercises.find(e => e.id === exId); if (!ex) return;
-            const weight = validateAndClamp(document.getElementById('input-weight').value, 0, 500, 0);
+            const dropdown = document.getElementById('exercise-dropdown');
+            const exId = dropdown.value;
+            const ex = state.exercises.find(e => e.id === exId);
+            if (!ex) return;
+
+            const rawWeight = validateAndClamp(document.getElementById('input-weight').value, 0, 500, 0);
             const reps = validateAndClamp(document.getElementById('input-reps').value, 1, 150, 10);
-            const note = sanitizeString(document.getElementById('exercise-note-input').value, 100);
-            if (note) state.notes[exId] = note; saveToLS('gym_notes', state.notes);
-            state.logs.push({ id: 'log_' + Date.now(), date: new Date().toISOString().split('T')[0], exerciseId: ex.id, exerciseName: ex.name, category: ex.category, type: 'weights', weight, reps, setType: activeSetType, calories: 15 });
-            saveToLS('gym_logs', state.logs); renderTodayLogs(); showToast('تم الحفظ ✔️');
+
+            let weightInKg = rawWeight;
+            if (activeWeightUnit === 'lbs') {
+                weightInKg = Math.round((rawWeight / 2.20462) * 10) / 10;
+            }
+
+            const calories = calculateCalories('weights', { weight: weightInKg, reps, setType: activeSetType });
+
+            const today = new Date().toISOString().split('T')[0];
+            const logEntry = {
+                id: 'log_' + Date.now(),
+                date: today,
+                timestamp: Date.now(),
+                exerciseId: ex.id,
+                exerciseName: ex.name,
+                category: ex.category,
+                type: 'weights',
+                weight: weightInKg,
+                displayWeight: rawWeight,
+                unit: activeWeightUnit,
+                reps,
+                setType: activeSetType,
+                isFailure: activeSetType === 'failure',
+                calories
+            };
+
+            state.logs.push(logEntry);
+            saveToLS('gym_logs', state.logs);
+
+            renderTodayLogs();
+            updateTopHeaderStats();
+            updateLastPerformanceDisplay(ex.id);
+            showToast('تم حفظ الجولة بنجاح ✔️');
+
+            startRestTimer(90);
+        }
+
+        function saveCardioSet(cardioType) {
+            const dropdown = document.getElementById('exercise-dropdown');
+            const exId = dropdown.value;
+            const ex = state.exercises.find(e => e.id === exId);
+            if (!ex) return;
+
+            const today = new Date().toISOString().split('T')[0];
+            let calories = 0;
+            let logData = {
+                id: 'log_' + Date.now(),
+                date: today,
+                timestamp: Date.now(),
+                exerciseId: ex.id,
+                exerciseName: ex.name,
+                category: ex.category,
+                type: cardioType
+            };
+
+            if (cardioType === 'treadmill') {
+                const speed = validateAndClamp(document.getElementById('input-tm-speed').value, 1, 25, 8.0);
+                const incline = validateAndClamp(document.getElementById('input-tm-incline').value, 0, 25, 1.0);
+                const duration = validateAndClamp(document.getElementById('input-tm-duration').value, 1, 180, 20);
+
+                calories = calculateCalories('treadmill', { speed, incline, duration });
+                logData = { ...logData, speed, incline, duration, calories };
+
+            } else {
+                const level = validateAndClamp(document.getElementById('input-be-level').value, 1, 30, 5.0);
+                const duration = validateAndClamp(document.getElementById('input-be-duration').value, 1, 180, 15);
+
+                calories = calculateCalories('bike_elliptical', { level, duration });
+                logData = { ...logData, level, duration, calories };
+            }
+
+            state.logs.push(logData);
+            saveToLS('gym_logs', state.logs);
+
+            renderTodayLogs();
+            updateTopHeaderStats();
+            showToast('تم حفظ تمرين الكارديو 🏃');
+        }
+
+        function deleteLogItem(logId) {
+            showModal({
+                title: 'حذف الجولة 🗑️',
+                message: 'هل أنت تأكد من رغبتك في حذف هذه الجولة من سجل اليوم؟',
+                confirmText: 'نعم، احذف',
+                cancelText: 'إلغاء',
+                onConfirm: () => {
+                    state.logs = state.logs.filter(l => l.id !== logId);
+                    saveToLS('gym_logs', state.logs);
+                    renderTodayLogs();
+                    updateTopHeaderStats();
+                    const currentExId = document.getElementById('exercise-dropdown').value;
+                    updateLastPerformanceDisplay(currentExId);
+                    showToast('تم حذف الجولة');
+                }
+            });
         }
 
         function renderTodayLogs() {
-            const container = document.getElementById('today-logs-container'), today = new Date().toISOString().split('T')[0];
-            const logs = state.logs.filter(l => l.date === today).reverse();
-            document.getElementById('today-sets-count').textContent = `${logs.length} جولات`;
-            if (logs.length === 0) { container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs glass-card">لا توجد جولات اليوم بعد</div>`; return; }
+            const container = document.getElementById('today-logs-container');
+            const loadMoreWrapper = document.getElementById('lazy-logs-load-more');
+            const today = new Date().toISOString().split('T')[0];
+            const todayLogs = state.logs.filter(l => l.date === today).reverse();
+
+            document.getElementById('today-sets-count').textContent = `${todayLogs.length} جولات`;
+
+            if (todayLogs.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 text-xs glass-card border border-slate-800">
+                        لا توجد جولات مسجلة اليوم حتى الآن. ابدأ بتسجيل جولتك الأولى! 💪
+                    </div>
+                `;
+                loadMoreWrapper.classList.add('hidden');
+                return;
+            }
+
+            const visibleLogs = todayLogs.slice(0, logsRenderLimit);
+
+            if (todayLogs.length > logsRenderLimit) {
+                loadMoreWrapper.classList.remove('hidden');
+            } else {
+                loadMoreWrapper.classList.add('hidden');
+            }
+
             const fragment = document.createDocumentFragment();
-            logs.forEach(log => {
-                const item = document.createElement('div'); item.className = 'glass-card p-3 flex justify-between items-center text-xs';
-                item.innerHTML = `<div><b>${escapeHTML(log.exerciseName)}</b><br>${log.weight} كجم × ${log.reps} عدات</div><div class="text-amber-400 font-bold">15🔥</div>`;
+            visibleLogs.forEach(log => {
+                const item = document.createElement('div');
+                item.className = 'glass-card p-3 flex justify-between items-center border border-slate-800 hover:border-slate-700 transition';
+                
+                let detailText = '';
+                if (log.type === 'weights') {
+                    const unitLabel = log.unit === 'lbs' ? 'باوند' : 'كجم';
+                    const printWeight = log.displayWeight || log.weight;
+                    const setBadge = SET_TYPE_BADGES[log.setType || 'normal'] || (log.isFailure ? SET_TYPE_BADGES.failure : '');
+                    detailText = `<span class="font-bold text-cyan-300">${escapeHTML(String(printWeight))} ${unitLabel}</span> × <span class="font-bold text-cyan-300">${escapeHTML(String(log.reps))} عدات</span> ${setBadge}`;
+                } else if (log.type === 'treadmill') {
+                    detailText = `سرعة: <span class="text-cyan-300 font-bold">${escapeHTML(String(log.speed))} كم/س</span> | ارتفاع: <span class="text-cyan-300 font-bold">${escapeHTML(String(log.incline))}</span> | <span class="text-cyan-300 font-bold">${escapeHTML(String(log.duration))} د</span>`;
+                } else if (log.type === 'bike_elliptical') {
+                    detailText = `مستوى: <span class="text-cyan-300 font-bold">${escapeHTML(String(log.level))}</span> | المدة: <span class="text-cyan-300 font-bold">${escapeHTML(String(log.duration))} د</span>`;
+                }
+
+                item.innerHTML = `
+                    <div class="space-y-1">
+                        <div class="font-bold text-xs text-slate-200 flex items-center gap-1.5">
+                            <span>${escapeHTML(log.exerciseName)}</span>
+                            <span class="text-[10px] text-slate-400">(${escapeHTML(CATEGORY_NAMES[log.category] || '')})</span>
+                        </div>
+                        <div class="text-xs text-slate-300 flex items-center gap-2">
+                            ${detailText}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-right">
+                            <div class="text-xs font-black text-amber-400">${escapeHTML(String(log.calories))}🔥</div>
+                            <div class="text-[9px] text-slate-500">سعرة</div>
+                        </div>
+                        <button data-action="delete-log" data-id="${escapeHTML(log.id)}" aria-label="حذف هذه الجولة" class="text-slate-500 hover:text-red-400 p-1.5 rounded-lg transition">
+                            <i class="fa-solid fa-trash-can text-sm" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                `;
                 fragment.appendChild(item);
             });
-            container.innerHTML = ''; container.appendChild(fragment);
+
+            container.innerHTML = '';
+            container.appendChild(fragment);
         }
 
-        function renderRoutines() {
-            const container = document.getElementById('routines-list-container'); if (!container) return;
-            const fragment = document.createDocumentFragment();
-            DEFAULT_ROUTINES.forEach(r => {
-                const card = document.createElement('div'); card.className = 'glass-card p-3 flex justify-between items-center text-xs';
-                card.innerHTML = `<div><div class="font-bold text-slate-200">${escapeHTML(r.name)}</div><div class="text-[10px] text-slate-400">${r.exercises.length} تمارين</div></div><button onclick="switchTab('workout')" class="px-3 py-1.5 bg-cyan-600 text-white rounded-lg font-bold">بدء 🏋️</button>`;
-                fragment.appendChild(card);
-            });
-            container.innerHTML = ''; container.appendChild(fragment);
+        function startRestTimer(seconds) {
+            stopRestTimer();
+            let timeLeft = seconds;
+            const widget = document.getElementById('rest-timer-widget');
+            const display = document.getElementById('timer-display');
+
+            widget.classList.remove('hidden');
+            display.textContent = `${timeLeft}s`;
+
+            restTimerInterval = setInterval(() => {
+                timeLeft--;
+                display.textContent = `${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    stopRestTimer();
+                    if ('vibrate' in navigator) navigator.vibrate([150, 100, 150]);
+                    showToast('انتهى وقت الراحة! حان وقت الجولة التالية 🏋️');
+                }
+            }, 1000);
         }
 
-        function renderCalendarStreak() {
-            const container = document.getElementById('calendar-streak-container'); if (!container) return;
-            const datesSet = new Set(state.logs.map(l => l.date)), fragment = document.createDocumentFragment();
-            for (let i = 27; i >= 0; i--) {
-                const d = new Date(); d.setDate(d.getDate() - i); const str = d.toISOString().split('T')[0];
-                const box = document.createElement('div'); box.className = `p-2 rounded-lg font-bold border ${datesSet.has(str) ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300' : 'bg-slate-900/60 border-slate-800 text-slate-500'}`; box.textContent = d.getDate(); fragment.appendChild(box);
+        function stopRestTimer() {
+            if (restTimerInterval) clearInterval(restTimerInterval);
+            document.getElementById('rest-timer-widget').classList.add('hidden');
+        }
+
+        // --- RELIABLE EXERCISE CLASSIFIER ENGINE ---
+        function runLocalClassification(cleanName) {
+            // 1. Direct Dictionary Match
+            for (const [key, val] of Object.entries(EXERCISE_DICTIONARY)) {
+                if (cleanName.includes(key)) {
+                    return { cat: val.cat, equip: val.equip };
+                }
             }
-            container.innerHTML = ''; container.appendChild(fragment);
+
+            // 2. Regex Search Match
+            let cat = null;
+            let equip = null;
+
+            if (/(ضغط|صدر|بنش|أكتاف|اكتاف|كتف|ترايسيبس|تراي|متوازي|رفرفة|تفتيح|press|bench|chest|shoulder|tricep|fly|dip|overhead|pec|push)/i.test(cleanName)) cat = 'push';
+            else if (/(سحب|ظهر|عقلة|عقله|بايسبس|باي|ترابيس|مطرقة|هامر|رو|بلوفر|وجه|pulldown|row|pull|back|biceps|curl|shrug|chin|lat|face|rear|delt)/i.test(cleanName)) cat = 'pull';
+            else if (/(سكوات|أرجل|ارجل|فخذ|سمانة|طعن|مكبس|مقعدة|مؤخرة|هيب|ضم|إبعاد|ابعاد|ضام|ادكشن|ابداكشن|squat|leg|lunge|calf|thrust|extension|curl|adduct|abduct|hip|glute|hamstring|quad|rdl|deadlift)/i.test(cleanName)) cat = 'legs';
+            else if (/(بطن|معدة|معده|بلانك|طحن|crunch|plank|abs|core|situp)/i.test(cleanName)) cat = 'abs';
+            else if (/(مشي|دراجة|دراجه|سير|غزالة|غزاله|كارديو|سلم|تجديف|treadmill|bike|run|elliptical|stair|rowing|cardio)/i.test(cleanName)) cat = 'cardio';
+
+            if (/(بار|باربل|barbell|ez)/i.test(cleanName)) equip = 'barbell';
+            else if (/(دمبل|دمبلز|dumbbell)/i.test(cleanName)) equip = 'dumbbell';
+            else if (/(جهاز|ماكينة|ماكينه|سميث|مكبس|machine|smith|adductor|abductor|deck)/i.test(cleanName)) equip = 'machine';
+            else if (/(كيبل|كابل|حبل|وزن جسم|cable|body|rope|dip|pullup)/i.test(cleanName)) equip = 'cable_body';
+            else if (/(كارديو|تأهيل|cardio)/i.test(cleanName)) equip = 'cardio';
+
+            return { cat, equip };
+        }
+
+        function onCustomExerciseInput(val) {
+            const cleanName = sanitizeString(val, 60).toLowerCase();
+            const statusEl = document.getElementById('new-ex-status');
+            const submitBtn = document.getElementById('add-ex-submit-btn');
+            const catSelect = document.getElementById('new-ex-cat');
+            const equipSelect = document.getElementById('new-ex-equip');
+
+            if (!cleanName) {
+                statusEl.classList.add('hidden');
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                return;
+            }
+
+            const isDuplicate = state.exercises.some(ex => ex.name.trim().toLowerCase() === cleanName);
+
+            if (isDuplicate) {
+                statusEl.className = "text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border bg-red-950/80 border-red-800 text-red-300 flex items-center gap-1.5";
+                statusEl.innerHTML = `<i class="fa-solid fa-circle-xmark text-red-400" aria-hidden="true"></i> هذا التمرين مضاف مسبقاً في المكتبة!`;
+                statusEl.classList.remove('hidden');
+                
+                submitBtn.disabled = true;
+                submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                return;
+            } else {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+
+            const result = runLocalClassification(cleanName);
+            if (result.cat) catSelect.value = result.cat;
+            if (result.equip) equipSelect.value = result.equip;
+
+            if (result.cat || result.equip) {
+                statusEl.className = "text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border bg-cyan-950/80 border-cyan-800 text-cyan-300 flex items-center gap-1.5";
+                statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400" aria-hidden="true"></i> تم تصنيف التمرين تلقائياً بنجاح ⚡`;
+                statusEl.classList.remove('hidden');
+            } else {
+                statusEl.classList.add('hidden');
+            }
+        }
+
+        function addNewExercise() {
+            const name = sanitizeString(document.getElementById('new-ex-name').value, 60);
+            const category = document.getElementById('new-ex-cat').value;
+            const equip = document.getElementById('new-ex-equip').value;
+            const type = (category === 'cardio' || equip === 'cardio') ? 'bike_elliptical' : 'weights';
+
+            if (!name) {
+                showToast('يرجى إدخال اسم التمرين أولاً ⚠️');
+                return;
+            }
+
+            const newEx = {
+                id: 'ex_' + Date.now(),
+                name,
+                category,
+                type,
+                equip,
+                isCustom: true
+            };
+
+            state.exercises.push(newEx);
+            saveToLS('gym_exercises', state.exercises);
+
+            document.getElementById('new-ex-name').value = '';
+            document.getElementById('new-ex-status').classList.add('hidden');
+            renderManageExercisesList();
+            renderExerciseDropdown();
+            showToast('تمت إضافة التمرين المخصص بنجاح! 🎉');
+        }
+
+        function deleteExercise(exId) {
+            showModal({
+                title: 'حذف تمرين مخصص ⚠️',
+                message: 'هل أنت متاكد من حذف هذا التمرين المخصص؟ لن يتم حذف الجولات القديمة المسجلة به.',
+                confirmText: 'تأكيد الحذف',
+                cancelText: 'إلغاء',
+                onConfirm: () => {
+                    state.exercises = state.exercises.filter(e => e.id !== exId);
+                    saveToLS('gym_exercises', state.exercises);
+                    renderManageExercisesList();
+                    renderExerciseDropdown();
+                    showToast('تم حذف التمرين المخصص');
+                }
+            });
+        }
+
+        function renderManageExercisesList() {
+            const container = document.getElementById('manage-exercises-list');
+            const countEl = document.getElementById('custom-ex-count');
+
+            const customExercises = state.exercises.filter(e => e.isCustom === true);
+            countEl.textContent = `${customExercises.length} تمارِينَ`;
+
+            if (customExercises.length === 0) {
+                container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs glass-card border border-slate-800">لم تقم بإضافة أي تمارين مخصصة بعد. قم بإضافة تمارينك الخاصة أعلاه! 💡</div>`;
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            customExercises.forEach(ex => {
+                const item = document.createElement('div');
+                item.className = 'glass-card p-3 flex justify-between items-center border border-slate-800 hover:border-slate-700 transition';
+                item.innerHTML = `
+                    <div>
+                        <div class="font-bold text-xs text-slate-200">${escapeHTML(ex.name)}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">الفئة: ${escapeHTML(CATEGORY_NAMES[ex.category] || '')} | الأداة: ${escapeHTML(EQUIP_NAMES[ex.equip] || 'مخصص')}</div>
+                    </div>
+                    <button data-action="delete-custom-ex" data-id="${escapeHTML(ex.id)}" aria-label="حذف هذا التمرين المخصص" class="text-slate-500 hover:text-red-400 p-1.5 transition">
+                        <i class="fa-solid fa-trash-can text-sm" aria-hidden="true"></i>
+                    </button>
+                `;
+                fragment.appendChild(item);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(fragment);
+        }
+
+        function initProgressScreen() {
+            const select = document.getElementById('chart-exercise-select');
+            
+            const loggedExIds = new Set(
+                state.logs
+                    .filter(l => l.type === 'weights')
+                    .map(l => l.exerciseId)
+            );
+
+            const weightExercisesWithLogs = state.exercises.filter(e => e.type === 'weights' && loggedExIds.has(e.id));
+
+            select.innerHTML = '';
+            if (weightExercisesWithLogs.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = 'لا توجد تمارين بها سجلات بعد';
+                select.appendChild(opt);
+            } else {
+                const fragment = document.createDocumentFragment();
+                weightExercisesWithLogs.forEach(ex => {
+                    const opt = document.createElement('option');
+                    opt.value = ex.id;
+                    opt.textContent = ex.name;
+                    fragment.appendChild(opt);
+                });
+                select.appendChild(fragment);
+            }
+
+            updateGlobalStats();
+            renderExerciseVolumeBreakdown();
+            updateProgressChart();
+        }
+
+        function updateGlobalStats() {
+            const uniqueDates = new Set(state.logs.map(l => l.date));
+            document.getElementById('stat-total-days').textContent = `${uniqueDates.size} يوم`;
+
+            const activeWeightExCount = new Set(
+                state.logs
+                    .filter(l => l.type === 'weights')
+                    .map(l => l.exerciseId)
+            ).size;
+
+            document.getElementById('stat-active-exercises-count').textContent = `${activeWeightExCount} تمرين`;
+        }
+
+        function renderExerciseVolumeBreakdown() {
+            const container = document.getElementById('exercise-volume-breakdown-list');
+            if (!container) return;
+
+            const volumeMap = {};
+
+            state.logs.forEach(l => {
+                if (l.type === 'weights') {
+                    const exName = l.exerciseName || 'تمرين غير معروف';
+                    const volKg = (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 1);
+                    volumeMap[exName] = (volumeMap[exName] || 0) + volKg;
+                }
+            });
+
+            const sortedExercises = Object.keys(volumeMap).sort((a, b) => volumeMap[b] - volumeMap[a]);
+
+            if (sortedExercises.length === 0) {
+                container.innerHTML = `<div class="text-[11px] text-slate-500 py-3 text-center">لا توجد سجلات أوزان لحساب الحجم التدريبي حتى الآن</div>`;
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            sortedExercises.forEach(name => {
+                const totalKg = volumeMap[name];
+                const totalTons = (totalKg / 1000).toFixed(2);
+
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center text-xs py-2 px-3 bg-slate-900/80 rounded-xl border border-slate-800 hover:border-slate-700 transition';
+                item.innerHTML = `
+                    <span class="font-bold text-slate-200 text-xs">${escapeHTML(name)}</span>
+                    <div class="text-right">
+                        <span class="font-black text-cyan-300 text-xs">${escapeHTML(totalTons)} طن</span>
+                        <span class="text-[10px] text-slate-400 block">(${escapeHTML(totalKg.toLocaleString())} كجم)</span>
+                    </div>
+                `;
+                fragment.appendChild(item);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(fragment);
+        }
+
+        function updateProgressChart() {
+            const select = document.getElementById('chart-exercise-select');
+            const selectedExId = select.value;
+            const ctx = document.getElementById('progressChart').getContext('2d');
+
+            if (!selectedExId) {
+                if (chartInstance) chartInstance.destroy();
+                return;
+            }
+
+            const logsForEx = state.logs.filter(l => l.exerciseId === selectedExId && l.type === 'weights');
+            
+            const dateMap = {};
+            logsForEx.forEach(l => {
+                if (!dateMap[l.date] || l.weight > dateMap[l.date]) {
+                    dateMap[l.date] = l.weight;
+                }
+            });
+
+            const sortedDates = Object.keys(dateMap).sort();
+            const dataPoints = sortedDates.map(d => dateMap[d]);
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(0, 242, 254, 0.4)');
+            gradient.addColorStop(1, 'rgba(0, 242, 254, 0.0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedDates.length > 0 ? sortedDates : ['لا توجد بيانات'],
+                    datasets: [{
+                        label: 'أقصى وزن (كجم)',
+                        data: dataPoints.length > 0 ? dataPoints : [0],
+                        borderColor: '#00f2fe',
+                        borderWidth: 3,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#00f2fe',
+                        pointHoverRadius: 7,
+                        pointRadius: 5,
+                        fill: true,
+                        backgroundColor: gradient,
+                        tension: 0.35
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#94a3b8',
+                                font: { family: 'Tajawal', size: 12 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#64748b', font: { family: 'Tajawal', size: 10 } },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        y: {
+                            ticks: { color: '#64748b', font: { family: 'Tajawal', size: 10 } },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function toggleGender() {
+            state.profile.isMan = !state.profile.isMan;
+            saveToLS('gym_profile', state.profile);
+            updateGenderUI();
+            renderBentoGridAnalysis();
+            updateTopHeaderStats();
+            showToast(state.profile.isMan ? 'تم اختيار وضع الرجل 💪' : 'تم اختيار وضع الأنثى 🌸');
+        }
+
+        function updateGenderUI() {
+            const btn = document.getElementById('gender-toggle-btn');
+            const icon = document.getElementById('gender-icon');
+            const text = document.getElementById('gender-text');
+
+            if (state.profile.isMan) {
+                btn.classList.add('neon-glow-amber', 'border-amber-500/60');
+                icon.textContent = '🔥';
+                text.textContent = 'مفعل: خيار الرجل 💪';
+                text.classList.remove('text-slate-300');
+                text.classList.add('text-amber-300');
+            } else {
+                btn.classList.remove('neon-glow-amber', 'border-amber-500/60');
+                icon.textContent = '💪';
+                text.textContent = 'هل أنت رجل؟ (اضغط للتفعيل)';
+                text.classList.remove('text-amber-300');
+                text.classList.add('text-slate-300');
+            }
+        }
+
+        function saveProfile() {
+            const name = sanitizeString(document.getElementById('prof-name').value, 40);
+            const weight = validateAndClamp(document.getElementById('prof-weight').value, 20, 350, '');
+            const height = validateAndClamp(document.getElementById('prof-height').value, 50, 250, '');
+            const waist = validateAndClamp(document.getElementById('prof-waist').value, 30, 250, '');
+            const age = validateAndClamp(document.getElementById('prof-age').value, 5, 120, '');
+            const fat = validateAndClamp(document.getElementById('prof-fat').value, 1, 70, '');
+            const muscle = validateAndClamp(document.getElementById('prof-muscle').value, 1, 80, '');
+            const water = validateAndClamp(document.getElementById('prof-water').value, 1, 90, '');
+
+            state.profile.name = name;
+            state.profile.weight = weight;
+            state.profile.height = height;
+            state.profile.waist = waist;
+            state.profile.age = age;
+            state.profile.fat = fat;
+            state.profile.muscle = muscle;
+            state.profile.water = water;
+
+            const today = new Date().toISOString().split('T')[0];
+            if (!state.profile.history) state.profile.history = [];
+            
+            if (weight) {
+                state.profile.history = state.profile.history.filter(h => h.date !== today);
+                state.profile.history.push({ date: today, weight: parseFloat(weight), waist: parseFloat(waist) || '' });
+            }
+
+            saveToLS('gym_profile', state.profile);
+            renderBentoGridAnalysis();
+            renderProfileHistoryList();
+            updateTopHeaderStats();
+            showToast('تم حفظ البيانات والتحليل بنجاح! 🎯');
+        }
+
+        function renderProfileUI() {
+            document.getElementById('prof-name').value = state.profile.name || '';
+            document.getElementById('prof-weight').value = state.profile.weight || '';
+            document.getElementById('prof-height').value = state.profile.height || '';
+            document.getElementById('prof-waist').value = state.profile.waist || '';
+            document.getElementById('prof-age').value = state.profile.age || '';
+            document.getElementById('prof-fat').value = state.profile.fat || '';
+            document.getElementById('prof-muscle').value = state.profile.muscle || '';
+            document.getElementById('prof-water').value = state.profile.water || '';
+
+            updateGenderUI();
+            renderBentoGridAnalysis();
+            renderProfileHistoryList();
+        }
+
+        function createBentoCard(title, value, statusText, statusClass, valueColorClass, description) {
+            return `
+                <div class="glass-card p-4 space-y-2.5 relative overflow-hidden flex flex-col justify-between hover:border-cyan-500/40 transition-all shadow-md">
+                    <div>
+                        <div class="text-[11px] text-slate-400 font-semibold leading-tight mb-1">${escapeHTML(title)}</div>
+                        <div class="text-2xl font-black ${escapeHTML(valueColorClass)}">${escapeHTML(value)}</div>
+                    </div>
+                    <div class="space-y-1.5">
+                        <div>
+                            <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${escapeHTML(statusClass)}">
+                                ${escapeHTML(statusText)}
+                            </span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 leading-normal pt-1.5 border-t border-slate-800/80 font-medium">
+                            ${description}
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderBentoGridAnalysis() {
+            const calContainer = document.getElementById('bento-calories-container');
+            const healthContainer = document.getElementById('bento-health-container');
+            const compContainer = document.getElementById('bento-comp-container');
+
+            if (!calContainer) return;
+
+            calContainer.innerHTML = '';
+            healthContainer.innerHTML = '';
+            compContainer.innerHTML = '';
+
+            const p = state.profile;
+            const weight = parseFloat(p.weight);
+            const height = parseFloat(p.height);
+            const waist = parseFloat(p.waist);
+            const fat = parseFloat(p.fat);
+            const muscle = parseFloat(p.muscle);
+            const water = parseFloat(p.water);
+            const age = parseFloat(p.age) || 25;
+            const isMan = p.isMan !== false;
+
+            if (!weight || !height) {
+                calContainer.innerHTML = `<div class="col-span-2 glass-card p-4 text-center text-xs text-slate-400 border-dashed border-slate-700">يرجى الانتقال لصفحة "البروفايل" وإدخال الوزن والطول على الأقل لظهور التحليل الذكي 🧠</div>`;
+                return;
+            }
+
+            const heightM = height / 100;
+
+            let bmr = (10 * weight) + (6.25 * height) - (5 * age) + (isMan ? 5 : -161);
+            const tdee = Math.round(bmr * 1.375);
+            const calsMaintain = tdee;
+            const calsLoss = Math.max(Math.round(tdee - 500), 1200);
+            const calsGain = Math.round(tdee + 500);
+
+            calContainer.innerHTML += createBentoCard(
+                'تثبيت الوزن (Maintenance)',
+                calsMaintain.toLocaleString() + '🔥',
+                'هدف التوازن 🎯',
+                'bg-cyan-950 text-cyan-300 border-cyan-800',
+                'text-cyan-300',
+                'السعرات اليومية للثبات. <b>يفضل الالتزام الدقيق برقمها</b> عند الرغبة بالمحافظة على الوزن الحالي دون تغيير الأنسجة.'
+            );
+
+            calContainer.innerHTML += createBentoCard(
+                'نقصان الوزن (Fat Loss)',
+                calsLoss.toLocaleString() + '🔥',
+                'عجز سعرات 📉',
+                'bg-emerald-950 text-emerald-300 border-emerald-800',
+                'text-emerald-300',
+                'السعرات لخسارة الدهون. <b>يفضل عدم النزول عن هذا الرقم كثيراً</b>؛ لتجنب بطء الأيض وخسارة الكتلة العضلية القيمة.'
+            );
+
+            calContainer.innerHTML += createBentoCard(
+                'زيادة الوزن (Bulking)',
+                calsGain.toLocaleString() + '🔥',
+                'فائض سعرات 📈',
+                'bg-amber-950 text-amber-300 border-amber-800',
+                'text-amber-300',
+                'السعرات لبناء العضلات. <b>يفضل الالتزام بهذه الزيادة المعتدلة (+500)</b>؛ لتوفير طاقة البناء العضلي دون اكتساب دهون فائضة.'
+            );
+
+            const bmi = (weight / (heightM * heightM)).toFixed(1);
+            let bmiStatus, bmiClass;
+            if (bmi < 18.5) { bmiStatus = 'نحافة 🟡'; bmiClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+            else if (bmi <= 24.9) { bmiStatus = 'مثالي 🟢'; bmiClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+            else if (bmi <= 29.9) { bmiStatus = 'زيادة وزن 🟠'; bmiClass = 'bg-orange-950 text-orange-300 border-orange-800'; }
+            else { bmiStatus = 'سمنة 🔴'; bmiClass = 'bg-red-950 text-red-300 border-red-800'; }
+            
+            healthContainer.innerHTML += createBentoCard('مؤشر الكتلة (BMI)', bmi, bmiStatus, bmiClass, 'text-cyan-300', 'تناسب الوزن والطول. <b>يفضل أن يكون في المدى الطبيعي (18.5-24.9)</b>؛ فالارتفاع المفرط يضغط المفاصل والانخفاض يضعف المناعة.');
+
+            if (waist) {
+                const whtr = (waist / height).toFixed(2);
+                let whtrStatus, whtrClass;
+                if (whtr < 0.40) { whtrStatus = 'نحيف جداً 🟡'; whtrClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                else if (whtr <= 0.49) { whtrStatus = 'صحة ممتازة 🟢'; whtrClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                else if (whtr <= 0.57) { whtrStatus = 'معدل خطر 🟠'; whtrClass = 'bg-orange-950 text-orange-300 border-orange-800'; }
+                else { whtrStatus = 'دهون حشوية خطر 🔴'; whtrClass = 'bg-red-950 text-red-300 border-red-800'; }
+                
+                healthContainer.innerHTML += createBentoCard('نسبة الخصر للطول (WHtR)', whtr, whtrStatus, whtrClass, 'text-blue-300', 'تقييم الدهون الحشوية. <b>يفضل أن يكون الرقم أقل (تحت 0.50)</b>؛ لأن الارتفاع يدل على تراكم الشحوم حول الأعضاء مما يزيد المخاطر.');
+            } else {
+                healthContainer.innerHTML += `<div class="glass-card p-4 text-center text-xs text-slate-500 border border-slate-800 flex items-center justify-center">أدخل محيط الخصر في البروفايل لحساب دهون البطن الحشوية</div>`;
+            }
+
+            let hasCompMetrics = false;
+
+            if (fat) {
+                hasCompMetrics = true;
+                let fStatus, fClass;
+                if (isMan) {
+                    if (fat < 6) { fStatus = 'منخفض جدا 🔴'; fClass = 'bg-red-950 text-red-300 border-red-800'; }
+                    else if (fat <= 13) { fStatus = 'رياضي محترف 🟢'; fClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                    else if (fat <= 17) { fStatus = 'لياقة عالية 🟢'; fClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                    else if (fat <= 24) { fStatus = 'طبيعي 🟡'; fClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                    else { fStatus = 'دهون زائدة 🔴'; fClass = 'bg-orange-950 text-orange-300 border-orange-800'; }
+                } else {
+                    if (fat < 14) { fStatus = 'منخفض جدا 🔴'; fClass = 'bg-red-950 text-red-300 border-red-800'; }
+                    else if (fat <= 20) { fStatus = 'رياضية 🟢'; fClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                    else if (fat <= 24) { fStatus = 'لياقة عالية 🟢'; fClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                    else if (fat <= 31) { fStatus = 'طبيعي 🟡'; fClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                    else { fStatus = 'دهون زائدة 🔴'; fClass = 'bg-orange-950 text-orange-300 border-orange-800'; }
+                }
+                compContainer.innerHTML += createBentoCard('نسبة الدهون %', fat + '%', fStatus, fClass, 'text-rose-300', 'نسبة الشحوم. <b>يفضل أن تكون معتدلة إلى منخفضة (10-17% للرجال / 18-24% للنساء)</b>؛ لإبراز التحديد العضلي دون المساس بالصحة.');
+            }
+
+            if (fat && weight && height) {
+                hasCompMetrics = true;
+                const leanMass = weight * (1 - (fat / 100));
+                const ffmi = leanMass / (heightM * heightM);
+                const normFfmi = (ffmi + 6.1 * (1.8 - heightM)).toFixed(1);
+
+                let ffmiStatus, ffmiClass;
+                if (isMan) {
+                    if (normFfmi < 18) { ffmiStatus = 'عضلات ضعيفة 🟡'; ffmiClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                    else if (normFfmi <= 20) { ffmiStatus = 'طبيعي 🟢'; ffmiClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                    else if (normFfmi <= 22) { ffmiStatus = 'عضلات ممتازة 💪'; ffmiClass = 'bg-blue-950 text-blue-300 border-blue-800'; }
+                    else { ffmiStatus = 'وحش كمال أجسام 🔥'; ffmiClass = 'bg-purple-950 text-purple-300 border-purple-800'; }
+                } else {
+                    if (normFfmi < 13) { ffmiStatus = 'عضلات ضعيفة 🟡'; ffmiClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                    else if (normFfmi <= 15) { ffmiStatus = 'طبيعي 🟢'; ffmiClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                    else if (normFfmi <= 17) { ffmiStatus = 'عضلات ممتازة 💪'; ffmiClass = 'bg-blue-950 text-blue-300 border-blue-800'; }
+                    else { ffmiStatus = 'بناء عضلي جبار 🔥'; ffmiClass = 'bg-purple-950 text-purple-300 border-purple-800'; }
+                }
+                compContainer.innerHTML += createBentoCard('الكتلة اللادهنية (FFMI)', normFfmi, ffmiStatus, ffmiClass, 'text-indigo-400', 'الحجم العضلي الصافي دون دهون. <b>يفضل أن يكون الرقم أعلى</b>؛ لأنه يدل على القوة العضلية والهيكل البدني الرياضي.');
+            }
+
+            if (muscle) {
+                hasCompMetrics = true;
+                let mStatus, mClass;
+                if (isMan) {
+                    if (muscle < 33) { mStatus = 'كتلة منخفضة 🟡'; mClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                    else if (muscle <= 39) { mStatus = 'طبيعي 🟢'; mClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                    else { mStatus = 'ممتاز 💪'; mClass = 'bg-blue-950 text-blue-300 border-blue-800'; }
+                } else {
+                    if (muscle < 24) { mStatus = 'كتلة منخفضة 🟡'; mClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                    else if (muscle <= 30) { mStatus = 'طبيعي 🟢'; mClass = 'bg-emerald-950 text-emerald-300 border-emerald-800'; }
+                    else { mStatus = 'ممتاز 💪'; mClass = 'bg-blue-950 text-blue-300 border-blue-800'; }
+                }
+                compContainer.innerHTML += createBentoCard('العضلات %', muscle + '%', mStatus, mClass, 'text-teal-400', 'نسبة الأنسجة العضلية الهيكلية. <b>يفضل أن تكون النسبة أعلى</b>؛ لرفع قدرة حرق الأيض وحماية العظام والمفاصل.');
+            }
+
+            if (water) {
+                hasCompMetrics = true;
+                let wStatus, wClass;
+                if (isMan) {
+                    if (water < 50) { wStatus = 'جفاف 🔴'; wClass = 'bg-red-950 text-red-300 border-red-800'; }
+                    else if (water <= 65) { wStatus = 'ترطيب ممتاز 💧'; wClass = 'bg-blue-950 text-blue-300 border-blue-800'; }
+                    else { wStatus = 'احتباس سوائل 🟡'; wClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                } else {
+                    if (water < 45) { wStatus = 'جفاف 🔴'; wClass = 'bg-red-950 text-red-300 border-red-800'; }
+                    else if (water <= 60) { wStatus = 'ترطيب ممتاز 💧'; wClass = 'bg-blue-950 text-blue-300 border-blue-800'; }
+                    else { wStatus = 'احتباس سوائل 🟡'; wClass = 'bg-yellow-950 text-yellow-300 border-yellow-800'; }
+                }
+                compContainer.innerHTML += createBentoCard('السوائل %', water + '%', wStatus, wClass, 'text-sky-300', 'مستوى السوائل بالخلايا. <b>يفضل أن يكون في المدى المثالي (50-65%)</b>؛ فالأقل يعني جفاف ويضعف الأداء، والأعلى جداً قد يعكس احتباس سوائل.');
+            }
+
+            if (!hasCompMetrics) {
+                compContainer.innerHTML = `<div class="col-span-2 glass-card p-4 text-center text-xs text-slate-500 border border-slate-800">يمكنك إدخال نسبة الدهون أو العضلات أو السوائل في صفحة البروفايل لظهور التحليل المتقدم هنا</div>`;
+            }
+        }
+
+        function renderProfileHistoryList() {
+            const container = document.getElementById('profile-history-list');
+            const history = (state.profile.history || []).slice().reverse();
+
+            if (history.length === 0) {
+                container.innerHTML = `<div class="text-[11px] text-slate-500 py-2 text-center">لا توجد قياسات سابقة مسجلة</div>`;
+                return;
+            }
+
+            const fragment = document.createDocumentFragment();
+            history.forEach(item => {
+                const el = document.createElement('div');
+                el.className = 'flex justify-between items-center text-xs py-1.5 px-2 bg-slate-900/60 rounded-lg border border-slate-800';
+                el.innerHTML = `
+                    <span class="text-slate-400 text-[10px]">${escapeHTML(item.date)}</span>
+                    <div class="space-x-3 space-x-reverse font-medium">
+                        <span class="text-cyan-300">${escapeHTML(String(item.weight))} كجم</span>
+                        ${item.waist ? `<span class="text-blue-300">خصر: ${escapeHTML(String(item.waist))} سم</span>` : ''}
+                    </div>
+                `;
+                fragment.appendChild(el);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(fragment);
+        }
+
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const dlAnchorElem = document.createElement('a');
+            dlAnchorElem.setAttribute("href", dataStr);
+            dlAnchorElem.setAttribute("download", `gym_tracker_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(dlAnchorElem);
+            dlAnchorElem.click();
+            dlAnchorElem.remove();
+            showToast('تم تحميل ملف النسخة الاحتياطية 📁');
+        }
+
+        function isValidJSONBackup(parsed) {
+            if (!parsed || typeof parsed !== 'object') return false;
+            if (!parsed.profile || typeof parsed.profile !== 'object') return false;
+            if (!Array.isArray(parsed.exercises) || !Array.isArray(parsed.logs)) return false;
+
+            const exercisesValid = parsed.exercises.every(e => e && typeof e.id === 'string' && typeof e.name === 'string');
+            const logsValid = parsed.logs.every(l => l && typeof l.id === 'string' && typeof l.date === 'string');
+
+            return exercisesValid && logsValid;
+        }
+
+        function importDataJSON(event) {
+            const fileReader = new FileReader();
+            fileReader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (isValidJSONBackup(parsed)) {
+                        state = parsed;
+                        saveToLS('gym_profile', state.profile);
+                        saveToLS('gym_exercises', state.exercises);
+                        saveToLS('gym_logs', state.logs);
+
+                        renderCategoryTabs();
+                        renderExerciseDropdown();
+                        renderTodayLogs();
+                        renderProfileUI();
+                        updateTopHeaderStats();
+                        showToast('تم استيراد البيانات بنجاح 🎉');
+                    } else {
+                        showToast('ملف JSON غير صالح أو بتنسيق خاطئ ❌');
+                    }
+                } catch (err) {
+                    showToast('خطأ أثناء قراءة الملف ❌');
+                }
+            };
+            if (event.target.files && event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0]);
+            }
+        }
+
+        function confirmClearTodayLogs() {
+            showModal({
+                title: 'مسح جولات اليوم 🧹',
+                message: 'هل أنت متاكد من حذف جميع جولات وتسجيلات اليوم فقط؟',
+                confirmText: 'مسح اليوم',
+                cancelText: 'إلغاء',
+                onConfirm: () => {
+                    const today = new Date().toISOString().split('T')[0];
+                    state.logs = state.logs.filter(l => l.date !== today);
+                    saveToLS('gym_logs', state.logs);
+                    renderTodayLogs();
+                    updateTopHeaderStats();
+                    const currentExId = document.getElementById('exercise-dropdown').value;
+                    updateLastPerformanceDisplay(currentExId);
+                    showToast('تم مسح جولات اليوم');
+                }
+            });
+        }
+
+        function confirmWipeAllData() {
+            showModal({
+                title: 'إعادة ضبط شاملة 💣',
+                message: 'تحذير: سيتم حذف جميع البيانات الشخصية والسجلات والمكتبة نهائياً وإعادة التطبيق للوضع الافتراضي.',
+                confirmText: 'مسح شامل لكل شيء',
+                cancelText: 'إلغاء',
+                onConfirm: () => {
+                    try {
+                        localStorage.removeItem('gym_profile');
+                        localStorage.removeItem('gym_exercises');
+                        localStorage.removeItem('gym_logs');
+                    } catch (e) {}
+
+                    state = {
+                        profile: { name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] },
+                        exercises: [...DEFAULT_EXERCISES],
+                        logs: []
+                    };
+                    saveToLS('gym_exercises', state.exercises);
+
+                    renderCategoryTabs();
+                    renderExerciseDropdown();
+                    renderTodayLogs();
+                    renderProfileUI();
+                    updateTopHeaderStats();
+                    showToast('تمت إعادة ضبط التطبيق للوضع الافتراضي');
+                }
+            });
         }
 
         function switchTab(tabId) {
             document.querySelectorAll('.screen-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.dock-item').forEach(el => el.classList.remove('active'));
-            document.getElementById(`screen-${tabId}`)?.classList.remove('hidden');
-            document.getElementById(`nav-${tabId}`)?.classList.add('active');
-            if (tabId === 'progress') renderCalendarStreak();
-            else if (tabId === 'routines') renderRoutines();
+
+            const targetScreen = document.getElementById(`screen-${tabId}`);
+            const targetNav = document.getElementById(`nav-${tabId}`);
+
+            if (targetScreen) targetScreen.classList.remove('hidden');
+            if (targetNav) targetNav.classList.add('active');
+
+            if (tabId === 'progress') initProgressScreen();
+            else if (tabId === 'exercises') renderManageExercisesList();
+            else if (tabId === 'bento') renderBentoGridAnalysis();
+            else if (tabId === 'profile') renderProfileUI();
+        }
+
+        function updateTopHeaderStats() {
+            const today = new Date().toISOString().split('T')[0];
+            const todayLogs = state.logs.filter(l => l.date === today);
+            const totalCals = todayLogs.reduce((sum, l) => sum + (l.calories || 0), 0);
+            
+            document.getElementById('header-today-cals').textContent = Math.round(totalCals * 10) / 10;
+        }
+
+        function showModal({ title, message, confirmText, cancelText, onConfirm }) {
+            const modal = document.getElementById('custom-modal');
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-message').textContent = message;
+            
+            const confirmBtn = document.getElementById('modal-confirm-btn');
+            const cancelBtn = document.getElementById('modal-cancel-btn');
+
+            confirmBtn.textContent = confirmText || 'تأكيد';
+            cancelBtn.textContent = cancelText || 'إلغاء';
+
+            const close = () => modal.classList.add('hidden');
+
+            confirmBtn.onclick = () => {
+                close();
+                if (onConfirm) onConfirm();
+            };
+            cancelBtn.onclick = close;
+
+            modal.classList.remove('hidden');
         }
 
         function showToast(msg) {
-            const container = document.getElementById('toast-container'), toast = document.createElement('div');
-            toast.className = 'glass p-3 rounded-xl border border-cyan-500/40 text-xs font-bold text-center text-cyan-200 shadow-2xl animate-fade-in'; toast.textContent = msg;
-            container.appendChild(toast); setTimeout(() => toast.remove(), 2500);
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'glass p-3 rounded-xl border border-cyan-500/40 text-xs font-bold text-center text-cyan-200 shadow-2xl animate-fade-in pointer-events-auto';
+            toast.textContent = msg;
+            
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 2500);
         }
 
         function initEventListeners() {
-            document.body.addEventListener('click', e => {
-                const btn = e.target.closest('[data-step-target]');
-                if (btn) { const input = document.getElementById(btn.dataset.stepTarget); if (input) input.value = validateAndClamp((parseFloat(input.value)||0) + parseFloat(btn.dataset.step), 0, 999, 0); }
+            document.body.addEventListener('click', function(e) {
+                const stepperBtn = e.target.closest('[data-step-target]');
+                if (stepperBtn) {
+                    const targetId = stepperBtn.dataset.stepTarget;
+                    const stepDelta = parseFloat(stepperBtn.dataset.step) || 0;
+                    handleStepperClick(targetId, stepDelta);
+                }
             });
-            document.getElementById('floating-dock').addEventListener('click', e => { const btn = e.target.closest('[data-tab]'); if (btn) switchTab(btn.dataset.tab); });
-            document.getElementById('category-tabs-container').addEventListener('click', e => { const btn = e.target.closest('.cat-btn'); if (btn) { currentFilterCat = btn.dataset.cat; renderCategoryTabs(); renderExerciseDropdown(); } });
+
+            document.getElementById('floating-dock').addEventListener('click', function (e) {
+                const btn = e.target.closest('[data-tab]');
+                if (btn) switchTab(btn.dataset.tab);
+            });
+
+            document.getElementById('split-btn-ppl').addEventListener('click', function () { setSplitSystem('ppl'); });
+            document.getElementById('split-btn-ul').addEventListener('click', function () { setSplitSystem('upper_lower'); });
+
+            document.getElementById('category-tabs-container').addEventListener('click', function (e) {
+                const btn = e.target.closest('.cat-btn');
+                if (btn && btn.dataset.cat) setWorkoutCategoryFilter(btn.dataset.cat, btn);
+            });
+
+            document.getElementById('equip-filters-container').addEventListener('click', function (e) {
+                const btn = e.target.closest('.equip-btn');
+                if (btn && btn.dataset.equip) setEquipFilter(btn.dataset.equip, btn);
+            });
+
+            document.getElementById('exercise-search-input').addEventListener('input', filterExerciseDropdown);
             document.getElementById('exercise-dropdown').addEventListener('change', onExerciseSelectChange);
-            document.getElementById('exercise-search-input').addEventListener('input', renderExerciseDropdown);
-            document.getElementById('btn-open-plate-calc').addEventListener('click', () => {
-                const w = parseFloat(document.getElementById('input-weight').value) || 0;
-                document.getElementById('plate-calc-results').textContent = w >= 20 ? `لكل جانب: طارات بقيمة ${(w-20)/2} كجم` : 'الوزن أقل من البار';
-                document.getElementById('plate-calc-modal').classList.remove('hidden');
+            document.getElementById('btn-copy-last-perf').addEventListener('click', copyLastPerformance);
+
+            document.getElementById('unit-btn-kg').addEventListener('click', function () { setWeightUnit('kg'); });
+            document.getElementById('unit-btn-lbs').addEventListener('click', function () { setWeightUnit('lbs'); });
+
+            document.getElementById('input-weight').addEventListener('change', updateWeightConvertedDisplay);
+            document.getElementById('input-reps').addEventListener('change', function() {
+                const val = validateAndClamp(this.value, 1, 150, 10);
+                this.value = val;
+                document.getElementById('val-reps-display').textContent = val;
             });
-            document.getElementById('btn-close-plate-modal').addEventListener('click', () => document.getElementById('plate-calc-modal').classList.add('hidden'));
+
+            document.getElementById('set-type-container').addEventListener('click', function (e) {
+                const btn = e.target.closest('.set-type-btn');
+                if (btn && btn.dataset.settype) setSetType(btn.dataset.settype, btn);
+            });
+
             document.getElementById('btn-save-weights').addEventListener('click', saveSet);
-            document.getElementById('add-ex-submit-btn').addEventListener('click', () => {
-                const name = sanitizeString(document.getElementById('new-ex-name').value, 60);
-                if (!name) return;
-                state.exercises.push({ id: 'ex_' + Date.now(), name, category: document.getElementById('new-ex-cat').value, type: 'weights', equip: document.getElementById('new-ex-equip').value, isCustom: true });
-                saveToLS('gym_exercises', state.exercises); document.getElementById('new-ex-name').value = ''; renderExerciseDropdown(); showToast('تمت الإضافة 🎉');
+            document.getElementById('btn-save-treadmill').addEventListener('click', function () { saveCardioSet('treadmill'); });
+            document.getElementById('btn-save-bike').addEventListener('click', function () { saveCardioSet('bike_elliptical'); });
+
+            document.getElementById('btn-stop-timer').addEventListener('click', stopRestTimer);
+
+            document.getElementById('btn-load-more-logs').addEventListener('click', function() {
+                logsRenderLimit += 15;
+                renderTodayLogs();
             });
-            document.getElementById('new-ex-name').addEventListener('input', e => onCustomExerciseInput(e.target.value));
+
+            document.getElementById('today-logs-container').addEventListener('click', function (e) {
+                const deleteBtn = e.target.closest('[data-action="delete-log"]');
+                if (deleteBtn && deleteBtn.dataset.id) deleteLogItem(deleteBtn.dataset.id);
+            });
+
+            document.getElementById('manage-exercises-list').addEventListener('click', function (e) {
+                const deleteBtn = e.target.closest('[data-action="delete-custom-ex"]');
+                if (deleteBtn && deleteBtn.dataset.id) deleteExercise(deleteBtn.dataset.id);
+            });
+
+            document.getElementById('new-ex-name').addEventListener('input', function () { onCustomExerciseInput(this.value); });
+            document.getElementById('add-ex-submit-btn').addEventListener('click', addNewExercise);
+
+            document.getElementById('chart-exercise-select').addEventListener('change', updateProgressChart);
+
+            document.getElementById('gender-toggle-btn').addEventListener('click', toggleGender);
+            document.getElementById('btn-save-profile').addEventListener('click', saveProfile);
+            document.getElementById('btn-export-json').addEventListener('click', exportDataJSON);
+            document.getElementById('import-file-input').addEventListener('change', importDataJSON);
+            document.getElementById('btn-clear-today-logs').addEventListener('click', confirmClearTodayLogs);
+            document.getElementById('btn-wipe-all-data').addEventListener('click', confirmWipeAllData);
         }
 
-        window.addEventListener('DOMContentLoaded', () => { loadState(); initEventListeners(); renderCategoryTabs(); renderExerciseDropdown(); renderTodayLogs(); });
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((reg) => {
+                        console.log('Service Worker Registered');
+                        // Automatically update SW when new version is committed without breaking user data
+                        reg.update();
+                    })
+                    .catch((err) => console.warn('SW Failed:', err));
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState();
+            initEventListeners();
+            renderCategoryTabs();
+            renderExerciseDropdown();
+            renderTodayLogs();
+            updateTopHeaderStats();
+            renderProfileUI();
+            updateWeightConvertedDisplay();
+            registerServiceWorker();
+        });
+
     })();
     </script>
 </body>
