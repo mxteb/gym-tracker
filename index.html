@@ -60,7 +60,6 @@
 </head>
 <body class="antialiased selection:bg-cyan-500 selection:text-white">
 
-    <!-- Header Bar -->
     <header class="sticky top-0 z-40 glass px-4 py-3 mb-4 border-b border-slate-800 flex justify-between items-center">
         <div class="flex items-center space-x-3 space-x-reverse">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-cyan-500/30">🏋️</div>
@@ -69,7 +68,6 @@
                 <p class="text-[11px] text-slate-400 font-medium">مُتتبع التمارين والجداول الذكي</p>
             </div>
         </div>
-
         <div id="top-quick-stats" class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-300">
             <span class="flex items-center gap-1 text-amber-400 font-bold">
                 <i class="fa-solid fa-fire text-xs" aria-hidden="true"></i>
@@ -78,39 +76,53 @@
         </div>
     </header>
 
-    <!-- Rest Countdown Widget -->
+    <div id="ls-warning" class="hidden mx-4 mb-4 p-3 bg-red-950/80 border border-red-500/50 text-red-200 rounded-xl text-xs flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-base text-red-400" aria-hidden="true"></i>
+        <span>تنبيه: التخزين المحلي محجوب في متصفحك.</span>
+    </div>
+
     <div id="rest-timer-widget" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 glass-card px-4 py-2 border border-cyan-500/60 shadow-2xl neon-glow-cyan animate-fade-in flex items-center gap-3 rounded-full">
         <div class="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-400 flex items-center justify-center text-cyan-300 font-black text-xs" id="timer-display">90s</div>
         <div class="text-xs"><span class="font-bold text-cyan-200">راحة بين الجولات ⏱️</span></div>
         <button id="btn-stop-timer" aria-label="إلغاء المؤقت" class="text-slate-400 hover:text-red-400 text-xs px-1 transition">✖</button>
     </div>
 
-    <!-- Main Screens Container -->
     <main class="max-w-xl mx-auto px-4 space-y-6">
-
         <!-- WORKOUT SCREEN -->
         <section id="screen-workout" class="screen-content space-y-4 animate-fade-in">
-            <!-- Split System Selector -->
             <div class="flex items-center justify-between bg-slate-900/90 p-2 rounded-2xl border border-slate-800 shadow-md">
                 <span class="text-xs font-bold text-slate-300 flex items-center gap-1.5">
                     <i class="fa-solid fa-layer-group text-cyan-400" aria-hidden="true"></i>
                     <span>نظام الجدول:</span>
                 </span>
                 <div class="flex gap-1.5">
-                    <button id="split-btn-ppl" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">PPL (دفع/سحب/أرجل)</button>
-                    <button id="split-btn-ul" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 hover:bg-slate-700">علوي / سفلي (Upper/Lower)</button>
+                    <button id="split-btn-ppl" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md">PPL</button>
+                    <button id="split-btn-ul" class="px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all bg-slate-800 text-slate-400 hover:bg-slate-700">Upper/Lower</button>
                 </div>
             </div>
 
-            <!-- Dynamic Category Filter Tabs -->
             <div id="category-tabs-container" class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none"></div>
 
-            <!-- Exercise Selector Card -->
+            <div class="space-y-1.5">
+                <div class="text-[11px] text-slate-400 font-bold px-1 flex items-center gap-1">
+                    <i class="fa-solid fa-filter text-cyan-400" aria-hidden="true"></i>
+                    <span>تصفية حسب نوع الجهاز / الأداة:</span>
+                </div>
+                <div id="equip-filters-container" class="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                    <button data-equip="all" class="equip-btn active px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-cyan-950 text-cyan-300 border border-cyan-800">الكل</button>
+                    <button data-equip="barbell" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">بار 🏋️‍♂️</button>
+                    <button data-equip="dumbbell" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">دمبل 🏋️‍♀️</button>
+                    <button data-equip="machine" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">أجهزة 🤖</button>
+                    <button data-equip="cable_body" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">كابل/جسم 🦾</button>
+                    <button data-equip="cardio" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">كارديو 🏃‍♂️</button>
+                </div>
+            </div>
+
             <div class="glass-card p-4 space-y-4">
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
                         <label for="exercise-dropdown" class="text-xs font-bold text-cyan-300">اختر التمرين:</label>
-                        <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">أوزان حرة (بار) 🏋️‍♂️</span>
+                        <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">بار 🏋️‍♂️</span>
                     </div>
 
                     <div class="relative">
@@ -121,14 +133,12 @@
                     <select id="exercise-dropdown" aria-label="قائمة اختيار التمرين" class="w-full glass-input px-3 py-2.5 rounded-xl text-sm font-semibold bg-slate-900 border border-slate-700"></select>
                 </div>
 
-                <!-- Note Input for Exercise -->
                 <div>
                     <input type="text" id="exercise-note-input" maxlength="100" placeholder="📝 ملاحظات التمرين (مثل: ارتفاع الجهاز رقم 3)..." class="w-full glass-input px-3 py-1.5 rounded-lg text-[11px] text-slate-300 border-slate-800/80">
                 </div>
 
                 <hr class="border-slate-800">
 
-                <!-- Last Performance Badge -->
                 <div id="last-performance-container" class="bg-slate-900/90 p-2.5 rounded-xl border border-cyan-500/30 flex justify-between items-center text-xs">
                     <div class="flex items-center gap-2">
                         <span class="text-amber-400 font-bold text-base">📊</span>
@@ -137,13 +147,11 @@
                             <div id="last-performance-text" class="text-xs font-bold text-cyan-300">اختر تمرين للعرض</div>
                         </div>
                     </div>
-                    <button type="button" id="btn-copy-last-perf" aria-label="نسخ أداء الجلسة السابقة" class="hidden px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 border border-cyan-700/60 rounded-lg text-[10px] font-bold text-cyan-300 flex items-center gap-1 transition">
-                        <i class="fa-solid fa-copy" aria-hidden="true"></i>
-                        <span>نسخ</span>
+                    <button type="button" id="btn-copy-last-perf" aria-label="نسخ أداء الجلسة" class="hidden px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 border border-cyan-700/60 rounded-lg text-[10px] font-bold text-cyan-300 flex items-center gap-1 transition">
+                        <i class="fa-solid fa-copy" aria-hidden="true"></i><span>نسخ</span>
                     </button>
                 </div>
 
-                <!-- Dynamic Form Inputs -->
                 <div id="dynamic-input-container">
                     <div id="form-weights" class="space-y-4">
                         <div class="space-y-2">
@@ -206,15 +214,63 @@
                             </div>
                         </div>
 
-                        <button id="btn-save-weights" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
+                        <button id="btn-save-weights" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
                             <i class="fa-solid fa-floppy-disk text-sm" aria-hidden="true"></i>
                             <span>حفظ الجولة ✔️</span>
                         </button>
                     </div>
+
+                    <!-- Cardio Forms -->
+                    <div id="form-treadmill" class="hidden space-y-4">
+                        <div>
+                            <label for="input-tm-speed" class="text-slate-300 font-medium text-xs mb-1 block">السرعة (كم/س):</label>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-tm-speed" data-step="-0.5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-0.5</button>
+                                <input type="number" id="input-tm-speed" min="1.0" max="25.0" step="0.1" value="8.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400">
+                                <button type="button" data-step-target="input-tm-speed" data-step="0.5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+0.5</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="input-tm-incline" class="text-slate-300 font-medium text-xs mb-1 block">مستوى الارتفاع:</label>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-tm-incline" data-step="-1" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-1</button>
+                                <input type="number" id="input-tm-incline" min="0.0" max="25.0" step="0.5" value="1.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400">
+                                <button type="button" data-step-target="input-tm-incline" data-step="1" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+1</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="input-tm-duration" class="text-slate-300 font-medium text-xs mb-1 block">المدة (دقائق):</label>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-tm-duration" data-step="-5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-5</button>
+                                <input type="number" id="input-tm-duration" min="1" max="180" step="1" value="20" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400">
+                                <button type="button" data-step-target="input-tm-duration" data-step="5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+5</button>
+                            </div>
+                        </div>
+                        <button id="btn-save-treadmill" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-lg">حفظ تمرين المشي 🏃</button>
+                    </div>
+
+                    <div id="form-bike-elliptical" class="hidden space-y-4">
+                        <div>
+                            <label for="input-be-level" class="text-slate-300 font-medium text-xs mb-1 block">مستوى الجهد:</label>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-be-level" data-step="-1" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-1</button>
+                                <input type="number" id="input-be-level" min="1.0" max="30.0" step="0.5" value="5.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400">
+                                <button type="button" data-step-target="input-be-level" data-step="1" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+1</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="input-be-duration" class="text-slate-300 font-medium text-xs mb-1 block">المدة (دقائق):</label>
+                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
+                                <button type="button" data-step-target="input-be-duration" data-step="-5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-5</button>
+                                <input type="number" id="input-be-duration" min="1" max="180" step="1" value="15" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400">
+                                <button type="button" data-step-target="input-be-duration" data-step="5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+5</button>
+                            </div>
+                        </div>
+                        <button id="btn-save-bike" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-lg">حفظ تمرين الدراجة 🚴</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Today's Workout Logs List -->
             <div class="space-y-3">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
@@ -223,19 +279,14 @@
                     </h3>
                     <span id="today-sets-count" class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">0 جولات</span>
                 </div>
-
                 <div id="today-logs-container" class="space-y-2"></div>
             </div>
         </section>
 
-        <!-- ROUTINES SCREEN (الجداول الجاهزة) -->
+        <!-- ROUTINES SCREEN -->
         <section id="screen-routines" class="screen-content space-y-5 hidden animate-fade-in">
             <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-2">
-                    <i class="fa-solid fa-list-check"></i>
-                    <span>الجداول الجاهزة للتمرين</span>
-                </h3>
-                <p class="text-xs text-slate-400">اختر جدولاً جاهزاً لبدء تمرينك اليومي بلمسة واحدة دون اضاعة الوقت.</p>
+                <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-2"><i class="fa-solid fa-list-check"></i><span>الجداول الجاهزة</span></h3>
                 <div id="routines-list-container" class="space-y-2 pt-2"></div>
             </div>
         </section>
@@ -243,331 +294,128 @@
         <!-- ADD EXERCISE SCREEN -->
         <section id="screen-exercises" class="screen-content space-y-5 hidden animate-fade-in">
             <div class="glass-card p-5 space-y-4 border border-cyan-500/30">
-                <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center text-sm font-bold">
-                        <i class="fa-solid fa-plus" aria-hidden="true"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold text-sm text-cyan-300">إضافة تمرين مخصص جديد</h3>
-                        <p class="text-[11px] text-slate-400">اكتب اسم التمرين وسيقوم التطبيق بفحصه وتصنيفه تلقائياً</p>
-                    </div>
-                </div>
-
+                <h3 class="font-bold text-sm text-cyan-300">إضافة تمرين مخصص جديد</h3>
                 <div class="space-y-3 pt-2">
                     <div>
-                        <label for="new-ex-name" class="block text-xs text-slate-400 mb-1">اسم التمرين المخصص:</label>
-                        <input type="text" id="new-ex-name" maxlength="60" placeholder="مثال: Incline Dumbbell Press أو hip adduction" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
-                        <div id="new-ex-status" class="hidden text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border flex items-center gap-1.5"></div>
+                        <label for="new-ex-name" class="block text-xs text-slate-400 mb-1">اسم التمرين:</label>
+                        <input type="text" id="new-ex-name" maxlength="60" placeholder="مثال: hip adduction" class="w-full glass-input px-3 py-2.5 rounded-xl text-xs">
+                        <div id="new-ex-status" class="hidden text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border"></div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="new-ex-cat" class="block text-xs text-slate-400 mb-1">الفئة التدريبية (تلقائي):</label>
+                            <label for="new-ex-cat" class="block text-xs text-slate-400 mb-1">الفئة التدريبية:</label>
                             <select id="new-ex-cat" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
-                                <option value="push">دفع 🏋️</option>
-                                <option value="pull">سحب 🧗</option>
-                                <option value="legs">أرجل 🦵</option>
-                                <option value="abs">بطن 🧱</option>
-                                <option value="cardio">كارديو 🏃</option>
+                                <option value="push">دفع 🏋️</option><option value="pull">سحب 🧗</option><option value="legs">أرجل 🦵</option><option value="abs">بطن 🧱</option><option value="cardio">كارديو 🏃</option>
                             </select>
                         </div>
-
                         <div>
-                            <label for="new-ex-equip" class="block text-xs text-slate-400 mb-1">نوع الجهاز/الأداة (تلقائي):</label>
+                            <label for="new-ex-equip" class="block text-xs text-slate-400 mb-1">نوع الأداة:</label>
                             <select id="new-ex-equip" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
-                                <option value="barbell">أوزان حرة (بار)</option>
-                                <option value="dumbbell">أوزان حرة (دمبل)</option>
-                                <option value="machine">أجهزة</option>
-                                <option value="cable_body">كابل / وزن الجسم</option>
-                                <option value="cardio">كارديو بالجهاز</option>
+                                <option value="barbell">بار</option><option value="dumbbell">دمبل</option><option value="machine">أجهزة</option><option value="cable_body">كابل/جسم</option><option value="cardio">كارديو</option>
                             </select>
                         </div>
                     </div>
-
-                    <button id="add-ex-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md hover:from-cyan-600 hover:to-blue-700 flex items-center justify-center gap-2 mt-2">
-                        <i class="fa-solid fa-square-plus text-sm" aria-hidden="true"></i>
-                        <span>حفظ التمرين المخصص</span>
-                    </button>
+                    <button id="add-ex-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md">حفظ التمرين المخصص</button>
                 </div>
             </div>
-
             <div class="space-y-3">
-                <div class="flex justify-between items-center">
-                    <h3 class="font-bold text-sm text-slate-200">التمارين المخصصة التي أضفتها</h3>
-                    <span id="custom-ex-count" class="text-xs bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full border border-slate-700">0 تمارِينَ</span>
-                </div>
-
+                <h3 class="font-bold text-sm text-slate-200">التمارين المخصصة</h3>
                 <div id="manage-exercises-list" class="space-y-2"></div>
             </div>
         </section>
 
-        <!-- PROGRESS SCREEN WITH CALENDAR STREAK -->
+        <!-- PROGRESS SCREEN -->
         <section id="screen-progress" class="screen-content space-y-5 hidden animate-fade-in">
             <div class="grid grid-cols-2 gap-3">
                 <div class="glass-card p-3.5 border-r-4 border-r-cyan-400">
                     <div class="text-[11px] text-slate-400">إجمالي أيام التمرين</div>
                     <div class="text-xl font-black text-cyan-300 mt-1" id="stat-total-days">0 يوم</div>
                 </div>
-
                 <div class="glass-card p-3.5 border-r-4 border-r-blue-500">
                     <div class="text-[11px] text-slate-400">عدد التمارين النشطة</div>
                     <div class="text-xl font-black text-blue-300 mt-1" id="stat-active-exercises-count">0 تمرين</div>
                 </div>
             </div>
 
-            <!-- Calendar Streak View -->
             <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span class="flex items-center gap-1.5 text-cyan-300">
-                        <i class="fa-solid fa-calendar-days text-cyan-400"></i>
-                        <span>تقويم الاستمرارية الشهري (Streak Calendar)</span>
-                    </span>
-                </h3>
-                <div id="calendar-streak-container" class="grid grid-cols-7 gap-1.5 text-center text-[10px] pt-1"></div>
+                <h3 class="font-bold text-xs text-slate-200 border-b border-slate-800 pb-2 text-cyan-300">تقويم الاستمرارية الشهري</h3>
+                <div id="calendar-streak-container" class="grid grid-cols-7 gap-1 text-center text-[10px] pt-1"></div>
             </div>
 
             <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span class="flex items-center gap-1.5 text-cyan-300">
-                        <i class="fa-solid fa-weight-hanging text-cyan-400" aria-hidden="true"></i>
-                        <span>الحجم التدريبي لكل تمرين (Volume Per Exercise)</span>
-                    </span>
-                </h3>
+                <h3 class="font-bold text-xs text-slate-200 border-b border-slate-800 pb-2 text-cyan-300">الحجم التدريبي لكل تمرين</h3>
                 <div id="exercise-volume-breakdown-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
-            </div>
-
-            <div class="glass-card p-4 space-y-4">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-cyan-400" aria-hidden="true"></i>
-                        <span>تطور أقصى وزن مرفوع</span>
-                    </h3>
-
-                    <select id="chart-exercise-select" class="glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700 w-full sm:w-auto"></select>
-                </div>
-
-                <div class="w-full h-64 relative">
-                    <canvas id="progressChart"></canvas>
-                </div>
-            </div>
-        </section>
-
-        <!-- BENTO ANALYTICS TAB -->
-        <section id="screen-bento" class="screen-content space-y-5 hidden animate-fade-in">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h2 class="font-black text-base text-cyan-300 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-pie text-cyan-400" aria-hidden="true"></i>
-                        <span>لوحة التحليل الذكي (Bento Grid)</span>
-                    </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">تحليل طبي ورياضي متكامل يعتمد على مدخلات بروفايلك</p>
-                </div>
-            </div>
-
-            <div class="space-y-2.5">
-                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
-                    <i class="fa-solid fa-bullseye text-amber-400" aria-hidden="true"></i>
-                    <span>أهداف السعرات اليومية المطلوبة</span>
-                </h3>
-                <div id="bento-calories-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
-            </div>
-
-            <div class="space-y-2.5">
-                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
-                    <i class="fa-solid fa-weight-scale text-blue-400" aria-hidden="true"></i>
-                    <span>مؤشرات تناسب الوزن والخصر</span>
-                </h3>
-                <div id="bento-health-container" class="grid grid-cols-2 gap-3"></div>
-            </div>
-
-            <div class="space-y-2.5">
-                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
-                    <i class="fa-solid fa-child-reaching text-teal-400" aria-hidden="true"></i>
-                    <span>مؤشرات تركيب الجسم والعضلات</span>
-                </h3>
-                <div id="bento-comp-container" class="grid grid-cols-2 gap-3"></div>
             </div>
         </section>
 
         <!-- PROFILE SCREEN -->
         <section id="screen-profile" class="screen-content space-y-5 hidden animate-fade-in">
-            <button id="gender-toggle-btn" class="w-full p-3.5 rounded-2xl glass-card border border-cyan-500/40 text-center transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
+            <button id="gender-toggle-btn" class="w-full p-3.5 rounded-2xl glass-card border border-cyan-500/40 text-center flex items-center justify-center gap-3 shadow-lg">
                 <span class="text-lg" id="gender-icon">💪</span>
-                <span class="font-bold text-sm text-cyan-300" id="gender-text">هل أنت رجل؟ (تحديث النسبة والعضلات)</span>
+                <span class="font-bold text-sm text-cyan-300" id="gender-text">تحديث النوع</span>
             </button>
-
             <div class="glass-card p-4 space-y-4">
-                <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-2">
-                    <i class="fa-solid fa-user-gear" aria-hidden="true"></i>
-                    <span>البيانات الشخصية والقياسات</span>
-                </h3>
-
+                <h3 class="font-bold text-sm text-cyan-300">البيانات الشخصية</h3>
                 <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-2">
-                        <label for="prof-name" class="block text-[11px] text-slate-400 mb-1">الاسم الأول:</label>
-                        <input type="text" id="prof-name" maxlength="40" placeholder="مثال: أحمد" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-
-                    <div>
-                        <label for="prof-weight" class="block text-[11px] text-slate-400 mb-1">الوزن (كجم):</label>
-                        <input type="number" id="prof-weight" min="20" max="350" step="0.1" placeholder="مثال: 75" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-
-                    <div>
-                        <label for="prof-height" class="block text-[11px] text-slate-400 mb-1">الطول (سم):</label>
-                        <input type="number" id="prof-height" min="50" max="250" step="1" placeholder="مثال: 175" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-
-                    <div>
-                        <label for="prof-waist" class="block text-[11px] text-slate-400 mb-1">محيط البطن/الخصر (سم):</label>
-                        <input type="number" id="prof-waist" min="30" max="250" step="0.5" placeholder="مثال: 80" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-
-                    <div>
-                        <label for="prof-age" class="block text-[11px] text-slate-400 mb-1">العمر:</label>
-                        <input type="number" id="prof-age" min="5" max="120" step="1" placeholder="مثال: 25" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
+                    <div class="col-span-2"><label for="prof-name" class="block text-[11px] text-slate-400 mb-1">الاسم:</label><input type="text" id="prof-name" maxlength="40" class="w-full glass-input px-3 py-2 rounded-xl text-xs"></div>
+                    <div><label for="prof-weight" class="block text-[11px] text-slate-400 mb-1">الوزن (كجم):</label><input type="number" id="prof-weight" min="20" max="350" step="0.1" class="w-full glass-input px-3 py-2 rounded-xl text-xs"></div>
+                    <div><label for="prof-height" class="block text-[11px] text-slate-400 mb-1">الطول (سم):</label><input type="number" id="prof-height" min="50" max="250" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-xs"></div>
                 </div>
-
-                <button id="btn-save-profile" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md hover:from-cyan-600 hover:to-blue-700 flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i>
-                    <span>حفظ القياسات وتحليل النتائج</span>
-                </button>
+                <button id="btn-save-profile" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md">حفظ البيانات</button>
             </div>
-
             <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-xs text-slate-300">سجل تغيرات الوزن والقياسات</h3>
-                <div id="profile-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
-            </div>
-
-            <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-xs text-slate-300">إدارة البيانات والنسخ الاحتياطي</h3>
-                
+                <h3 class="font-bold text-xs text-slate-300">إدارة البيانات</h3>
                 <div class="grid grid-cols-2 gap-3">
-                    <button id="btn-export-json" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-download text-cyan-400" aria-hidden="true"></i>
-                        <span>تصدير JSON</span>
-                    </button>
-                    
-                    <label class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-upload text-blue-400" aria-hidden="true"></i>
-                        <span>استيراد JSON</span>
-                        <input type="file" id="import-file-input" accept=".json" class="hidden">
-                    </label>
+                    <button id="btn-export-json" class="py-2 px-3 rounded-xl bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-700">تصدير JSON</button>
+                    <label class="py-2 px-3 rounded-xl bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-700 text-center cursor-pointer">استيراد JSON<input type="file" id="import-file-input" accept=".json" class="hidden"></label>
                 </div>
-
-                <hr class="border-slate-800">
-
-                <div class="space-y-2">
-                    <button id="btn-clear-today-logs" class="w-full py-2 px-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 font-semibold text-xs border border-amber-800/50 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-trash-arrow-up" aria-hidden="true"></i>
-                        <span>مسح سجلات جولات اليوم فقط</span>
-                    </button>
-
-                    <button id="btn-wipe-all-data" class="w-full py-2 px-3 rounded-xl bg-red-950/50 hover:bg-red-900/80 text-red-300 font-semibold text-xs border border-red-800/60 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-                        <span>إعادة ضبط التطبيق بالكامل (مسح الشامل)</span>
-                    </button>
-                </div>
+                <button id="btn-wipe-all-data" class="w-full py-2 px-3 rounded-xl bg-red-950/50 text-red-300 font-semibold text-xs border border-red-800/60 mt-2">إعادة ضبط التطبيق بالكامل</button>
             </div>
         </section>
     </main>
 
-    <!-- Plate Calculator Modal (حاسبة أطباق البار) -->
+    <!-- Plate Calculator Modal -->
     <div id="plate-calc-modal" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-cyan-500/50 shadow-2xl animate-fade-in">
-            <h3 class="font-black text-base text-cyan-300 flex items-center gap-2">
-                <span>🧮 حاسبة أطباق البار (Plate Calculator)</span>
-            </h3>
-            <p class="text-xs text-slate-300 leading-relaxed">
-                الأوزان المطلوبة على <b>كل جانب من البار</b> (افتراض وزن البار الخالي = 20 كجم):
-            </p>
+            <h3 class="font-black text-base text-cyan-300">🧮 حاسبة أطباق البار</h3>
             <div id="plate-calc-results" class="space-y-2 bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-xs text-cyan-300 font-bold"></div>
-            <div class="flex justify-end pt-2">
-                <button id="btn-close-plate-modal" class="px-4 py-2 rounded-xl bg-cyan-600 text-xs text-white font-bold">إغلاق</button>
-            </div>
+            <div class="flex justify-end pt-2"><button id="btn-close-plate-modal" class="px-4 py-2 rounded-xl bg-cyan-600 text-xs text-white font-bold">إغلاق</button></div>
         </div>
     </div>
 
     <!-- Navigation Dock -->
     <nav id="floating-dock" class="floating-dock px-2 py-2">
         <div class="flex justify-around items-center">
-            <button data-tab="workout" id="nav-workout" class="dock-item active flex flex-col items-center gap-1">
-                <i class="fa-solid fa-dumbbell text-base"></i>
-                <span class="text-[10px] font-bold">التمرين</span>
-            </button>
-            <button data-tab="routines" id="nav-routines" class="dock-item flex flex-col items-center gap-1">
-                <i class="fa-solid fa-list-check text-base"></i>
-                <span class="text-[10px] font-bold">الجداول</span>
-            </button>
-            <button data-tab="exercises" id="nav-exercises" class="dock-item flex flex-col items-center gap-1">
-                <i class="fa-solid fa-plus-circle text-base"></i>
-                <span class="text-[10px] font-bold">إضافة تمرين</span>
-            </button>
-            <button data-tab="progress" id="nav-progress" class="dock-item flex flex-col items-center gap-1">
-                <i class="fa-solid fa-chart-line text-base"></i>
-                <span class="text-[10px] font-bold">التطور</span>
-            </button>
-            <button data-tab="profile" id="nav-profile" class="dock-item flex flex-col items-center gap-1">
-                <i class="fa-solid fa-user-circle text-base"></i>
-                <span class="text-[10px] font-bold">البروفايل</span>
-            </button>
+            <button data-tab="workout" id="nav-workout" class="dock-item active flex flex-col items-center gap-1"><i class="fa-solid fa-dumbbell text-base"></i><span class="text-[10px] font-bold">التمرين</span></button>
+            <button data-tab="routines" id="nav-routines" class="dock-item flex flex-col items-center gap-1"><i class="fa-solid fa-list-check text-base"></i><span class="text-[10px] font-bold">الجداول</span></button>
+            <button data-tab="exercises" id="nav-exercises" class="dock-item flex flex-col items-center gap-1"><i class="fa-solid fa-plus-circle text-base"></i><span class="text-[10px] font-bold">إضافة</span></button>
+            <button data-tab="progress" id="nav-progress" class="dock-item flex flex-col items-center gap-1"><i class="fa-solid fa-chart-line text-base"></i><span class="text-[10px] font-bold">التطور</span></button>
+            <button data-tab="profile" id="nav-profile" class="dock-item flex flex-col items-center gap-1"><i class="fa-solid fa-user-circle text-base"></i><span class="text-[10px] font-bold">البروفايل</span></button>
         </div>
     </nav>
 
-    <!-- Custom Reusable Modal -->
     <div id="custom-modal" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-slate-700 shadow-2xl animate-fade-in">
-            <h3 id="modal-title" class="font-black text-base text-slate-100 flex items-center gap-2"></h3>
-            <p id="modal-message" class="text-xs text-slate-300 leading-relaxed"></p>
+            <h3 id="modal-title" class="font-black text-base text-slate-100"></h3>
+            <p id="modal-message" class="text-xs text-slate-300"></p>
             <div class="flex justify-end gap-2 pt-2">
                 <button id="modal-cancel-btn" class="px-4 py-2 rounded-xl bg-slate-800 text-xs text-slate-300 font-bold">إلغاء</button>
-                <button id="modal-confirm-btn" class="px-4 py-2 rounded-xl bg-red-600 text-xs text-white font-bold shadow-lg">تأكيد</button>
+                <button id="modal-confirm-btn" class="px-4 py-2 rounded-xl bg-red-600 text-xs text-white font-bold">تأكيد</button>
             </div>
         </div>
     </div>
 
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 space-y-2 pointer-events-none w-full max-w-xs px-4"></div>
 
-    <!-- IndexedDB & Script Engine -->
     <script>
     (function () {
         'use strict';
-
-        // INDEXEDDB PROMOTED STORAGE FOR YEARS OF DATA PERSISTENCE
-        const DB_NAME = 'GymTrackerDB';
-        const DB_VERSION = 1;
-        let db = null;
-
-        function initIndexedDB() {
-            return new Promise((resolve) => {
-                const req = indexedDB.open(DB_NAME, DB_VERSION);
-                req.onupgradeneeded = (e) => {
-                    const database = e.target.result;
-                    if (!database.objectStoreNames.contains('store')) {
-                        database.createObjectStore('store');
-                    }
-                };
-                req.onsuccess = (e) => {
-                    db = e.target.result;
-                    resolve(true);
-                };
-                req.onerror = () => resolve(false);
-            });
-        }
 
         function escapeHTML(str) {
             return typeof str !== 'string' ? '' : str.replace(/[&<>"']/g, function(m) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
             });
         }
-
-        const EXERCISE_DICTIONARY = {
-            'hip adduction': { cat: 'legs', equip: 'machine' },
-            'hip abduction': { cat: 'legs', equip: 'machine' },
-            'bench press': { cat: 'push', equip: 'barbell' },
-            'lat pulldown': { cat: 'pull', equip: 'machine' }
-        };
 
         const DEFAULT_EXERCISES = [
             { id: 'ex_1', name: 'بنش بريس مستوي بالبار (Barbell Bench Press)', category: 'push', type: 'weights', equip: 'barbell' },
@@ -583,34 +431,24 @@
         ];
 
         const CATEGORY_NAMES = { push: 'دفع 🏋️', pull: 'سحب 🧗', legs: 'أرجل 🦵', abs: 'بطن 🧱', cardio: 'كارديو 🏃' };
-        const EQUIP_NAMES = { barbell: 'أوزان حرة (بار) 🏋️‍♂️', dumbbell: 'أوزان حرة (دمبل) 🏋️‍♀️', machine: 'أجهزة 🤖', cable_body: 'كابل / وزن جسم 🦾', cardio: 'كارديو 🏃‍♂️' };
+        const EQUIP_NAMES = { barbell: 'بار 🏋️‍♂️', dumbbell: 'دمبل 🏋️‍♀️', machine: 'أجهزة 🤖', cable_body: 'كابل/جسم 🦾', cardio: 'كارديو 🏃‍♂️' };
 
         let state = { profile: { name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] }, exercises: [], logs: [], notes: {} };
-        let restTimerInterval = null, currentSplit = 'ppl', currentFilterCat = 'all', currentFilterEquip = 'all', activeWeightUnit = 'kg', activeSetType = 'normal', lastPerfData = null;
+        let restTimerInterval = null, currentFilterCat = 'all', activeWeightUnit = 'kg', activeSetType = 'normal', lastPerfData = null;
 
         function sanitizeString(str, maxLen = 50) { return typeof str !== 'string' ? '' : str.replace(/[<>"'&]/g, '').trim().substring(0, maxLen); }
         function validateAndClamp(rawVal, min, max, defaultVal) { let num = Math.abs(parseFloat(rawVal)); return isNaN(num) ? defaultVal : Math.round(Math.min(Math.max(num, min), max) * 10) / 10; }
 
-        async function loadState() {
-            await initIndexedDB();
+        function loadState() {
             try {
-                const savedProfile = localStorage.getItem('gym_profile');
-                if (savedProfile) state.profile = JSON.parse(savedProfile);
-
-                const savedExercises = localStorage.getItem('gym_exercises');
-                state.exercises = savedExercises ? JSON.parse(savedExercises) : [...DEFAULT_EXERCISES];
-
-                const savedLogs = localStorage.getItem('gym_logs');
-                state.logs = savedLogs ? JSON.parse(savedLogs) : [];
-
-                const savedNotes = localStorage.getItem('gym_notes');
-                state.notes = savedNotes ? JSON.parse(savedNotes) : {};
+                const p = localStorage.getItem('gym_profile'); if (p) state.profile = JSON.parse(p);
+                const ex = localStorage.getItem('gym_exercises'); state.exercises = ex ? JSON.parse(ex) : [...DEFAULT_EXERCISES];
+                const lg = localStorage.getItem('gym_logs'); state.logs = lg ? JSON.parse(lg) : [];
+                const nt = localStorage.getItem('gym_notes'); state.notes = nt ? JSON.parse(nt) : {};
             } catch (e) {}
         }
 
-        function saveToLS(key, data) {
-            try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {}
-        }
+        function saveToLS(key, data) { try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) {} }
 
         function calculateCalories(type, data) {
             const userWeight = parseFloat(state.profile.weight) || 75;
@@ -655,34 +493,36 @@
             }
         }
 
-        function handlePlateCalculation() {
-            const weight = parseFloat(document.getElementById('input-weight').value) || 0;
-            const resultsEl = document.getElementById('plate-calc-results');
-            if (weight < 20) { resultsEl.textContent = 'الوزن أقل من وزن البار الصافي (20 كجم)'; }
-            else {
-                let sideWeight = (weight - 20) / 2;
-                const plates = [20, 15, 10, 5, 2.5];
-                let summary = [];
-                plates.forEach(p => {
-                    let count = Math.floor(sideWeight / p);
-                    if (count > 0) { summary.push(`${count} × طارة ${p} كجم`); sideWeight -= count * p; }
-                });
-                resultsEl.innerHTML = summary.length > 0 ? summary.join('<br>') : 'ضع البار خالي بدون طارات';
-            }
-            document.getElementById('plate-calc-modal').classList.remove('hidden');
+        function copyLastPerformance() {
+            if (!lastPerfData) return;
+            document.getElementById('input-weight').value = lastPerfData.weight;
+            document.getElementById('input-reps').value = lastPerfData.reps;
+            document.getElementById('val-reps-display').textContent = lastPerfData.reps;
+            showToast('تم نسخ أداء الجلسة السابقة 📋');
+        }
+
+        function setSetType(type, btnEl) {
+            activeSetType = type;
+            document.querySelectorAll('.set-type-btn').forEach(b => b.className = "set-type-btn py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5");
+            if (btnEl) btnEl.className = "set-type-btn active py-2.5 px-1 rounded-xl border text-center transition flex flex-col items-center justify-center gap-0.5";
+        }
+
+        function handleStepperClick(targetId, delta) {
+            const input = document.getElementById(targetId); if (!input) return;
+            input.value = validateAndClamp(parseFloat(input.value || 0) + delta, parseFloat(input.min) || 0, parseFloat(input.max) || 999, 0);
+            if (targetId === 'input-reps') document.getElementById('val-reps-display').textContent = input.value;
         }
 
         function saveSet() {
             const exId = document.getElementById('exercise-dropdown').value;
             const ex = state.exercises.find(e => e.id === exId); if (!ex) return;
-            const rawWeight = validateAndClamp(document.getElementById('input-weight').value, 0, 500, 0);
+            const weight = validateAndClamp(document.getElementById('input-weight').value, 0, 500, 0);
             const reps = validateAndClamp(document.getElementById('input-reps').value, 1, 150, 10);
             const note = sanitizeString(document.getElementById('exercise-note-input').value, 100);
 
             if (note) state.notes[exId] = note; saveToLS('gym_notes', state.notes);
-
-            state.logs.push({ id: 'log_' + Date.now(), date: new Date().toISOString().split('T')[0], exerciseId: ex.id, exerciseName: ex.name, category: ex.category, type: 'weights', weight: rawWeight, reps, setType: activeSetType, calories: calculateCalories('weights', { weight: rawWeight, reps }) });
-            saveToLS('gym_logs', state.logs); renderTodayLogs(); showToast('تم حفظ الجولة بنجاح ✔️'); startRestTimer(90);
+            state.logs.push({ id: 'log_' + Date.now(), date: new Date().toISOString().split('T')[0], exerciseId: ex.id, exerciseName: ex.name, category: ex.category, weight, reps, setType: activeSetType, calories: calculateCalories('weights', { weight, reps }) });
+            saveToLS('gym_logs', state.logs); renderTodayLogs(); showToast('تم حفظ الجولة ✔️'); startRestTimer(90);
         }
 
         function renderTodayLogs() {
@@ -718,9 +558,9 @@
             const container = document.getElementById('routines-list-container'); if (!container) return;
             const fragment = document.createDocumentFragment();
             DEFAULT_ROUTINES.forEach(r => {
-                const card = document.createElement('div'); item.className = 'glass-card p-3 flex justify-between items-center text-xs';
-                card.className = 'glass-card p-3 flex justify-between items-center';
-                card.innerHTML = `<div><div class="font-bold text-slate-200 text-xs">${escapeHTML(r.name)}</div><div class="text-[10px] text-slate-400">${r.exercises.length} تمارين</div></div><button data-routine-id="${r.id}" class="btn-start-routine px-3 py-1.5 bg-cyan-600 text-white rounded-lg font-bold text-xs">بدء 🏋️</button>`;
+                const card = document.createElement('div');
+                card.className = 'glass-card p-3 flex justify-between items-center text-xs';
+                card.innerHTML = `<div><div class="font-bold text-slate-200">${escapeHTML(r.name)}</div><div class="text-[10px] text-slate-400">${r.exercises.length} تمارين</div></div><span class="text-cyan-400 font-bold">جاهز</span>`;
                 fragment.appendChild(card);
             });
             container.innerHTML = ''; container.appendChild(fragment);
@@ -730,7 +570,39 @@
             if (restTimerInterval) clearInterval(restTimerInterval);
             let timeLeft = seconds; const widget = document.getElementById('rest-timer-widget'), display = document.getElementById('timer-display');
             widget.classList.remove('hidden'); display.textContent = `${timeLeft}s`;
-            restTimerInterval = setInterval(() => { timeLeft--; display.textContent = `${timeLeft}s`; if (timeLeft <= 0) { clearInterval(restTimerInterval); widget.classList.add('hidden'); showToast('انتهى وقت الراحة! 🏋️'); } }, 1000);
+            restTimerInterval = setInterval(() => { timeLeft--; display.textContent = `${timeLeft}s`; if (timeLeft <= 0) { clearInterval(restTimerInterval); widget.classList.add('hidden'); } }, 1000);
+        }
+
+        // Fast Local Classifier for "hip adduction" & others
+        function runLocalClassification(cleanName) {
+            if (/adduct|abduct|hip|leg|squat|rdl|deadlift|ضم|إبعاد|مكبس|سكوات/i.test(cleanName)) return { cat: 'legs', equip: 'machine' };
+            if (/press|bench|chest|shoulder|tricep|fly|ضغط|بنش|أكتاف|تراي/i.test(cleanName)) return { cat: 'push', equip: 'barbell' };
+            if (/row|pull|lat|bicep|curl|سحب|ظهر|باي/i.test(cleanName)) return { cat: 'pull', equip: 'machine' };
+            if (/abs|crunch|plank|بطن/i.test(cleanName)) return { cat: 'abs', equip: 'cable_body' };
+            return { cat: 'push', equip: 'machine' };
+        }
+
+        function onCustomExerciseInput(val) {
+            const cleanName = sanitizeString(val, 60).toLowerCase();
+            const statusEl = document.getElementById('new-ex-status');
+            if (!cleanName) { statusEl.classList.add('hidden'); return; }
+            const res = runLocalClassification(cleanName);
+            document.getElementById('new-ex-cat').value = res.cat;
+            document.getElementById('new-ex-equip').value = res.equip;
+            statusEl.className = "text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border bg-cyan-950/80 border-cyan-800 text-cyan-300 flex items-center gap-1.5";
+            statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400" aria-hidden="true"></i> تم تصنيف التمرين تلقائياً ⚡`;
+            statusEl.classList.remove('hidden');
+        }
+
+        function addNewExercise() {
+            const name = sanitizeString(document.getElementById('new-ex-name').value, 60);
+            const category = document.getElementById('new-ex-cat').value;
+            const equip = document.getElementById('new-ex-equip').value;
+            if (!name) { showToast('أدخل اسم التمرين ⚠️'); return; }
+            state.exercises.push({ id: 'ex_' + Date.now(), name, category, type: 'weights', equip, isCustom: true });
+            saveToLS('gym_exercises', state.exercises);
+            document.getElementById('new-ex-name').value = ''; document.getElementById('new-ex-status').classList.add('hidden');
+            renderExerciseDropdown(); showToast('تمت إضافة التمرين بنجاح 🎉');
         }
 
         function switchTab(tabId) {
@@ -751,21 +623,43 @@
         function initEventListeners() {
             document.body.addEventListener('click', function(e) {
                 const stepperBtn = e.target.closest('[data-step-target]');
-                if (stepperBtn) {
-                    const input = document.getElementById(stepperBtn.dataset.stepTarget);
-                    if (input) { input.value = validateAndClamp((parseFloat(input.value)||0) + parseFloat(stepperBtn.dataset.step), parseFloat(input.min)||0, parseFloat(input.max)||999, parseFloat(input.value)||0); }
-                }
+                if (stepperBtn) handleStepperClick(stepperBtn.dataset.stepTarget, parseFloat(stepperBtn.dataset.step) || 0);
             });
             document.getElementById('floating-dock').addEventListener('click', function (e) { const btn = e.target.closest('[data-tab]'); if (btn) switchTab(btn.dataset.tab); });
             document.getElementById('exercise-dropdown').addEventListener('change', onExerciseSelectChange);
-            document.getElementById('btn-open-plate-calc').addEventListener('click', handlePlateCalculation);
+            document.getElementById('btn-copy-last-perf').addEventListener('click', copyLastPerformance);
+            document.getElementById('btn-open-plate-calc').addEventListener('click', () => {
+                const w = parseFloat(document.getElementById('input-weight').value) || 0;
+                document.getElementById('plate-calc-results').innerHTML = w >= 20 ? `على كل جانب: ${((w-20)/2)} كجم` : 'أقل من وزن البار';
+                document.getElementById('plate-calc-modal').classList.remove('hidden');
+            });
             document.getElementById('btn-close-plate-modal').addEventListener('click', () => document.getElementById('plate-calc-modal').classList.add('hidden'));
             document.getElementById('btn-save-weights').addEventListener('click', saveSet);
             document.getElementById('btn-stop-timer').addEventListener('click', () => document.getElementById('rest-timer-widget').classList.add('hidden'));
+            document.getElementById('set-type-container').addEventListener('click', function (e) { const btn = e.target.closest('.set-type-btn'); if (btn) setSetType(btn.dataset.settype, btn); });
+            document.getElementById('new-ex-name').addEventListener('input', function () { onCustomExerciseInput(this.value); });
+            document.getElementById('add-ex-submit-btn').addEventListener('click', addNewExercise);
+            document.getElementById('btn-save-profile').addEventListener('click', () => {
+                state.profile.name = sanitizeString(document.getElementById('prof-name').value, 40);
+                state.profile.weight = validateAndClamp(document.getElementById('prof-weight').value, 20, 350, '');
+                state.profile.height = validateAndClamp(document.getElementById('prof-height').value, 50, 250, '');
+                saveToLS('gym_profile', state.profile); showToast('تم الحفظ بنجاح 🎯');
+            });
+            document.getElementById('btn-export-json').addEventListener('click', () => {
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+                const dl = document.createElement('a'); dl.setAttribute("href", dataStr); dl.setAttribute("download", `gym_backup.json`);
+                document.body.appendChild(dl); dl.click(); dl.remove();
+            });
+            document.getElementById('btn-wipe-all-data').addEventListener('click', () => {
+                if(confirm('هل أنت متأكد من مسح البيانات بالكامل؟')) {
+                    localStorage.clear(); location.reload();
+                }
+            });
         }
 
-        window.addEventListener('DOMContentLoaded', async () => {
-            await loadState(); initEventListeners(); renderCategoryTabs(); renderExerciseDropdown(); renderTodayLogs();
+        window.addEventListener('DOMContentLoaded', () => {
+            loadState(); initEventListeners(); renderCategoryTabs(); renderExerciseDropdown(); renderTodayLogs();
+            if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(() => {}); }
         });
     })();
     </script>
