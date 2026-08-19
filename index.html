@@ -97,7 +97,6 @@
     <main class="max-w-xl mx-auto px-4 space-y-6">
         <!-- WORKOUT SCREEN -->
         <section id="screen-workout" class="screen-content space-y-4 animate-fade-in">
-            <!-- Preset Routine Selector -->
             <div class="glass-card p-3 border border-cyan-500/30 space-y-2">
                 <div class="flex justify-between items-center text-xs">
                     <span class="font-bold text-cyan-300 flex items-center gap-1.5">
@@ -215,7 +214,6 @@
                             </div>
                         </div>
 
-                        <!-- RPE / RIR Selection -->
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):</label>
                             <div id="rir-container" class="grid grid-cols-5 gap-1.5 text-xs font-bold">
@@ -227,7 +225,6 @@
                             </div>
                         </div>
 
-                        <!-- Rest Timer Custom Duration -->
                         <div class="space-y-1 pt-1">
                             <label for="rest-timer-duration" class="block text-xs font-medium text-slate-300">وقت الراحة التلقائي للجولة:</label>
                             <select id="rest-timer-duration" class="w-full glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700">
@@ -393,7 +390,7 @@
             </div>
         </section>
 
-        <!-- PROGRESS SCREEN -->
+        <!-- PROGRESS SCREEN (ENHANCED WITH ACTUAL WEIGHT & HISTORY TABLE) -->
         <section id="screen-progress" class="screen-content space-y-5 hidden animate-fade-in">
             <div class="grid grid-cols-2 gap-3">
                 <div class="glass-card p-3.5 border-r-4 border-r-cyan-400">
@@ -407,6 +404,40 @@
                 </div>
             </div>
 
+            <div class="glass-card p-4 space-y-4">
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line text-cyan-400"></i>
+                            <span>منحنى تطور التمرين المختار</span>
+                        </h3>
+                        <select id="chart-exercise-select" class="glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700 w-full sm:w-auto"></select>
+                    </div>
+
+                    <!-- Metric Switcher: 1RM vs Actual Weight -->
+                    <div class="flex items-center gap-1.5 bg-slate-900/90 p-1 rounded-xl border border-slate-800 self-start sm:self-auto">
+                        <button type="button" id="chart-mode-actual" class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all shadow-md">الوزن الفعلي المرفوع 🏋️</button>
+                        <button type="button" id="chart-mode-1rm" class="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all">أقصى قوة نظرية (1RM) ⚡</button>
+                    </div>
+                </div>
+
+                <div class="w-full h-64 relative">
+                    <canvas id="progressChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Session-by-Session Progression History Table -->
+            <div class="glass-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span class="flex items-center gap-1.5 text-cyan-300">
+                        <i class="fa-solid fa-timeline text-cyan-400"></i>
+                        <span>سجل تطور أوزان التمرين (جلسة بجلسة)</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400" id="progression-history-badge">تطور الأداء</span>
+                </h3>
+                <div id="exercise-progression-history-list" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+            </div>
+
             <div class="glass-card p-4 space-y-3">
                 <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">
                     <span class="flex items-center gap-1.5 text-cyan-300">
@@ -416,21 +447,6 @@
                     <span class="text-[10px] text-slate-400">بالأطنان</span>
                 </h3>
                 <div id="exercise-volume-breakdown-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
-            </div>
-
-            <div class="glass-card p-4 space-y-4">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-cyan-400"></i>
-                        <span>تطور أقصى وزن متوقع (1RM Max)</span>
-                    </h3>
-
-                    <select id="chart-exercise-select" class="glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700 w-full sm:w-auto"></select>
-                </div>
-
-                <div class="w-full h-64 relative">
-                    <canvas id="progressChart"></canvas>
-                </div>
             </div>
         </section>
 
@@ -876,6 +892,7 @@
         let lastPerfData = null;
         let logsRenderLimit = 15;
         let activePresetFilterIds = null;
+        let chartMetricMode = 'actual'; // 'actual' = actual weight lifted, '1rm' = theoretical 1RM
 
         function calculate1RM(weight, reps) {
             const w = parseFloat(weight) || 0;
@@ -1303,7 +1320,7 @@
             renderTodayLogs();
             updateTopHeaderStats();
             updateLastPerformanceDisplay(ex.id);
-            showToast(`تم حفظ الجولة (1RM: ${oneRepMax} كجم) ✔️`);
+            showToast(`تم حفظ الجولة (${rawWeight} ${activeWeightUnit === 'lbs' ? 'باوند' : 'كجم'}) ✔️`);
 
             const customRestSecs = parseInt(document.getElementById('rest-timer-duration').value) || 90;
             startRestTimer(customRestSecs, ex.name);
@@ -1602,6 +1619,7 @@
                 opt.value = '';
                 opt.textContent = 'لا توجد تمارين بها سجلات بعد';
                 select.appendChild(opt);
+                renderExerciseProgressionHistory('');
             } else {
                 weightExercisesWithLogs.forEach(ex => {
                     const opt = document.createElement('option');
@@ -1609,6 +1627,7 @@
                     opt.textContent = ex.name;
                     select.appendChild(opt);
                 });
+                renderExerciseProgressionHistory(weightExercisesWithLogs[0].id);
             }
 
             updateGlobalStats();
@@ -1659,6 +1678,108 @@
             container.appendChild(fragment);
         }
 
+        function renderExerciseProgressionHistory(selectedExId) {
+            const container = document.getElementById('exercise-progression-history-list');
+            const badge = document.getElementById('progression-history-badge');
+            if (!container) return;
+
+            if (!selectedExId) {
+                container.innerHTML = `<div class="text-[11px] text-slate-500 py-4 text-center">اختر تمريناً من القائمة المنسدلة أعلاه لعرض تدرج الأوزان</div>`;
+                if (badge) badge.textContent = 'لا توجد بيانات';
+                return;
+            }
+
+            const ex = state.exercises.find(e => e.id === selectedExId);
+            if (badge) badge.textContent = ex ? ex.name.substring(0, 20) : 'تطور الأداء';
+
+            const logsForEx = state.logs.filter(l => l.exerciseId === selectedExId && l.type === 'weights');
+            if (logsForEx.length === 0) {
+                container.innerHTML = `<div class="text-[11px] text-slate-500 py-4 text-center">لا توجد جولات مسجلة لهذا التمرين حتى الآن</div>`;
+                return;
+            }
+
+            // Group by date to find the peak performance of each day
+            const dateMap = {};
+            logsForEx.forEach(l => {
+                const w = l.displayWeight || l.weight;
+                const r = l.reps;
+                const oneRm = l.oneRepMax || calculate1RM(l.weight, r);
+                
+                if (!dateMap[l.date]) {
+                    dateMap[l.date] = { date: l.date, weight: w, reps: r, unit: l.unit || 'kg', oneRm, rir: l.rir };
+                } else {
+                    if (w > dateMap[l.date].weight || (w === dateMap[l.date].weight && r > dateMap[l.date].reps)) {
+                        dateMap[l.date] = { date: l.date, weight: w, reps: r, unit: l.unit || 'kg', oneRm, rir: l.rir };
+                    }
+                }
+            });
+
+            const sortedDates = Object.keys(dateMap).sort();
+            const progressionRows = [];
+
+            for (let i = 0; i < sortedDates.length; i++) {
+                const current = dateMap[sortedDates[i]];
+                let deltaText = '';
+                let deltaClass = '';
+
+                if (i === 0) {
+                    deltaText = 'البداية 🎯';
+                    deltaClass = 'bg-cyan-950 text-cyan-300 border-cyan-800';
+                } else {
+                    const prev = dateMap[sortedDates[i - 1]];
+                    const diff = Math.round((current.weight - prev.weight) * 10) / 10;
+                    if (diff > 0) {
+                        deltaText = `+${diff} كجم 🟢 زيادة`;
+                        deltaClass = 'bg-emerald-950 text-emerald-300 border-emerald-800';
+                    } else if (diff < 0) {
+                        deltaText = `${diff} كجم 🔴 تراجع`;
+                        deltaClass = 'bg-rose-950 text-rose-300 border-rose-800';
+                    } else {
+                        const repDiff = current.reps - prev.reps;
+                        if (repDiff > 0) {
+                            deltaText = `+${repDiff} عدات 🟢 زيادة`;
+                            deltaClass = 'bg-emerald-950 text-emerald-300 border-emerald-800';
+                        } else {
+                            deltaText = 'ثابت ⚪';
+                            deltaClass = 'bg-slate-800 text-slate-300 border-slate-700';
+                        }
+                    }
+                }
+
+                progressionRows.push({ ...current, deltaText, deltaClass });
+            }
+
+            const fragment = document.createDocumentFragment();
+            progressionRows.reverse().forEach(row => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center text-xs py-2 px-3 bg-slate-900/80 rounded-xl border border-slate-800 hover:border-slate-700 transition';
+                
+                const unitLabel = row.unit === 'lbs' ? 'باوند' : 'كجم';
+                const rirBadge = row.rir !== undefined ? `<span class="text-[10px] text-slate-400 font-normal mr-1">(RIR: ${row.rir})</span>` : '';
+
+                item.innerHTML = `
+                    <div>
+                        <div class="text-[10px] text-slate-400 font-medium">${escapeHTML(row.date)}</div>
+                        <div class="font-bold text-slate-200 mt-0.5">
+                            <span class="text-cyan-300 text-sm font-black">${escapeHTML(String(row.weight))} ${unitLabel}</span>
+                            <span class="text-slate-300">× ${escapeHTML(String(row.reps))} عدات</span>
+                            ${rirBadge}
+                        </div>
+                    </div>
+                    <div class="text-right flex flex-col items-end gap-1">
+                        <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border ${escapeHTML(row.deltaClass)}">
+                            ${escapeHTML(row.deltaText)}
+                        </span>
+                        <span class="text-[9px] text-slate-400">1RM: <strong class="text-emerald-400">${row.oneRm} كجم</strong></span>
+                    </div>
+                `;
+                fragment.appendChild(item);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(fragment);
+        }
+
         function updateProgressChart() {
             const select = document.getElementById('chart-exercise-select');
             const selectedExId = select.value;
@@ -1666,16 +1787,22 @@
 
             if (!selectedExId) {
                 if (chartInstance) chartInstance.destroy();
+                renderExerciseProgressionHistory('');
                 return;
             }
+
+            renderExerciseProgressionHistory(selectedExId);
 
             const logsForEx = state.logs.filter(l => l.exerciseId === selectedExId && l.type === 'weights');
             const dateMap = {};
 
             logsForEx.forEach(l => {
-                const oneRm = l.oneRepMax || calculate1RM(l.weight, l.reps);
-                if (!dateMap[l.date] || oneRm > dateMap[l.date]) {
-                    dateMap[l.date] = oneRm;
+                const metricVal = chartMetricMode === 'actual' 
+                    ? (l.displayWeight || l.weight)
+                    : (l.oneRepMax || calculate1RM(l.weight, l.reps));
+
+                if (!dateMap[l.date] || metricVal > dateMap[l.date]) {
+                    dateMap[l.date] = metricVal;
                 }
             });
 
@@ -1684,24 +1811,57 @@
 
             if (chartInstance) chartInstance.destroy();
 
+            const chartLabel = chartMetricMode === 'actual'
+                ? 'أقصى وزن فعلي مرفوع (كجم)'
+                : 'أقصى وزن تقديري (1RM Max - كجم)';
+
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: sortedDates.length > 0 ? sortedDates : ['لا توجد بيانات'],
                     datasets: [{
-                        label: 'أقصى وزن متوقع (1RM Max - كجم)',
+                        label: chartLabel,
                         data: dataPoints.length > 0 ? dataPoints : [0],
-                        borderColor: '#00f2fe',
+                        borderColor: chartMetricMode === 'actual' ? '#00f2fe' : '#10b981',
                         borderWidth: 3,
                         pointBackgroundColor: '#ffffff',
+                        pointBorderColor: chartMetricMode === 'actual' ? '#00f2fe' : '#10b981',
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
                         tension: 0.35
                     }]
                 },
                 options: {
                     responsive: true,
-                    maintainAspectRatio: false
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: { color: '#64748b', font: { family: 'Tajawal', size: 10 } },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        },
+                        y: {
+                            ticks: { color: '#64748b', font: { family: 'Tajawal', size: 10 } },
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                        }
+                    }
                 }
             });
+        }
+
+        function setChartMetricMode(mode) {
+            chartMetricMode = mode;
+            const actualBtn = document.getElementById('chart-mode-actual');
+            const oneRmBtn = document.getElementById('chart-mode-1rm');
+
+            if (mode === 'actual') {
+                actualBtn.className = "px-2.5 py-1 rounded-lg text-[10px] font-bold bg-cyan-500 text-white transition-all shadow-md";
+                oneRmBtn.className = "px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all";
+            } else {
+                oneRmBtn.className = "px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500 text-white transition-all shadow-md";
+                actualBtn.className = "px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-200 transition-all";
+            }
+
+            updateProgressChart();
         }
 
         function createBentoCard(title, value, statusText, statusClass, valueColorClass, description) {
@@ -2090,6 +2250,8 @@
             });
 
             document.getElementById('chart-exercise-select').addEventListener('change', updateProgressChart);
+            document.getElementById('chart-mode-actual').addEventListener('click', () => setChartMetricMode('actual'));
+            document.getElementById('chart-mode-1rm').addEventListener('click', () => setChartMetricMode('1rm'));
 
             document.getElementById('gender-toggle-btn').addEventListener('click', toggleGender);
             document.getElementById('btn-save-profile').addEventListener('click', saveProfile);
