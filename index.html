@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>متتبع التمارين - Gym Tracker Pro ⚡ PWA</title>
+    <title>متتبع التمارين - Gym Tracker Pro v9 ⚡ PWA</title>
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -12,7 +12,7 @@
     <meta name="theme-color" content="#070b19">
     <meta name="description" content="تطبيق تتبع التمارين الرياضية بالذكاء والسعرات الحرارية ومؤشرات القوة 1RM و RPE">
 
-    <link rel="manifest" href="data:application/manifest+json;utf8,%7B%22name%22%3A%22Gym%20Tracker%20Pro%22%2C%22short_name%22%3A%22GymTracker%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23070b19%22%2C%22theme_color%22%3A%22%23070b19%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2964%2F2964514.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
+    <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2964/2964514.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -65,6 +65,9 @@
         .modal-overlay { background: rgba(7, 11, 25, 0.85); backdrop-filter: blur(12px); }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in { animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .session-active { border-color: rgba(16, 185, 129, 0.65); box-shadow: 0 0 22px rgba(16, 185, 129, 0.16); }
+        .field-hint { color: #94a3b8; font-size: 10px; line-height: 1.5; }
+        button:disabled { opacity: 0.45; cursor: not-allowed; }
     </style>
 </head>
 <body class="antialiased selection:bg-cyan-500 selection:text-white">
@@ -80,7 +83,7 @@
         <div id="top-quick-stats" class="flex items-center gap-2 bg-slate-900/80 px-3 py-1.5 rounded-xl border border-slate-800 text-xs text-slate-300">
             <span class="flex items-center gap-1 text-amber-400 font-bold">
                 <i class="fa-solid fa-fire text-xs" aria-hidden="true"></i>
-                <span id="header-today-cals">0</span> سعرة صافية
+                <span id="header-today-cals">0</span> سعرة تقديرية
             </span>
         </div>
     </header>
@@ -97,6 +100,31 @@
     <main class="max-w-xl mx-auto px-4 space-y-6">
         <!-- WORKOUT SCREEN -->
         <section id="screen-workout" class="screen-content space-y-4 animate-fade-in">
+            <div id="workout-session-card" class="glass-card p-4 border border-emerald-500/30 space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                    <div>
+                        <div class="text-[10px] text-slate-400">جلسة التمرين الحالية</div>
+                        <div id="active-session-title" class="font-black text-sm text-emerald-300">لا توجد جلسة نشطة</div>
+                        <div id="active-session-meta" class="text-[10px] text-slate-400 mt-0.5">ابدأ جلسة ليتم حساب مدتها وملخصها بدقة</div>
+                    </div>
+                    <span id="active-session-timer" class="text-xs font-black text-cyan-300 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700">00:00</span>
+                </div>
+                <select id="session-routine-select" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                    <option value="free">جلسة حرة</option>
+                    <option value="ppl_push">دفع (Push)</option>
+                    <option value="ppl_pull">سحب (Pull)</option>
+                    <option value="ppl_legs">أرجل (Legs)</option>
+                    <option value="ul_upper">علوي (Upper)</option>
+                    <option value="ul_lower">سفلي (Lower)</option>
+                </select>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="btn-start-session" class="py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold">ابدأ الجلسة</button>
+                    <button id="btn-copy-session" class="py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-bold">نسخ السابقة</button>
+                    <button id="btn-finish-session" disabled class="py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold">إنهاء وملخص</button>
+                </div>
+                <div id="copied-session-plan" class="hidden text-[10px] text-slate-300 bg-slate-900/70 rounded-xl p-2 border border-slate-800"></div>
+            </div>
+
             <div class="glass-card p-3 border border-cyan-500/30 space-y-2">
                 <div class="flex justify-between items-center text-xs">
                     <span class="font-bold text-cyan-300 flex items-center gap-1.5">
@@ -195,7 +223,25 @@
                             </div>
                         </div>
 
-                        <div class="space-y-2">
+                        <div class="space-y-1.5">
+                            <label for="load-mode-select" class="block text-xs font-medium text-slate-300">طريقة تسجيل الحمل:</label>
+                            <select id="load-mode-select" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                                <option value="external">وزن خارجي / بار / جهاز</option>
+                                <option value="per_hand">دمبل — الوزن لكل يد</option>
+                                <option value="bodyweight">وزن الجسم فقط</option>
+                                <option value="added">وزن الجسم + وزن إضافي</option>
+                                <option value="assisted">وزن جسم بمساعدة</option>
+                                <option value="timed">تمرين بالوقت (مثل البلانك)</option>
+                            </select>
+                            <p id="load-mode-hint" class="field-hint">يسجل الوزن المدخل كما هو ويستخدمه في القوة والحجم.</p>
+                        </div>
+
+                        <div id="timed-duration-field" class="hidden space-y-1.5">
+                            <label for="input-duration-sec" class="block text-xs font-medium text-slate-300">المدة بالثواني:</label>
+                            <input type="number" id="input-duration-sec" min="1" max="3600" step="1" value="60" class="w-full glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                        </div>
+
+                        <div id="reps-field-wrapper" class="space-y-2">
                             <div class="flex justify-between items-center text-xs">
                                 <label for="input-reps" class="text-slate-300 font-medium">عدد العدات:</label>
                                 <span class="text-cyan-400 font-bold text-xs"><span id="val-reps-display">10</span> عدات</span>
@@ -216,8 +262,9 @@
 
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):</label>
-                            <div id="rir-container" class="grid grid-cols-5 gap-1.5 text-xs font-bold">
-                                <button type="button" data-rir="0" class="rir-btn active py-2 rounded-xl border text-center">0 (فشل🔥)</button>
+                            <div id="rir-container" class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-xs font-bold">
+                                <button type="button" data-rir="" class="rir-btn active py-2 rounded-xl border text-center">غير محدد</button>
+                                <button type="button" data-rir="0" class="rir-btn py-2 rounded-xl border text-center">0 (فشل🔥)</button>
                                 <button type="button" data-rir="1" class="rir-btn py-2 rounded-xl border text-center">1 عدة</button>
                                 <button type="button" data-rir="2" class="rir-btn py-2 rounded-xl border text-center">2 عدة</button>
                                 <button type="button" data-rir="3" class="rir-btn py-2 rounded-xl border text-center">3 عدات</button>
@@ -237,13 +284,13 @@
 
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">نوع الجولة:</label>
-                            <div id="set-type-container" class="grid grid-cols-5 gap-1.5 text-xs font-bold">
+                            <div id="set-type-container" class="grid grid-cols-4 gap-1.5 text-xs font-bold">
                                 <button type="button" data-settype="normal" class="set-type-btn active py-2 px-1 rounded-xl border text-center">عادية</button>
                                 <button type="button" data-settype="warmup" class="set-type-btn py-2 px-1 rounded-xl border text-center">تسخين☀️</button>
                                 <button type="button" data-settype="dropset" class="set-type-btn py-2 px-1 rounded-xl border text-center">دروب📉</button>
                                 <button type="button" data-settype="superset" class="set-type-btn py-2 px-1 rounded-xl border text-center">سوبر⚡</button>
-                                <button type="button" data-settype="failure" class="set-type-btn py-2 px-1 rounded-xl border text-center">فشل🔥</button>
                             </div>
+                            <p class="field-hint">يُسجل الفشل العضلي تلقائيًا عند اختيار RIR 0.</p>
                         </div>
 
                         <button id="btn-save-weights" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
@@ -254,10 +301,17 @@
 
                     <div id="form-treadmill" class="hidden space-y-4">
                         <div>
+                            <label for="tm-movement-type" class="block text-xs text-slate-300 font-medium mb-1">طريقة الحركة:</label>
+                            <select id="tm-movement-type" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                                <option value="walking">مشي</option>
+                                <option value="running">جري</option>
+                            </select>
+                        </div>
+                        <div>
                             <label for="input-tm-speed" class="block text-xs text-slate-300 font-medium mb-1">السرعة (كم/س):</label>
                             <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <button type="button" data-step-target="input-tm-speed" data-step="-0.5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-0.5</button>
-                                <input type="number" id="input-tm-speed" min="1.0" max="25.0" step="0.1" value="8.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                                <input type="number" id="input-tm-speed" min="1.0" max="25.0" step="0.1" value="5.5" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <button type="button" data-step-target="input-tm-speed" data-step="0.5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+0.5</button>
                             </div>
                         </div>
@@ -287,12 +341,18 @@
 
                     <div id="form-bike-elliptical" class="hidden space-y-4">
                         <div>
-                            <label for="input-be-level" class="block text-xs text-slate-300 font-medium mb-1">مستوى الجهد (Level):</label>
-                            <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
-                                <button type="button" data-step-target="input-be-level" data-step="-1" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-1</button>
-                                <input type="number" id="input-be-level" min="1.0" max="30.0" step="0.5" value="5.0" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
-                                <button type="button" data-step-target="input-be-level" data-step="1" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+1</button>
-                            </div>
+                            <label for="cardio-intensity-select" class="block text-xs text-slate-300 font-medium mb-1">الشدة الفعلية:</label>
+                            <select id="cardio-intensity-select" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                                <option value="light">خفيفة</option>
+                                <option value="moderate" selected>متوسطة</option>
+                                <option value="vigorous">عالية</option>
+                            </select>
+                            <p class="field-hint mt-1">الحساب يميز بين الدراجة والغزالة والتجديف والسلالم، ولا يعتمد رقم Level غير القابل للمقارنة بين الأجهزة.</p>
+                        </div>
+
+                        <div>
+                            <label for="input-cardio-watts" class="block text-xs text-slate-300 font-medium mb-1">متوسط الواط (اختياري — يُستخدم حسابيًا للدراجة الثابتة فقط):</label>
+                            <input type="number" id="input-cardio-watts" min="0" max="2000" step="1" placeholder="مثال: 140" class="w-full glass-input text-center py-2.5 rounded-xl text-sm font-black text-cyan-400 border border-cyan-500/40">
                         </div>
 
                         <div>
@@ -458,7 +518,7 @@
                         <i class="fa-solid fa-chart-pie text-cyan-400"></i>
                         <span>لوحة التحليل الذكي (Bento Grid)</span>
                     </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">تحليل طبي ورياضي متكامل يعتمد على مدخلات بروفايلك</p>
+                    <p class="text-xs text-slate-400 mt-0.5">تحليل رياضي تقريبي يعتمد على مدخلات بروفايلك، وليس تشخيصًا طبيًا</p>
                 </div>
             </div>
 
@@ -525,6 +585,16 @@
                         <label for="prof-age" class="block text-[11px] text-slate-400 mb-1">العمر:</label>
                         <input type="number" id="prof-age" min="5" max="120" step="1" placeholder="مثال: 25" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
                     </div>
+                    <div class="col-span-2">
+                        <label for="prof-activity" class="block text-[11px] text-slate-400 mb-1">مستوى النشاط اليومي:</label>
+                        <select id="prof-activity" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                            <option value="1.2">قليل الحركة</option>
+                            <option value="1.375">نشاط خفيف — 1 إلى 3 أيام</option>
+                            <option value="1.55">نشاط متوسط — 3 إلى 5 أيام</option>
+                            <option value="1.725">نشاط عالٍ — 6 إلى 7 أيام</option>
+                            <option value="1.9">نشاط عالٍ جدًا / عمل بدني</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="pt-2 border-t border-slate-800 space-y-2">
@@ -570,6 +640,10 @@
                         <span>استيراد JSON</span>
                         <input type="file" id="import-file-input" accept=".json" class="hidden">
                     </label>
+                    <button id="btn-download-safety-backup" class="col-span-2 py-2 px-3 rounded-xl bg-emerald-950/60 hover:bg-emerald-900/70 text-emerald-300 font-semibold text-xs border border-emerald-800/60 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-shield-halved"></i>
+                        <span>تنزيل نسخة الأمان قبل التحديث</span>
+                    </button>
                 </div>
 
                 <hr class="border-slate-800">
@@ -591,7 +665,7 @@
 
     <div class="fixed bottom-20 left-0 right-0 z-30 px-4 pointer-events-none">
         <div class="max-w-xl mx-auto glass p-2.5 rounded-xl border border-slate-700/60 text-[10px] text-slate-400 text-center leading-tight shadow-lg pointer-events-auto">
-            💡 <span class="font-bold text-slate-300 font-sans">تنويه رياضي:</span> حساب $1\text{RM}$ يعتمد على معادلة Epley. حاسبة السعرات تعتمد معادلات ACSM و Mifflin-St Jeor.
+            💡 <span class="font-bold text-slate-300 font-sans">تنويه رياضي:</span> 1RM يظهر حتى 15 عدة فقط، والسعرات والمؤشرات الصحية تقديرات وليست قياسات مخبرية.
         </div>
     </div>
 
@@ -631,6 +705,24 @@
         </div>
     </div>
 
+    <div id="edit-log-modal" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
+        <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-cyan-700 shadow-2xl animate-fade-in">
+            <h3 class="font-black text-base text-cyan-200">تعديل التسجيل</h3>
+            <input type="hidden" id="edit-log-id">
+            <div id="edit-weight-fields" class="space-y-3">
+                <div id="edit-log-weight-row"><label class="text-[11px] text-slate-400">الوزن المسجل</label><input id="edit-log-weight" type="number" min="0" max="1000" step="0.1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div id="edit-log-reps-row"><label class="text-[11px] text-slate-400">العدات</label><input id="edit-log-reps" type="number" min="1" max="150" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div id="edit-log-rir-row"><label class="text-[11px] text-slate-400">RIR (اتركه فارغًا لغير محدد)</label><input id="edit-log-rir" type="number" min="0" max="4" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div id="edit-log-seconds-row" class="hidden"><label class="text-[11px] text-slate-400">المدة بالثواني</label><input id="edit-log-seconds" type="number" min="1" max="3600" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+            </div>
+            <div id="edit-cardio-fields" class="hidden"><label class="text-[11px] text-slate-400">المدة بالدقائق</label><input id="edit-log-duration" type="number" min="1" max="300" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+            <div class="flex justify-end gap-2">
+                <button id="btn-cancel-edit-log" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">إلغاء</button>
+                <button id="btn-confirm-edit-log" class="px-4 py-2 rounded-xl bg-cyan-600 text-white text-xs font-bold">حفظ التعديل</button>
+            </div>
+        </div>
+    </div>
+
     <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 space-y-2 pointer-events-none w-full max-w-xs px-4"></div>
 
     <script>
@@ -639,7 +731,9 @@
 
         // --- DUAL-STORAGE ENGINE (IndexedDB + LocalStorage) ---
         const DB_NAME = 'GymTrackerDB';
-        const DB_VERSION = 1;
+        const DB_VERSION = 2;
+        const DATA_SCHEMA_VERSION = 9;
+        const SAFETY_BACKUP_KEY = 'gym_safe_backup_before_v9';
         let dbInstance = null;
 
         function initIndexedDB() {
@@ -655,6 +749,8 @@
                     if (!db.objectStoreNames.contains('logs')) db.createObjectStore('logs', { keyPath: 'id' });
                     if (!db.objectStoreNames.contains('exercises')) db.createObjectStore('exercises', { keyPath: 'id' });
                     if (!db.objectStoreNames.contains('profile')) db.createObjectStore('profile', { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('sessions')) db.createObjectStore('sessions', { keyPath: 'id' });
+                    if (!db.objectStoreNames.contains('backups')) db.createObjectStore('backups', { keyPath: 'id' });
                 };
                 req.onsuccess = function (e) {
                     dbInstance = e.target.result;
@@ -750,6 +846,74 @@
             return str.replace(/[&<>"']/g, function(m) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
             });
+        }
+
+        function getLocalDateString(date = new Date()) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getCanonicalWeightKg(log) {
+            const stored = parseFloat(log && log.weight);
+            if (Number.isFinite(stored)) return stored;
+            const displayed = parseFloat(log && log.displayWeight) || 0;
+            return log && log.unit === 'lbs' ? displayed / 2.20462 : displayed;
+        }
+
+        function getVolumeLoadKg(log) {
+            if (Number.isFinite(parseFloat(log.volumeLoadKg))) return parseFloat(log.volumeLoadKg);
+            const base = getCanonicalWeightKg(log);
+            const multiplier = log.loadMode === 'per_hand' ? 2 : 1;
+            return base * multiplier;
+        }
+
+        function getProgressWeightKg(log) {
+            if (log.loadMode === 'assisted' && Number.isFinite(parseFloat(log.effectiveLoadKg))) return parseFloat(log.effectiveLoadKg);
+            if ((log.loadMode === 'bodyweight' || log.loadMode === 'added') && Number.isFinite(parseFloat(log.effectiveLoadKg))) return parseFloat(log.effectiveLoadKg);
+            return getCanonicalWeightKg(log);
+        }
+
+        async function createSafetyBackupOnce() {
+            if (localStorage.getItem(SAFETY_BACKUP_KEY)) return;
+            if (dbInstance) {
+                const existing = await new Promise((resolve) => {
+                    try {
+                        const tx = dbInstance.transaction('backups', 'readonly');
+                        const req = tx.objectStore('backups').get('pre_v9');
+                        req.onsuccess = () => resolve(req.result || null);
+                        req.onerror = () => resolve(null);
+                    } catch (error) { resolve(null); }
+                });
+                if (existing) return;
+            }
+            try {
+                const snapshot = {
+                    id: 'pre_v9',
+                    createdAt: new Date().toISOString(),
+                    sourceSchema: 8,
+                    rawLocalStorage: {
+                        gym_profile: localStorage.getItem('gym_profile'),
+                        gym_exercises: localStorage.getItem('gym_exercises'),
+                        gym_logs: localStorage.getItem('gym_logs')
+                    },
+                    data: JSON.parse(JSON.stringify({ profile: state.profile, exercises: state.exercises, logs: state.logs }))
+                };
+                try { localStorage.setItem(SAFETY_BACKUP_KEY, JSON.stringify(snapshot)); } catch (error) { console.warn('Local safety backup quota exceeded:', error); }
+                if (dbInstance) {
+                    await new Promise((resolve) => {
+                        try {
+                            const tx = dbInstance.transaction('backups', 'readwrite');
+                            tx.objectStore('backups').put(snapshot);
+                            tx.oncomplete = resolve;
+                            tx.onerror = resolve;
+                        } catch (error) { resolve(); }
+                    });
+                }
+            } catch (error) {
+                console.warn('Safety backup could not be created:', error);
+            }
         }
 
         const ROUTINE_PRESETS = {
@@ -876,9 +1040,10 @@
         const EQUIP_NAMES = { barbell: 'بار 🏋️‍♂️', dumbbell: 'دمبل 🏋️‍♀️', machine: 'أجهزة 🤖', cable_body: 'كابل/وزن جسم 🦾', cardio: 'كارديو 🏃‍♂️' };
 
         let state = {
-            profile: { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] },
+            profile: { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, activityFactor: 1.375, history: [] },
             exercises: [],
-            logs: []
+            logs: [],
+            sessions: []
         };
 
         let restTimerInterval = null;
@@ -888,17 +1053,27 @@
         let currentFilterEquip = 'all';
         let activeWeightUnit = 'kg';
         let activeSetType = 'normal';
-        let activeRIR = 0;
-        let lastPerfData = null;
+        let activeRIR = null;
+        let activeLoadMode = 'external';
+        let lastPerfData = [];
         let logsRenderLimit = 15;
         let activePresetFilterIds = null;
         let chartMetricMode = 'actual'; // 'actual' = actual weight lifted, '1rm' = theoretical 1RM
+        let activeSessionId = null;
+        let sessionTimerInterval = null;
 
         function calculate1RM(weight, reps) {
             const w = parseFloat(weight) || 0;
             const r = parseInt(reps) || 1;
+            if (!w || r < 1 || r > 15) return null;
             if (r === 1) return w;
             return Math.round(w * (1 + (r / 30)) * 10) / 10;
+        }
+
+        function get1RMLabel(weight, reps) {
+            const value = calculate1RM(weight, reps);
+            if (value === null) return 'غير مناسب لهذا النطاق';
+            return `${value} كجم${parseInt(reps) > 10 ? ' (دقة منخفضة)' : ''}`;
         }
 
         function validateAndClamp(rawVal, min, max, defaultVal) {
@@ -914,9 +1089,9 @@
             
             const fetchedProfile = await dbGetAll('profile');
             if (fetchedProfile.length > 0) {
-                state.profile = Object.assign({ id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] }, fetchedProfile[0]);
+                state.profile = Object.assign({ id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, activityFactor: 1.375, history: [] }, fetchedProfile[0]);
             } else {
-                state.profile = { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] };
+                state.profile = { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, activityFactor: 1.375, history: [] };
                 await dbSaveAll('profile', [state.profile]);
             }
 
@@ -934,26 +1109,23 @@
             }
 
             state.logs = await dbGetAll('logs');
+            state.sessions = await dbGetAll('sessions');
+            await createSafetyBackupOnce();
+            activeSessionId = localStorage.getItem('gym_active_session_id');
+            if (!state.sessions.some(s => s.id === activeSessionId && s.status === 'active')) {
+                activeSessionId = null;
+                localStorage.removeItem('gym_active_session_id');
+            }
         }
 
         function calculateCalories(type, data) {
             const userWeight = parseFloat(state.profile.weight) || 75;
-            const isMan = state.profile.isMan !== false;
-            const genderMultiplier = isMan ? 1.15 : 1.0;
             let netCalories = 0;
 
             if (type === 'weights') {
-                const weight = parseFloat(data.weight) || 0;
-                const setDurationMins = 0.75;
-                const intensityRatio = weight / Math.max(userWeight, 45);
-                let grossMET = 3.5 + Math.min(intensityRatio * 2.0, 3.5);
-                
-                if (data.setType === 'warmup') grossMET = 3.0;
-                else if (data.setType === 'failure' || data.setType === 'dropset') grossMET += 1.2;
-                else if (data.setType === 'superset') grossMET += 0.8;
-
-                const netMET = Math.max(grossMET - 1.0, 1.0);
-                netCalories = netMET * userWeight * (setDurationMins / 60);
+                // Calories for resistance training are estimated once per completed
+                // session from duration and overall effort, never from kilograms lifted.
+                return 0;
 
             } else if (type === 'treadmill') {
                 const speedKmH = parseFloat(data.speed) || 6.0;
@@ -962,7 +1134,8 @@
                 const speedMMin = speedKmH * (1000 / 60);
                 const inclineFrac = inclineLevel / 100;
 
-                let vo2 = (speedKmH < 6.0) 
+                const movement = data.movement === 'running' ? 'running' : 'walking';
+                let vo2 = movement === 'walking'
                     ? 3.5 + (0.1 * speedMMin) + (1.8 * speedMMin * inclineFrac)
                     : 3.5 + (0.2 * speedMMin) + (0.9 * speedMMin * inclineFrac);
 
@@ -970,14 +1143,194 @@
                 netCalories = ((netVO2 * userWeight) / 200) * durationMins;
 
             } else if (type === 'bike_elliptical') {
-                const level = parseFloat(data.level) || 5.0;
                 const durationMins = parseFloat(data.duration) || 15;
-                const grossMET = 3.5 + (level * 0.35);
+                const intensity = ['light', 'moderate', 'vigorous'].includes(data.intensity) ? data.intensity : 'moderate';
+                const machine = data.machine || 'bike';
+                const metTable = {
+                    bike: { light: 4.0, moderate: 6.8, vigorous: 10.0 },
+                    elliptical: { light: 5.0, moderate: 7.0, vigorous: 9.0 },
+                    stairs: { light: 6.0, moderate: 8.8, vigorous: 11.0 },
+                    rowing: { light: 4.8, moderate: 7.0, vigorous: 12.0 },
+                    airbike: { light: 6.0, moderate: 9.0, vigorous: 12.0 }
+                };
+                let grossMET = (metTable[machine] || metTable.bike)[intensity];
+                const watts = parseFloat(data.watts);
+                if (Number.isFinite(watts) && watts > 0 && machine === 'bike') {
+                    const cyclingVO2 = 7 + ((1.8 * watts * 6.12) / userWeight);
+                    grossMET = Math.max(3, Math.min(16, cyclingVO2 / 3.5));
+                }
                 const netMET = Math.max(grossMET - 1.0, 1.0);
                 netCalories = netMET * userWeight * (durationMins / 60);
             }
 
-            return Math.round(netCalories * genderMultiplier * 10) / 10;
+            return Math.round(netCalories * 10) / 10;
+        }
+
+        function estimateWeightSessionCalories(session, sessionLogs) {
+            const durationMins = Math.max(1, Math.round(((session.endedAt || Date.now()) - session.startedAt) / 60000));
+            const working = sessionLogs.filter(l => l.type === 'weights' && l.setType !== 'warmup');
+            if (!working.length) return 0;
+            const rirValues = working.filter(l => l.rir !== null && l.rir !== undefined && l.rir !== '').map(l => Number(l.rir)).filter(Number.isFinite);
+            const averageRir = rirValues.length ? rirValues.reduce((a, b) => a + b, 0) / rirValues.length : 2;
+            const grossMET = averageRir <= 1 ? 6.0 : averageRir <= 2 ? 5.0 : 3.5;
+            const netMET = Math.max(grossMET - 1, 1);
+            const userWeight = parseFloat(state.profile.weight) || 75;
+            return Math.round(netMET * userWeight * (durationMins / 60) * 10) / 10;
+        }
+
+        async function refreshCompletedSessionSummary(sessionId) {
+            const session = state.sessions.find(s => s.id === sessionId && s.status === 'completed');
+            if (!session) return;
+            const sessionLogs = state.logs.filter(l => l.sessionId === session.id);
+            const workingLogs = sessionLogs.filter(l => l.type === 'weights' && l.setType !== 'warmup');
+            session.estimatedCalories = estimateWeightSessionCalories(session, sessionLogs);
+            session.totalVolumeKg = workingLogs.reduce((sum, l) => sum + getVolumeLoadKg(l) * (parseInt(l.reps) || 1), 0);
+            session.workingSets = workingLogs.length;
+            session.exerciseIds = [...new Set(sessionLogs.map(l => l.exerciseId))];
+            await dbSaveAll('sessions', state.sessions);
+        }
+
+        const ROUTINE_LABELS = {
+            free: 'جلسة حرة', ppl_push: 'دفع (Push)', ppl_pull: 'سحب (Pull)',
+            ppl_legs: 'أرجل (Legs)', ul_upper: 'علوي (Upper)', ul_lower: 'سفلي (Lower)'
+        };
+
+        function getActiveSession() {
+            return state.sessions.find(s => s.id === activeSessionId && s.status === 'active') || null;
+        }
+
+        async function startWorkoutSession(routineOverride) {
+            if (getActiveSession()) {
+                showToast('لديك جلسة نشطة بالفعل');
+                return getActiveSession();
+            }
+            const routine = routineOverride || document.getElementById('session-routine-select').value || 'free';
+            const session = {
+                id: 'session_' + Date.now(),
+                schemaVersion: DATA_SCHEMA_VERSION,
+                name: ROUTINE_LABELS[routine] || 'جلسة حرة',
+                routine,
+                date: getLocalDateString(),
+                startedAt: Date.now(),
+                endedAt: null,
+                status: 'active',
+                estimatedCalories: 0
+            };
+            state.sessions.push(session);
+            activeSessionId = session.id;
+            localStorage.setItem('gym_active_session_id', activeSessionId);
+            await dbSaveAll('sessions', state.sessions);
+            if (ROUTINE_PRESETS[routine]) loadPresetRoutine(routine);
+            updateSessionUI();
+            showToast(`بدأت ${session.name} 💪`);
+            return session;
+        }
+
+        async function ensureActiveSession() {
+            return getActiveSession() || startWorkoutSession('free');
+        }
+
+        async function finishWorkoutSession() {
+            const session = getActiveSession();
+            if (!session) return;
+            session.endedAt = Date.now();
+            session.status = 'completed';
+            const sessionLogs = state.logs.filter(l => l.sessionId === session.id);
+            const weightLogs = sessionLogs.filter(l => l.type === 'weights');
+            const workingLogs = weightLogs.filter(l => l.setType !== 'warmup');
+            session.estimatedCalories = estimateWeightSessionCalories(session, sessionLogs);
+            session.totalVolumeKg = workingLogs.reduce((sum, l) => sum + getVolumeLoadKg(l) * (parseInt(l.reps) || 1), 0);
+            session.workingSets = workingLogs.length;
+            session.exerciseIds = [...new Set(sessionLogs.map(l => l.exerciseId))];
+            await dbSaveAll('sessions', state.sessions);
+            activeSessionId = null;
+            localStorage.removeItem('gym_active_session_id');
+            updateSessionUI();
+            updateTopHeaderStats();
+            const duration = Math.max(1, Math.round((session.endedAt - session.startedAt) / 60000));
+            const rirValues = workingLogs.filter(l => l.rir !== null && l.rir !== undefined && l.rir !== '').map(l => Number(l.rir)).filter(Number.isFinite);
+            const avgRir = rirValues.length ? (rirValues.reduce((a, b) => a + b, 0) / rirValues.length).toFixed(1) : 'غير محدد';
+            const validOneRms = weightLogs.map(l => calculate1RM(getProgressWeightKg(l), l.reps)).filter(Number.isFinite);
+            const bestOneRm = validOneRms.length ? Math.max(...validOneRms) + ' كجم' : 'غير متاح';
+            showModal({
+                title: `ملخص ${session.name} ✅`,
+                message: `المدة: ${duration} دقيقة | الجولات الفعلية: ${workingLogs.length} | الحجم الفعلي: ${(session.totalVolumeKg / 1000).toFixed(2)} طن | متوسط RIR: ${avgRir} | أعلى 1RM صالح: ${bestOneRm} | السعرات التقديرية: ${session.estimatedCalories}`,
+                confirmText: 'تم', cancelText: 'إغلاق'
+            });
+        }
+
+        function getPreviousCompletedSession() {
+            return state.sessions.filter(s => s.status === 'completed').sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0))[0] || null;
+        }
+
+        async function copyPreviousSession() {
+            const previous = getPreviousCompletedSession();
+            if (!previous) {
+                // Legacy data has no session IDs, so treat the last logged date as one session.
+                const dates = [...new Set(state.logs.filter(l => l.type === 'weights').map(l => l.date))].sort().reverse();
+                if (!dates.length) return showToast('لا توجد جلسة سابقة لنسخها');
+                const legacyLogs = state.logs.filter(l => l.type === 'weights' && l.date === dates[0]);
+                activePresetFilterIds = [...new Set(legacyLogs.map(l => l.exerciseId))];
+                renderExerciseDropdown();
+                renderCopiedSessionPlan(legacyLogs, `جلسة ${dates[0]}`);
+                if (!getActiveSession()) await startWorkoutSession('free');
+                return;
+            }
+            const previousLogs = state.logs.filter(l => l.sessionId === previous.id && l.type === 'weights');
+            activePresetFilterIds = [...new Set(previousLogs.map(l => l.exerciseId))];
+            renderExerciseDropdown();
+            renderCopiedSessionPlan(previousLogs, previous.name);
+            if (!getActiveSession()) await startWorkoutSession(previous.routine || 'free');
+            const active = getActiveSession();
+            if (active) {
+                active.copiedFromSessionId = previous.id;
+                await dbSaveAll('sessions', state.sessions);
+            }
+        }
+
+        function renderCopiedSessionPlan(logs, title) {
+            const container = document.getElementById('copied-session-plan');
+            const grouped = {};
+            logs.forEach(l => {
+                if (!grouped[l.exerciseName]) grouped[l.exerciseName] = [];
+                const unit = l.unit === 'lbs' ? 'lb' : 'kg';
+                grouped[l.exerciseName].push(`${l.displayWeight ?? getCanonicalWeightKg(l)}${unit}×${l.reps}`);
+            });
+            container.innerHTML = `<strong class="text-cyan-300">${escapeHTML(title)}:</strong> ` + Object.entries(grouped).map(([name, sets]) => `${escapeHTML(name)}: ${escapeHTML(sets.join(' · '))}`).join('<br>');
+            container.classList.remove('hidden');
+            showToast(`تم تحميل ${Object.keys(grouped).length} تمارين من الجلسة السابقة 📋`);
+        }
+
+        function updateSessionUI() {
+            const session = getActiveSession();
+            const card = document.getElementById('workout-session-card');
+            const title = document.getElementById('active-session-title');
+            const meta = document.getElementById('active-session-meta');
+            const startBtn = document.getElementById('btn-start-session');
+            const finishBtn = document.getElementById('btn-finish-session');
+            if (!card) return;
+            if (session) {
+                card.classList.add('session-active');
+                title.textContent = session.name;
+                meta.textContent = `بدأت ${new Date(session.startedAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`;
+                startBtn.disabled = true;
+                finishBtn.disabled = false;
+                clearInterval(sessionTimerInterval);
+                const tick = () => {
+                    const seconds = Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000));
+                    document.getElementById('active-session-timer').textContent = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+                };
+                tick();
+                sessionTimerInterval = setInterval(tick, 1000);
+            } else {
+                card.classList.remove('session-active');
+                title.textContent = 'لا توجد جلسة نشطة';
+                meta.textContent = 'ابدأ جلسة ليتم حساب مدتها وملخصها بدقة';
+                startBtn.disabled = false;
+                finishBtn.disabled = true;
+                clearInterval(sessionTimerInterval);
+                document.getElementById('active-session-timer').textContent = '00:00';
+            }
         }
 
         function setSplitSystem(split) {
@@ -1147,6 +1500,16 @@
 
             equipBadge.textContent = EQUIP_NAMES[ex.equip] || 'أوزان حرة 🏋️‍♂️';
 
+            if (ex.type === 'weights') {
+                const suggestedMode = getDefaultLoadMode(ex);
+                const modeSelect = document.getElementById('load-mode-select');
+                if (modeSelect && modeSelect.dataset.exerciseId !== ex.id) {
+                    modeSelect.dataset.exerciseId = ex.id;
+                    modeSelect.value = suggestedMode;
+                    setLoadMode(suggestedMode);
+                }
+            }
+
             if (ex.type === 'weights') formWeights.classList.remove('hidden');
             else if (ex.type === 'treadmill') formTm.classList.remove('hidden');
             else if (ex.type === 'bike_elliptical') formBe.classList.remove('hidden');
@@ -1156,9 +1519,41 @@
             const rawWeight = parseFloat(document.getElementById('input-weight').value) || 0;
             const reps = parseInt(document.getElementById('input-reps').value) || 10;
             let weightInKg = activeWeightUnit === 'lbs' ? rawWeight / 2.20462 : rawWeight;
-            const est1RM = calculate1RM(weightInKg, reps);
             const span = document.getElementById('val-1rm-live');
-            if (span) span.textContent = `${est1RM} كجم`;
+            if (!span) return;
+            if (activeLoadMode === 'timed') span.textContent = 'غير مطبق للتمرين الزمني';
+            else span.textContent = get1RMLabel(weightInKg, reps);
+        }
+
+        function getDefaultLoadMode(exercise) {
+            if (!exercise) return 'external';
+            if (exercise.id === 'ex_62') return 'timed';
+            if (exercise.id === 'ex_32') return 'assisted';
+            if (['ex_19', 'ex_31', 'ex_60', 'ex_61'].includes(exercise.id)) return 'bodyweight';
+            if (exercise.equip === 'dumbbell') return 'per_hand';
+            return 'external';
+        }
+
+        function setLoadMode(mode) {
+            activeLoadMode = mode || 'external';
+            const select = document.getElementById('load-mode-select');
+            if (select) select.value = activeLoadMode;
+            const hints = {
+                external: 'يسجل الوزن المدخل كما هو ويستخدمه في القوة والحجم.',
+                per_hand: 'الرقم هو وزن الدمبل الواحد؛ الحجم التدريبي يحسب اليدين ×2.',
+                bodyweight: 'يستخدم وزن جسمك من البروفايل. خانة الوزن يمكن تركها صفرًا.',
+                added: 'أدخل الوزن الإضافي فقط؛ الحمل الفعلي = وزن الجسم + الوزن الإضافي.',
+                assisted: 'أدخل مقدار المساعدة؛ التقدم يتحسن عندما تقل المساعدة.',
+                timed: 'للبلانك والتمارين الزمنية؛ يسجل الثواني بدل العدات ولا يحسب 1RM.'
+            };
+            document.getElementById('load-mode-hint').textContent = hints[activeLoadMode] || hints.external;
+            document.getElementById('timed-duration-field').classList.toggle('hidden', activeLoadMode !== 'timed');
+            document.getElementById('reps-field-wrapper').classList.toggle('hidden', activeLoadMode === 'timed');
+            const weightInput = document.getElementById('input-weight');
+            weightInput.disabled = activeLoadMode === 'bodyweight';
+            if (activeLoadMode === 'bodyweight') weightInput.value = 0;
+            updateWeightConvertedDisplay();
+            update1RMLiveDisplay();
         }
 
         function updateLastPerformanceDisplay(exerciseId) {
@@ -1168,41 +1563,47 @@
             if (!exerciseId) {
                 textEl.textContent = 'اختر تمرين للعرض';
                 copyBtn.classList.add('hidden');
-                lastPerfData = null;
+                lastPerfData = [];
                 return;
             }
 
-            const exLogs = state.logs.filter(l => l.exerciseId === exerciseId && l.type === 'weights');
+            const exLogs = state.logs.filter(l => l.exerciseId === exerciseId && l.type === 'weights' && l.sessionId !== activeSessionId).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 
             if (exLogs.length === 0) {
                 textEl.textContent = 'لا يوجد أداء سابق مسجل لهذا التمرين';
                 textEl.className = 'text-xs font-medium text-slate-400';
                 copyBtn.classList.add('hidden');
-                lastPerfData = null;
+                lastPerfData = [];
             } else {
                 const latest = exLogs[exLogs.length - 1];
-                lastPerfData = latest;
-                const unitStr = latest.unit === 'lbs' ? 'باوند' : 'كجم';
-                const weightVal = latest.displayWeight || latest.weight;
-                const rirText = latest.rir !== undefined ? ` (RIR: ${latest.rir})` : '';
-
-                textEl.innerHTML = `<span class="text-cyan-300 font-bold">${escapeHTML(String(weightVal))} ${unitStr}</span> × <span class="text-cyan-300 font-bold">${escapeHTML(String(latest.reps))} عدات</span> <span class="text-emerald-400 font-bold">[1RM: ${latest.oneRepMax || calculate1RM(latest.weight, latest.reps)} كجم]</span><span class="text-[10px] text-slate-400">${rirText}</span>`;
+                const latestGroupKey = latest.sessionId || latest.date;
+                lastPerfData = exLogs.filter(l => (l.sessionId || l.date) === latestGroupKey);
+                textEl.innerHTML = lastPerfData.map(set => {
+                    const unitStr = set.unit === 'lbs' ? 'lb' : 'kg';
+                    const weightVal = set.displayWeight ?? getCanonicalWeightKg(set);
+                    const rirText = set.rir !== undefined && set.rir !== null ? ` · RIR ${set.rir}` : '';
+                    return `<span class="inline-block ml-2"><strong class="text-cyan-300">${escapeHTML(String(weightVal))}${unitStr}</strong> × ${escapeHTML(String(set.reps))}${escapeHTML(rirText)}</span>`;
+                }).join('');
                 textEl.className = 'text-xs font-bold text-cyan-300';
                 copyBtn.classList.remove('hidden');
             }
         }
 
         function copyLastPerformance() {
-            if (!lastPerfData) return;
-            
-            if (lastPerfData.unit && lastPerfData.unit !== activeWeightUnit) {
-                setWeightUnit(lastPerfData.unit);
+            if (!lastPerfData.length) return;
+            const firstWorkingSet = lastPerfData.find(l => l.setType !== 'warmup') || lastPerfData[0];
+            if (firstWorkingSet.unit && firstWorkingSet.unit !== activeWeightUnit) {
+                setWeightUnit(firstWorkingSet.unit);
             }
-            
-            const wVal = lastPerfData.displayWeight || lastPerfData.weight;
+            const wVal = firstWorkingSet.displayWeight ?? getCanonicalWeightKg(firstWorkingSet);
             document.getElementById('input-weight').value = wVal;
-            document.getElementById('input-reps').value = lastPerfData.reps;
-            document.getElementById('val-reps-display').textContent = lastPerfData.reps;
+            document.getElementById('input-reps').value = firstWorkingSet.reps;
+            document.getElementById('val-reps-display').textContent = firstWorkingSet.reps;
+            if (firstWorkingSet.loadMode) setLoadMode(firstWorkingSet.loadMode);
+            if (firstWorkingSet.rir !== undefined && firstWorkingSet.rir !== null) {
+                const rirBtn = document.querySelector(`.rir-btn[data-rir="${firstWorkingSet.rir}"]`);
+                setRIR(String(firstWorkingSet.rir), rirBtn);
+            }
 
             updateWeightConvertedDisplay();
             update1RMLiveDisplay();
@@ -1218,7 +1619,7 @@
         }
 
         function setRIR(rirVal, btnEl) {
-            activeRIR = parseInt(rirVal);
+            activeRIR = rirVal === '' ? null : parseInt(rirVal);
             document.querySelectorAll('.rir-btn').forEach(btn => {
                 btn.className = "rir-btn py-2 rounded-xl border text-center";
             });
@@ -1289,17 +1690,30 @@
             if (!ex) return;
 
             const rawWeight = validateAndClamp(document.getElementById('input-weight').value, 0, 500, 0);
-            const reps = validateAndClamp(document.getElementById('input-reps').value, 1, 150, 10);
+            const reps = activeLoadMode === 'timed' ? 1 : validateAndClamp(document.getElementById('input-reps').value, 1, 150, 10);
+            const durationSeconds = activeLoadMode === 'timed' ? validateAndClamp(document.getElementById('input-duration-sec').value, 1, 3600, 60) : null;
             let weightInKg = activeWeightUnit === 'lbs' ? Math.round((rawWeight / 2.20462) * 10) / 10 : rawWeight;
-
-            const oneRepMax = calculate1RM(weightInKg, reps);
+            const bodyWeightKg = parseFloat(state.profile.weight) || 0;
+            if (['bodyweight', 'added', 'assisted'].includes(activeLoadMode) && !bodyWeightKg) {
+                showToast('أدخل وزن جسمك في البروفايل أولًا لهذا النوع من التمارين');
+                return;
+            }
+            const session = await ensureActiveSession();
+            let effectiveLoadKg = weightInKg;
+            if (activeLoadMode === 'bodyweight') effectiveLoadKg = bodyWeightKg;
+            else if (activeLoadMode === 'added') effectiveLoadKg = bodyWeightKg + weightInKg;
+            else if (activeLoadMode === 'assisted') effectiveLoadKg = Math.max(0, bodyWeightKg - weightInKg);
+            const volumeLoadKg = activeLoadMode === 'per_hand' ? weightInKg * 2 : effectiveLoadKg;
+            const oneRepMax = activeLoadMode === 'timed' ? null : calculate1RM(effectiveLoadKg, reps);
             const calories = calculateCalories('weights', { weight: weightInKg, reps, setType: activeSetType });
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
 
             const logEntry = {
                 id: 'log_' + Date.now(),
+                schemaVersion: DATA_SCHEMA_VERSION,
                 date: today,
                 timestamp: Date.now(),
+                sessionId: session ? session.id : null,
                 exerciseId: ex.id,
                 exerciseName: ex.name,
                 category: ex.category,
@@ -1311,7 +1725,13 @@
                 oneRepMax,
                 rir: activeRIR,
                 setType: activeSetType,
-                calories
+                loadMode: activeLoadMode,
+                bodyWeightKgAtLog: bodyWeightKg || null,
+                effectiveLoadKg,
+                volumeLoadKg,
+                durationSeconds,
+                calories,
+                calculationVersion: 'v9-session'
             };
 
             state.logs.push(logEntry);
@@ -1320,7 +1740,7 @@
             renderTodayLogs();
             updateTopHeaderStats();
             updateLastPerformanceDisplay(ex.id);
-            showToast(`تم حفظ الجولة (${rawWeight} ${activeWeightUnit === 'lbs' ? 'باوند' : 'كجم'}) ✔️`);
+            showToast(activeLoadMode === 'timed' ? `تم حفظ ${durationSeconds} ثانية ✔️` : `تم حفظ الجولة (${rawWeight} ${activeWeightUnit === 'lbs' ? 'باوند' : 'كجم'}) ✔️`);
 
             const customRestSecs = parseInt(document.getElementById('rest-timer-duration').value) || 90;
             startRestTimer(customRestSecs, ex.name);
@@ -1332,12 +1752,15 @@
             const ex = state.exercises.find(e => e.id === exId);
             if (!ex) return;
 
-            const today = new Date().toISOString().split('T')[0];
+            const session = await ensureActiveSession();
+            const today = getLocalDateString();
             let calories = 0;
             let logData = {
                 id: 'log_' + Date.now(),
+                schemaVersion: DATA_SCHEMA_VERSION,
                 date: today,
                 timestamp: Date.now(),
+                sessionId: session ? session.id : null,
                 exerciseId: ex.id,
                 exerciseName: ex.name,
                 category: ex.category,
@@ -1345,16 +1768,21 @@
             };
 
             if (cardioType === 'treadmill') {
-                const speed = validateAndClamp(document.getElementById('input-tm-speed').value, 1, 25, 8.0);
+                const speed = validateAndClamp(document.getElementById('input-tm-speed').value, 1, 25, 5.5);
                 const incline = validateAndClamp(document.getElementById('input-tm-incline').value, 0, 25, 1.0);
                 const duration = validateAndClamp(document.getElementById('input-tm-duration').value, 1, 180, 20);
-                calories = calculateCalories('treadmill', { speed, incline, duration });
-                logData = { ...logData, speed, incline, duration, calories };
+                const movement = document.getElementById('tm-movement-type').value;
+                calories = calculateCalories('treadmill', { speed, incline, duration, movement });
+                logData = { ...logData, speed, incline, duration, movement, calories, caloriesEstimated: true };
             } else {
-                const level = validateAndClamp(document.getElementById('input-be-level').value, 1, 30, 5.0);
                 const duration = validateAndClamp(document.getElementById('input-be-duration').value, 1, 180, 15);
-                calories = calculateCalories('bike_elliptical', { level, duration });
-                logData = { ...logData, level, duration, calories };
+                const intensity = document.getElementById('cardio-intensity-select').value;
+                const wattsRaw = parseFloat(document.getElementById('input-cardio-watts').value);
+                const watts = Number.isFinite(wattsRaw) ? wattsRaw : null;
+                const machineMap = { ex_65: 'bike', ex_66: 'elliptical', ex_67: 'stairs', ex_68: 'rowing', ex_69: 'airbike' };
+                const machine = machineMap[ex.id] || 'bike';
+                calories = calculateCalories('bike_elliptical', { machine, intensity, watts, duration });
+                logData = { ...logData, machine, intensity, watts, duration, calories, caloriesEstimated: true };
             }
 
             state.logs.push(logData);
@@ -1372,8 +1800,10 @@
                 confirmText: 'احذف',
                 cancelText: 'إلغاء',
                 onConfirm: async () => {
+                    const deletedLog = state.logs.find(l => l.id === logId);
                     state.logs = state.logs.filter(l => l.id !== logId);
                     await dbSaveAll('logs', state.logs);
+                    if (deletedLog && deletedLog.sessionId) await refreshCompletedSessionSummary(deletedLog.sessionId);
                     renderTodayLogs();
                     updateTopHeaderStats();
                     showToast('تم الحذف');
@@ -1381,10 +1811,72 @@
             });
         }
 
+        function openEditLog(logId) {
+            const log = state.logs.find(l => l.id === logId);
+            if (!log) return;
+            document.getElementById('edit-log-id').value = logId;
+            const isWeight = log.type === 'weights';
+            document.getElementById('edit-weight-fields').classList.toggle('hidden', !isWeight);
+            document.getElementById('edit-cardio-fields').classList.toggle('hidden', isWeight);
+            if (isWeight) {
+                const isTimed = log.loadMode === 'timed';
+                document.getElementById('edit-log-weight-row').classList.toggle('hidden', isTimed);
+                document.getElementById('edit-log-reps-row').classList.toggle('hidden', isTimed);
+                document.getElementById('edit-log-rir-row').classList.toggle('hidden', isTimed);
+                document.getElementById('edit-log-seconds-row').classList.toggle('hidden', !isTimed);
+                document.getElementById('edit-log-weight').value = log.displayWeight ?? getCanonicalWeightKg(log);
+                document.getElementById('edit-log-reps').value = log.reps || 1;
+                document.getElementById('edit-log-rir').value = log.rir ?? '';
+                document.getElementById('edit-log-seconds').value = log.durationSeconds || 60;
+            } else {
+                document.getElementById('edit-log-duration').value = log.duration || 1;
+            }
+            document.getElementById('edit-log-modal').classList.remove('hidden');
+        }
+
+        async function saveEditedLog() {
+            const id = document.getElementById('edit-log-id').value;
+            const log = state.logs.find(l => l.id === id);
+            if (!log) return;
+            if (log.type === 'weights') {
+                if (log.loadMode === 'timed') {
+                    log.durationSeconds = validateAndClamp(document.getElementById('edit-log-seconds').value, 1, 3600, log.durationSeconds || 60);
+                } else {
+                const displayWeight = validateAndClamp(document.getElementById('edit-log-weight').value, 0, 1000, 0);
+                const reps = validateAndClamp(document.getElementById('edit-log-reps').value, 1, 150, 1);
+                const rirRaw = document.getElementById('edit-log-rir').value;
+                const weightKg = log.unit === 'lbs' ? Math.round((displayWeight / 2.20462) * 10) / 10 : displayWeight;
+                const bodyWeightKg = parseFloat(log.bodyWeightKgAtLog) || parseFloat(state.profile.weight) || 0;
+                let effectiveLoadKg = weightKg;
+                if (log.loadMode === 'bodyweight') effectiveLoadKg = bodyWeightKg;
+                else if (log.loadMode === 'added') effectiveLoadKg = bodyWeightKg + weightKg;
+                else if (log.loadMode === 'assisted') effectiveLoadKg = Math.max(0, bodyWeightKg - weightKg);
+                log.displayWeight = displayWeight;
+                log.weight = weightKg;
+                log.reps = reps;
+                log.rir = rirRaw === '' ? null : validateAndClamp(rirRaw, 0, 4, null);
+                log.effectiveLoadKg = effectiveLoadKg;
+                log.volumeLoadKg = log.loadMode === 'per_hand' ? weightKg * 2 : effectiveLoadKg;
+                log.oneRepMax = log.loadMode === 'timed' ? null : calculate1RM(effectiveLoadKg, reps);
+                }
+            } else {
+                log.duration = validateAndClamp(document.getElementById('edit-log-duration').value, 1, 300, log.duration || 1);
+                if (log.type === 'treadmill') log.calories = calculateCalories('treadmill', log);
+                else log.calories = calculateCalories('bike_elliptical', log);
+            }
+            log.editedAt = Date.now();
+            await dbSaveAll('logs', state.logs);
+            if (log.sessionId) await refreshCompletedSessionSummary(log.sessionId);
+            document.getElementById('edit-log-modal').classList.add('hidden');
+            renderTodayLogs();
+            updateTopHeaderStats();
+            showToast('تم تعديل التسجيل بدون إنشاء سجل مكرر');
+        }
+
         function renderTodayLogs() {
             const container = document.getElementById('today-logs-container');
             const loadMoreWrapper = document.getElementById('lazy-logs-load-more');
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             const todayLogs = state.logs.filter(l => l.date === today).reverse();
 
             document.getElementById('today-sets-count').textContent = `${todayLogs.length} جولات`;
@@ -1406,8 +1898,10 @@
                 let detailText = '';
                 if (log.type === 'weights') {
                     const unitLabel = log.unit === 'lbs' ? 'باوند' : 'كجم';
-                    const printWeight = log.displayWeight || log.weight;
-                    detailText = `<span class="font-bold text-cyan-300">${escapeHTML(String(printWeight))} ${unitLabel}</span> × <span class="font-bold text-cyan-300">${escapeHTML(String(log.reps))} عدات</span> <span class="text-[10px] text-emerald-400 font-bold">[1RM: ${log.oneRepMax || calculate1RM(log.weight, log.reps)} كجم]</span>`;
+                    const printWeight = log.displayWeight ?? getCanonicalWeightKg(log);
+                    const loadLabel = log.loadMode === 'per_hand' ? ' لكل يد' : log.loadMode === 'assisted' ? ' مساعدة' : log.loadMode === 'added' ? ' إضافي' : '';
+                    if (log.loadMode === 'timed') detailText = `<span class="font-bold text-cyan-300">${escapeHTML(String(log.durationSeconds || 0))} ثانية</span>`;
+                    else detailText = `<span class="font-bold text-cyan-300">${escapeHTML(String(printWeight))} ${unitLabel}${loadLabel}</span> × <span class="font-bold text-cyan-300">${escapeHTML(String(log.reps))} عدات</span> <span class="text-[10px] text-emerald-400 font-bold">[1RM: ${escapeHTML(get1RMLabel(getProgressWeightKg(log), log.reps))}]</span>`;
                 } else {
                     detailText = `<span class="text-cyan-300 font-bold">${log.duration} دقيقة</span>`;
                 }
@@ -1419,8 +1913,9 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="text-right">
-                            <div class="text-xs font-black text-amber-400">${escapeHTML(String(log.calories))}🔥</div>
+                            <div class="text-[10px] font-black text-amber-400">${log.type === 'weights' && log.calculationVersion === 'v9-session' ? 'سعرات ضمن الجلسة' : `${escapeHTML(String(log.calories || 0))}🔥 تقديري`}</div>
                         </div>
+                        <button data-action="edit-log" data-id="${escapeHTML(log.id)}" aria-label="تعديل التسجيل" class="text-slate-500 hover:text-cyan-400 p-1.5 transition"><i class="fa-solid fa-pen text-sm"></i></button>
                         <button data-action="delete-log" data-id="${escapeHTML(log.id)}" class="text-slate-500 hover:text-red-400 p-1.5 transition">
                             <i class="fa-solid fa-trash-can text-sm"></i>
                         </button>
@@ -1650,12 +2145,14 @@
             state.logs.forEach(l => {
                 if (l.type === 'weights') {
                     const exName = l.exerciseName || 'تمرين';
-                    const volKg = (parseFloat(l.weight) || 0) * (parseInt(l.reps) || 1);
-                    volumeMap[exName] = (volumeMap[exName] || 0) + volKg;
+                    const volKg = l.loadMode === 'timed' ? 0 : getVolumeLoadKg(l) * (parseInt(l.reps) || 1);
+                    if (!volumeMap[exName]) volumeMap[exName] = { total: 0, working: 0 };
+                    volumeMap[exName].total += volKg;
+                    if (l.setType !== 'warmup') volumeMap[exName].working += volKg;
                 }
             });
 
-            const sortedExercises = Object.keys(volumeMap).sort((a, b) => volumeMap[b] - volumeMap[a]);
+            const sortedExercises = Object.keys(volumeMap).sort((a, b) => volumeMap[b].working - volumeMap[a].working);
             if (sortedExercises.length === 0) {
                 container.innerHTML = `<div class="text-[11px] text-slate-500 py-3 text-center">لا توجد سجلات أوزان لحساب الحجم حتى الآن</div>`;
                 return;
@@ -1663,13 +2160,15 @@
 
             const fragment = document.createDocumentFragment();
             sortedExercises.forEach(name => {
-                const totalKg = volumeMap[name];
+                const totalKg = volumeMap[name].total;
+                const workingKg = volumeMap[name].working;
                 const totalTons = (totalKg / 1000).toFixed(2);
+                const workingTons = (workingKg / 1000).toFixed(2);
                 const item = document.createElement('div');
                 item.className = 'flex justify-between items-center text-xs py-2 px-3 bg-slate-900/80 rounded-xl border border-slate-800';
                 item.innerHTML = `
                     <span class="font-bold text-slate-200">${escapeHTML(name)}</span>
-                    <span class="font-black text-cyan-300">${escapeHTML(totalTons)} طن (${totalKg.toLocaleString()} كجم)</span>
+                    <span class="text-left"><strong class="block text-cyan-300">فعلي: ${escapeHTML(workingTons)} طن</strong><small class="text-slate-500">الإجمالي مع التسخين: ${escapeHTML(totalTons)} طن</small></span>
                 `;
                 fragment.appendChild(item);
             });
@@ -1698,23 +2197,24 @@
                 return;
             }
 
-            // Group by date to find the peak performance of each day
+            // Group by real session when available; legacy logs remain grouped by date.
             const dateMap = {};
             logsForEx.forEach(l => {
-                const w = l.displayWeight || l.weight;
+                const w = getProgressWeightKg(l);
                 const r = l.reps;
-                const oneRm = l.oneRepMax || calculate1RM(l.weight, r);
-                
-                if (!dateMap[l.date]) {
-                    dateMap[l.date] = { date: l.date, weight: w, reps: r, unit: l.unit || 'kg', oneRm, rir: l.rir };
+                const oneRm = calculate1RM(w, r);
+                const groupKey = l.sessionId || l.date;
+                const displayDate = l.date + (l.sessionId && l.timestamp ? ` ${new Date(l.timestamp).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}` : '');
+                if (!dateMap[groupKey]) {
+                    dateMap[groupKey] = { date: displayDate, sortValue: l.timestamp || l.date, weight: w, reps: r, unit: 'kg', oneRm, rir: l.rir, loadMode: l.loadMode };
                 } else {
-                    if (w > dateMap[l.date].weight || (w === dateMap[l.date].weight && r > dateMap[l.date].reps)) {
-                        dateMap[l.date] = { date: l.date, weight: w, reps: r, unit: l.unit || 'kg', oneRm, rir: l.rir };
+                    if (w > dateMap[groupKey].weight || (w === dateMap[groupKey].weight && r > dateMap[groupKey].reps)) {
+                        dateMap[groupKey] = { date: displayDate, sortValue: l.timestamp || l.date, weight: w, reps: r, unit: 'kg', oneRm, rir: l.rir, loadMode: l.loadMode };
                     }
                 }
             });
 
-            const sortedDates = Object.keys(dateMap).sort();
+            const sortedDates = Object.keys(dateMap).sort((a, b) => String(dateMap[a].sortValue).localeCompare(String(dateMap[b].sortValue)));
             const progressionRows = [];
 
             for (let i = 0; i < sortedDates.length; i++) {
@@ -1754,8 +2254,8 @@
                 const item = document.createElement('div');
                 item.className = 'flex justify-between items-center text-xs py-2 px-3 bg-slate-900/80 rounded-xl border border-slate-800 hover:border-slate-700 transition';
                 
-                const unitLabel = row.unit === 'lbs' ? 'باوند' : 'كجم';
-                const rirBadge = row.rir !== undefined ? `<span class="text-[10px] text-slate-400 font-normal mr-1">(RIR: ${row.rir})</span>` : '';
+                const unitLabel = 'كجم';
+                const rirBadge = row.rir !== undefined && row.rir !== null ? `<span class="text-[10px] text-slate-400 font-normal mr-1">(RIR: ${row.rir})</span>` : '';
 
                 item.innerHTML = `
                     <div>
@@ -1770,7 +2270,7 @@
                         <span class="px-2 py-0.5 rounded-lg text-[10px] font-bold border ${escapeHTML(row.deltaClass)}">
                             ${escapeHTML(row.deltaText)}
                         </span>
-                        <span class="text-[9px] text-slate-400">1RM: <strong class="text-emerald-400">${row.oneRm} كجم</strong></span>
+                        <span class="text-[9px] text-slate-400">1RM: <strong class="text-emerald-400">${row.oneRm === null ? 'غير متاح' : row.oneRm + ' كجم'}</strong></span>
                     </div>
                 `;
                 fragment.appendChild(item);
@@ -1798,16 +2298,20 @@
 
             logsForEx.forEach(l => {
                 const metricVal = chartMetricMode === 'actual' 
-                    ? (l.displayWeight || l.weight)
-                    : (l.oneRepMax || calculate1RM(l.weight, l.reps));
+                    ? getProgressWeightKg(l)
+                    : calculate1RM(getProgressWeightKg(l), l.reps);
 
-                if (!dateMap[l.date] || metricVal > dateMap[l.date]) {
-                    dateMap[l.date] = metricVal;
+                if (!Number.isFinite(metricVal)) return;
+
+                const groupKey = l.sessionId || l.date;
+                if (!dateMap[groupKey] || metricVal > dateMap[groupKey].value) {
+                    dateMap[groupKey] = { value: metricVal, label: l.date, sortValue: Number.isFinite(l.timestamp) ? l.timestamp : (Date.parse(l.date) || 0) };
                 }
             });
 
-            const sortedDates = Object.keys(dateMap).sort();
-            const dataPoints = sortedDates.map(d => dateMap[d]);
+            const sortedDates = Object.keys(dateMap).sort((a, b) => dateMap[a].sortValue - dateMap[b].sortValue);
+            const dataPoints = sortedDates.map(d => dateMap[d].value);
+            const chartLabels = sortedDates.map(d => dateMap[d].label);
 
             if (chartInstance) chartInstance.destroy();
 
@@ -1818,7 +2322,7 @@
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: sortedDates.length > 0 ? sortedDates : ['لا توجد بيانات'],
+                    labels: chartLabels.length > 0 ? chartLabels : ['لا توجد بيانات'],
                     datasets: [{
                         label: chartLabel,
                         data: dataPoints.length > 0 ? dataPoints : [0],
@@ -1903,28 +2407,33 @@
             }
 
             let bmr = (10 * weight) + (6.25 * height) - (5 * age) + (isMan ? 5 : -161);
-            const tdee = Math.round(bmr * 1.375);
+            const activityFactor = parseFloat(p.activityFactor) || 1.375;
+            const tdee = Math.round(bmr * activityFactor);
+            const cutLow = Math.round(tdee * 0.90);
+            const cutHigh = Math.round(tdee * 0.80);
+            const bulkLow = Math.round(tdee * 1.05);
+            const bulkHigh = Math.round(tdee * 1.10);
 
-            calContainer.innerHTML += createBentoCard('تثبيت الوزن (Maintenance)', tdee.toLocaleString() + '🔥', 'هدف التوازن 🎯', 'bg-cyan-950 text-cyan-300 border-cyan-800', 'text-cyan-300', 'السعرات اليومية للمحافظة على الوزن الحالي.');
-            calContainer.innerHTML += createBentoCard('نقصان الوزن (Fat Loss)', Math.max(tdee - 500, 1200).toLocaleString() + '🔥', 'عجز سعرات 📉', 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-emerald-300', 'السعرات لخسارة الدهون بدون فقدان كتلة عضلية.');
-            calContainer.innerHTML += createBentoCard('زيادة الوزن (Bulking)', (tdee + 500).toLocaleString() + '🔥', 'فائض سعرات 📈', 'bg-amber-950 text-amber-300 border-amber-800', 'text-amber-300', 'السعرات لبناء العضلات مع تقليل اكتساب الدهون.');
+            calContainer.innerHTML += createBentoCard('تثبيت الوزن (Maintenance)', tdee.toLocaleString() + '🔥', 'هدف التوازن 🎯', 'bg-cyan-950 text-cyan-300 border-cyan-800', 'text-cyan-300', 'تقدير يومي للمحافظة على الوزن، ويُراجع حسب تغير وزنك الفعلي.');
+            calContainer.innerHTML += createBentoCard('نقصان الوزن (Fat Loss)', `${cutHigh.toLocaleString()}–${cutLow.toLocaleString()}🔥`, 'عجز 10–20% 📉', 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-emerald-300', 'نطاق مبدئي للتنشيف يُعدّل حسب تغير الوزن والأداء، دون ضمان تلقائي لمنع فقدان العضلات.');
+            calContainer.innerHTML += createBentoCard('زيادة نظيفة (Lean Bulk)', `${bulkLow.toLocaleString()}–${bulkHigh.toLocaleString()}🔥`, 'فائض 5–10% 📈', 'bg-amber-950 text-amber-300 border-amber-800', 'text-amber-300', 'فائض محافظ كبداية، ثم يُعدّل حسب معدل زيادة الوزن.');
 
             const heightM = height / 100;
             const bmi = (weight / (heightM * heightM)).toFixed(1);
-            let bmiStatus = bmi < 18.5 ? 'نحافة 🟡' : bmi <= 24.9 ? 'مثالي 🟢' : bmi <= 29.9 ? 'زيادة وزن 🟠' : 'سمنة 🔴';
-            healthContainer.innerHTML += createBentoCard('مؤشر الكتلة (BMI)', bmi, bmiStatus, 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-cyan-300', 'تناسب الوزن والصحة العامة.');
+            let bmiStatus = bmi < 18.5 ? 'أقل من النطاق الطبيعي 🟡' : bmi <= 24.9 ? 'ضمن النطاق الطبيعي 🟢' : bmi <= 29.9 ? 'أعلى من النطاق الطبيعي 🟠' : 'مرتفع حسب BMI 🔴';
+            healthContainer.innerHTML += createBentoCard('مؤشر الكتلة (BMI)', bmi, bmiStatus, 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-cyan-300', 'أداة فرز عامة لا تميز بين العضلات والدهون، وقد تضلل لدى لاعبي الحديد.');
 
             if (waist) {
                 const whtr = (waist / height).toFixed(2);
-                let whtrStatus = whtr <= 0.49 ? 'صحة ممتازة 🟢' : whtr <= 0.57 ? 'معدل خطر 🟠' : 'دهون بطن عالية 🔴';
-                healthContainer.innerHTML += createBentoCard('نسبة الخصر للطول (WHtR)', whtr, whtrStatus, 'bg-blue-950 text-blue-300 border-blue-800', 'text-blue-300', 'مؤشر قياس الدهون الحشوية.');
+                let whtrStatus = whtr < 0.5 ? 'أقل من 0.5 🟢' : whtr < 0.6 ? 'يستحق المتابعة 🟠' : 'مرتفع كأداة فرز 🔴';
+                healthContainer.innerHTML += createBentoCard('نسبة الخصر للطول (WHtR)', whtr, whtrStatus, 'bg-blue-950 text-blue-300 border-blue-800', 'text-blue-300', 'مؤشر بسيط مرتبط بالسمنة المركزية، وليس قياسًا مباشرًا للدهون الحشوية.');
             }
 
             if (fat) {
                 const leanMass = weight * (1 - (fat / 100));
-                const ffmi = (leanMass / (heightM * heightM) + 6.1 * (1.8 - heightM)).toFixed(1);
+                const ffmi = (leanMass / (heightM * heightM) + 6.3 * (1.8 - heightM)).toFixed(1);
                 compContainer.innerHTML += createBentoCard('نسبة الدهون %', fat + '%', 'شحوم الجسم', 'bg-rose-950 text-rose-300 border-rose-800', 'text-rose-300', 'نسبة الدهون الكلية.');
-                compContainer.innerHTML += createBentoCard('الكتلة اللادهنية (FFMI)', ffmi, 'الحجم العضلي الصافي', 'bg-purple-950 text-purple-300 border-purple-800', 'text-indigo-400', 'مؤشر الحجم العضلي بدون دهون.');
+                compContainer.innerHTML += createBentoCard('مؤشر الكتلة الخالية من الدهون (FFMI)', ffmi, 'Fat-Free Mass Index', 'bg-purple-950 text-purple-300 border-purple-800', 'text-indigo-400', 'يشمل الكتلة الخالية من الدهون كلها، وليس العضلات وحدها.');
             }
 
             if (muscle) {
@@ -1966,7 +2475,7 @@
 
         async function saveProfile() {
             if (!state.profile) {
-                state.profile = { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] };
+                state.profile = { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, activityFactor: 1.375, history: [] };
             }
             state.profile.id = 'user_profile';
             state.profile.name = document.getElementById('prof-name').value.trim();
@@ -1977,8 +2486,9 @@
             state.profile.fat = validateAndClamp(document.getElementById('prof-fat').value, 1, 70, '');
             state.profile.muscle = validateAndClamp(document.getElementById('prof-muscle').value, 1, 80, '');
             state.profile.water = validateAndClamp(document.getElementById('prof-water').value, 1, 90, '');
+            state.profile.activityFactor = parseFloat(document.getElementById('prof-activity').value) || 1.375;
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             if (!state.profile.history) state.profile.history = [];
 
             if (state.profile.weight) {
@@ -2002,6 +2512,7 @@
             document.getElementById('prof-fat').value = state.profile.fat || '';
             document.getElementById('prof-muscle').value = state.profile.muscle || '';
             document.getElementById('prof-water').value = state.profile.water || '';
+            document.getElementById('prof-activity').value = String(state.profile.activityFactor || 1.375);
 
             updateGenderUI();
             renderBentoGridAnalysis();
@@ -2041,16 +2552,47 @@
                 profile: state.profile,
                 exercises: state.exercises,
                 logs: state.logs,
+                sessions: state.sessions,
+                schemaVersion: DATA_SCHEMA_VERSION,
                 exportDate: new Date().toISOString()
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupObj, null, 2));
             const dlAnchorElem = document.createElement('a');
             dlAnchorElem.setAttribute("href", dataStr);
-            dlAnchorElem.setAttribute("download", `gym_tracker_backup_${new Date().toISOString().split('T')[0]}.json`);
+            dlAnchorElem.setAttribute("download", `gym_tracker_backup_${getLocalDateString()}.json`);
             document.body.appendChild(dlAnchorElem);
             dlAnchorElem.click();
             dlAnchorElem.remove();
             showToast('تم تصدير ملف النسخة الاحتياطية 📁');
+        }
+
+        async function downloadSafetyBackup() {
+            try {
+                let snapshot = JSON.parse(localStorage.getItem(SAFETY_BACKUP_KEY) || 'null');
+                if (!snapshot && dbInstance) {
+                    snapshot = await new Promise((resolve) => {
+                        try {
+                            const tx = dbInstance.transaction('backups', 'readonly');
+                            const req = tx.objectStore('backups').get('pre_v9');
+                            req.onsuccess = () => resolve(req.result || null);
+                            req.onerror = () => resolve(null);
+                        } catch (error) { resolve(null); }
+                    });
+                }
+                if (!snapshot || !snapshot.data) return showToast('لا توجد نسخة أمان سابقة على هذا الجهاز');
+                const payload = { ...snapshot.data, schemaVersion: snapshot.sourceSchema || 8, safetyBackupCreatedAt: snapshot.createdAt };
+                const url = URL.createObjectURL(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }));
+                const anchor = document.createElement('a');
+                anchor.href = url;
+                anchor.download = `gym_tracker_pre_v9_safety_${getLocalDateString()}.json`;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                URL.revokeObjectURL(url);
+                showToast('تم تنزيل نسخة الأمان 📦');
+            } catch (error) {
+                showToast('تعذر تجهيز نسخة الأمان');
+            }
         }
 
         async function importDataJSON(event) {
@@ -2059,20 +2601,37 @@
                 try {
                     const parsed = JSON.parse(e.target.result);
                     if (parsed && typeof parsed === 'object') {
-                        if (parsed.profile) state.profile = parsed.profile;
-                        if (Array.isArray(parsed.exercises)) state.exercises = parsed.exercises;
-                        if (Array.isArray(parsed.logs)) state.logs = parsed.logs;
+                        const mergeUnique = (current, incoming) => {
+                            const map = new Map((current || []).map(item => [item.id, item]));
+                            (incoming || []).forEach(item => { if (item && item.id && !map.has(item.id)) map.set(item.id, item); });
+                            return Array.from(map.values());
+                        };
+                        if (parsed.profile) {
+                            const currentHistory = state.profile.history || [];
+                            const incomingHistory = parsed.profile.history || [];
+                            const historyByDate = new Map(currentHistory.map(h => [h.date, h]));
+                            incomingHistory.forEach(h => { if (h && h.date && !historyByDate.has(h.date)) historyByDate.set(h.date, h); });
+                            const profileFields = ['name', 'weight', 'height', 'waist', 'age', 'fat', 'muscle', 'water'];
+                            const hasCurrentProfileData = profileFields.some(key => state.profile[key] !== '' && state.profile[key] !== null && state.profile[key] !== undefined);
+                            state.profile = hasCurrentProfileData
+                                ? { ...parsed.profile, ...state.profile, history: Array.from(historyByDate.values()).sort((a, b) => a.date.localeCompare(b.date)) }
+                                : { ...state.profile, ...parsed.profile, history: Array.from(historyByDate.values()).sort((a, b) => a.date.localeCompare(b.date)) };
+                        }
+                        if (Array.isArray(parsed.exercises)) state.exercises = mergeUnique(state.exercises, parsed.exercises);
+                        if (Array.isArray(parsed.logs)) state.logs = mergeUnique(state.logs, parsed.logs);
+                        if (Array.isArray(parsed.sessions)) state.sessions = mergeUnique(state.sessions, parsed.sessions);
 
                         await dbSaveAll('profile', [state.profile]);
                         await dbSaveAll('exercises', state.exercises);
                         await dbSaveAll('logs', state.logs);
+                        await dbSaveAll('sessions', state.sessions);
 
                         renderCategoryTabs();
                         renderExerciseDropdown();
                         renderTodayLogs();
                         renderProfileUI();
                         updateTopHeaderStats();
-                        showToast('تم استيراد البيانات بنجاح 🎉');
+                        showToast('تم دمج النسخة الاحتياطية بدون حذف البيانات الحالية 🎉');
                     } else {
                         showToast('ملف JSON غير صالح ❌');
                     }
@@ -2092,9 +2651,12 @@
                 confirmText: 'مسح اليوم',
                 cancelText: 'إلغاء',
                 onConfirm: async () => {
-                    const today = new Date().toISOString().split('T')[0];
+                    const today = getLocalDateString();
                     state.logs = state.logs.filter(l => l.date !== today);
                     await dbSaveAll('logs', state.logs);
+                    for (const session of state.sessions.filter(s => s.date === today && s.status === 'completed')) {
+                        await refreshCompletedSessionSummary(session.id);
+                    }
                     renderTodayLogs();
                     updateTopHeaderStats();
                     onExerciseSelectChange();
@@ -2111,13 +2673,18 @@
                 cancelText: 'إلغاء',
                 onConfirm: async () => {
                     state = {
-                        profile: { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, history: [] },
+                        profile: { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, activityFactor: 1.375, history: [] },
                         exercises: [...DEFAULT_EXERCISES],
-                        logs: []
+                        logs: [],
+                        sessions: []
                     };
                     await dbSaveAll('profile', [state.profile]);
                     await dbSaveAll('exercises', state.exercises);
                     await dbSaveAll('logs', state.logs);
+                    await dbSaveAll('sessions', state.sessions);
+                    activeSessionId = null;
+                    localStorage.removeItem('gym_active_session_id');
+                    updateSessionUI();
 
                     renderCategoryTabs();
                     renderExerciseDropdown();
@@ -2130,9 +2697,14 @@
         }
 
         function updateTopHeaderStats() {
-            const today = new Date().toISOString().split('T')[0];
+            const today = getLocalDateString();
             const todayLogs = state.logs.filter(l => l.date === today);
-            const totalCals = todayLogs.reduce((sum, l) => sum + (l.calories || 0), 0);
+            const logCalories = todayLogs.reduce((sum, l) => {
+                if (l.type === 'weights' && l.calculationVersion === 'v9-session') return sum;
+                return sum + (parseFloat(l.calories) || 0);
+            }, 0);
+            const sessionCalories = state.sessions.filter(s => s.date === today && s.status === 'completed').reduce((sum, s) => sum + (parseFloat(s.estimatedCalories) || 0), 0);
+            const totalCals = logCalories + sessionCalories;
             document.getElementById('header-today-cals').textContent = Math.round(totalCals * 10) / 10;
         }
 
@@ -2221,7 +2793,11 @@
             document.getElementById('exercise-search-input').addEventListener('input', renderExerciseDropdown);
             document.getElementById('exercise-dropdown').addEventListener('change', onExerciseSelectChange);
             document.getElementById('input-weight').addEventListener('input', () => { updateWeightConvertedDisplay(); update1RMLiveDisplay(); });
-            document.getElementById('input-reps').addEventListener('input', update1RMLiveDisplay);
+            document.getElementById('input-reps').addEventListener('input', (event) => {
+                document.getElementById('val-reps-display').textContent = event.target.value || '0';
+                update1RMLiveDisplay();
+            });
+            document.getElementById('load-mode-select').addEventListener('change', (event) => setLoadMode(event.target.value));
 
             document.getElementById('unit-btn-kg').addEventListener('click', () => setWeightUnit('kg'));
             document.getElementById('unit-btn-lbs').addEventListener('click', () => setWeightUnit('lbs'));
@@ -2231,6 +2807,11 @@
             document.getElementById('btn-save-bike').addEventListener('click', () => saveCardioSet('bike_elliptical'));
             document.getElementById('btn-copy-last-perf').addEventListener('click', copyLastPerformance);
             document.getElementById('btn-stop-timer').addEventListener('click', stopRestTimer);
+            document.getElementById('btn-start-session').addEventListener('click', () => startWorkoutSession());
+            document.getElementById('btn-copy-session').addEventListener('click', copyPreviousSession);
+            document.getElementById('btn-finish-session').addEventListener('click', finishWorkoutSession);
+            document.getElementById('btn-cancel-edit-log').addEventListener('click', () => document.getElementById('edit-log-modal').classList.add('hidden'));
+            document.getElementById('btn-confirm-edit-log').addEventListener('click', saveEditedLog);
 
             document.getElementById('btn-load-more-logs').addEventListener('click', function() {
                 logsRenderLimit += 15;
@@ -2240,6 +2821,8 @@
             document.getElementById('today-logs-container').addEventListener('click', function (e) {
                 const deleteBtn = e.target.closest('[data-action="delete-log"]');
                 if (deleteBtn && deleteBtn.dataset.id) deleteLogItem(deleteBtn.dataset.id);
+                const editBtn = e.target.closest('[data-action="edit-log"]');
+                if (editBtn && editBtn.dataset.id) openEditLog(editBtn.dataset.id);
             });
 
             document.getElementById('new-ex-name').addEventListener('input', function() { onCustomExerciseInput(this.value); });
@@ -2256,6 +2839,7 @@
             document.getElementById('gender-toggle-btn').addEventListener('click', toggleGender);
             document.getElementById('btn-save-profile').addEventListener('click', saveProfile);
             document.getElementById('btn-export-json').addEventListener('click', exportDataJSON);
+            document.getElementById('btn-download-safety-backup').addEventListener('click', downloadSafetyBackup);
             document.getElementById('import-file-input').addEventListener('change', importDataJSON);
             document.getElementById('btn-clear-today-logs').addEventListener('click', confirmClearTodayLogs);
             document.getElementById('btn-wipe-all-data').addEventListener('click', confirmWipeAllData);
@@ -2282,6 +2866,7 @@
             renderProfileUI();
             updateWeightConvertedDisplay();
             update1RMLiveDisplay();
+            updateSessionUI();
             registerServiceWorker();
         });
 
