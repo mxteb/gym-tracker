@@ -1,7 +1,6 @@
-const CACHE_NAME = 'gym-tracker-v8';
-const ASSETS_TO_CACHE = [
-    './',
-    './index.html',
+const CACHE_NAME = 'gym-tracker-v9';
+const APP_SHELL = ['./', './index.html', './manifest.json'];
+const OPTIONAL_ASSETS = [
     'https://cdn.tailwindcss.com',
     'https://cdn.jsdelivr.net/npm/chart.js',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
@@ -9,45 +8,51 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
-    event.waitUntil(
-        caches.open(CACHE_NAME).then((cache) => {
-            return Promise.allSettled(
-                ASSETS_TO_CACHE.map((url) => cache.add(url))
-            );
-        })
-    );
+    event.waitUntil((async () => {
+        const cache = await caches.open(CACHE_NAME);
+        await cache.addAll(APP_SHELL);
+        await Promise.allSettled(OPTIONAL_ASSETS.map((url) => cache.add(url)));
+    })());
     self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(
-        caches.keys().then((keys) => {
-            return Promise.all(
-                keys.map((key) => {
-                    if (key !== CACHE_NAME) return caches.delete(key);
-                })
-            );
-        })
-    );
-    self.clients.claim();
+    event.waitUntil((async () => {
+        const keys = await caches.keys();
+        await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
+        await self.clients.claim();
+    })());
 });
 
 self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        fetch(event.request)
-            .then((networkResponse) => {
-                if (networkResponse && networkResponse.status === 200) {
-                    const responseToCache = networkResponse.clone();
-                    caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseToCache);
-                    });
+    const request = event.request;
+    if (request.method !== 'GET') return;
+
+    if (request.mode === 'navigate') {
+        event.respondWith((async () => {
+            try {
+                const response = await fetch(request);
+                if (response && response.ok) {
+                    const cache = await caches.open(CACHE_NAME);
+                    cache.put('./index.html', response.clone());
                 }
-                return networkResponse;
-            })
-            .catch(() => {
-                return caches.match(event.request).then((cachedResponse) => {
-                    return cachedResponse || caches.match('./index.html');
-                });
-            })
-    );
+                return response;
+            } catch (error) {
+                return (await caches.match(request)) || (await caches.match('./index.html'));
+            }
+        })());
+        return;
+    }
+
+    event.respondWith((async () => {
+        const cached = await caches.match(request);
+        const network = fetch(request).then(async (response) => {
+            if (response && (response.ok || response.type === 'opaque')) {
+                const cache = await caches.open(CACHE_NAME);
+                await cache.put(request, response.clone());
+            }
+            return response;
+        }).catch(() => null);
+        return cached || (await network) || new Response('', { status: 504, statusText: 'Offline' });
+    })());
 });
