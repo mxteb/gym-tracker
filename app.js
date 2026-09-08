@@ -211,8 +211,8 @@
 
         function calculate1RM(weight, reps) {
             const w = parseFloat(weight) || 0;
-            const r = parseInt(reps) || 1;
-            if (!w || r < 1 || r > 15) return null;
+            const r = Number(reps) || 1;
+            if (!w || !Number.isInteger(r) || r < 1 || r > 15) return null;
             if (r === 1) return w;
             return Math.round(w * (1 + (r / 30)) * 10) / 10;
         }
@@ -309,7 +309,7 @@
             session.estimatedCalories = estimateWeightSessionCalories(session, sessionLogs);
             session.cardioCalories = sessionLogs.filter(l => l.type !== 'weights').reduce((n,l) => n + (Number(l.calories) || 0), 0);
             session.totalEstimatedCalories = Math.round((session.estimatedCalories + session.cardioCalories) * 10) / 10;
-            session.totalVolumeKg = workingLogs.reduce((sum, l) => sum + getVolumeLoadKg(l) * (parseInt(l.reps) || 1), 0);
+            session.totalVolumeKg = workingLogs.reduce((sum, l) => sum + getVolumeLoadKg(l) * (Number(l.reps) || 1), 0);
             session.workingSets = workingLogs.length;
             session.exerciseIds = [...new Set(sessionLogs.map(l => l.exerciseId))];
             session.editedAt = Date.now();
@@ -375,7 +375,7 @@
             session.estimatedCalories = estimateWeightSessionCalories(session, sessionLogs);
             session.cardioCalories = sessionLogs.filter(l => l.type !== 'weights').reduce((n,l) => n + (Number(l.calories) || 0), 0);
             session.totalEstimatedCalories = Math.round((session.estimatedCalories + session.cardioCalories) * 10) / 10;
-            session.totalVolumeKg = workingLogs.reduce((sum, l) => sum + getVolumeLoadKg(l) * (parseInt(l.reps) || 1), 0);
+            session.totalVolumeKg = workingLogs.reduce((sum, l) => sum + getVolumeLoadKg(l) * (Number(l.reps) || 1), 0);
             session.workingSets = workingLogs.length;
             session.exerciseIds = [...new Set(sessionLogs.map(l => l.exerciseId))];
             session.editedAt = Date.now();
@@ -1004,7 +1004,9 @@
                     log.durationSeconds = validateAndClamp(document.getElementById('edit-log-seconds').value, 1, 3600, log.durationSeconds || 60);
                 } else {
                 const displayWeight = validateAndClamp(document.getElementById('edit-log-weight').value, 0, log.unit === 'lbs' ? 2204.62 : 1000, 0);
-                const reps = Math.round(validateAndClamp(document.getElementById('edit-log-reps').value, 1, 150, 1));
+                const reps = validateAndClamp(document.getElementById('edit-log-reps').value, 1, 150, 1);
+                if (!Number.isInteger(reps) && reps !== Number(log.reps)) throw Error('أدخل عدات صحيحة؛ القيم الكسرية القديمة يمكن الاحتفاظ بها دون تغيير');
+                if (!Number.isInteger(reps)) log.legacyFractionalReps = true;
                 const rirRaw = document.getElementById('edit-log-rir').value;
                 const weightKg = log.unit === 'lbs' ? Math.round((displayWeight / 2.20462) * 10) / 10 : displayWeight;
                 const bodyWeightKg = parseFloat(log.bodyWeightKgAtLog) || (log.loadMode === 'bodyweight' ? Number(log.effectiveLoadKg) : log.loadMode === 'added' ? Number(log.effectiveLoadKg) - getCanonicalWeightKg(log) : log.loadMode === 'assisted' ? Number(log.effectiveLoadKg) + getCanonicalWeightKg(log) : 0);
@@ -1323,7 +1325,7 @@
             state.logs.forEach(l => {
                 if (l.type === 'weights') {
                     const exName = l.exerciseName || 'تمرين';
-                    const volKg = l.loadMode === 'timed' ? 0 : getVolumeLoadKg(l) * (parseInt(l.reps) || 1);
+                    const volKg = l.loadMode === 'timed' ? 0 : getVolumeLoadKg(l) * (Number(l.reps) || 1);
                     if (!volumeMap[exName]) volumeMap[exName] = { total: 0, working: 0 };
                     volumeMap[exName].total += volKg;
                     if (l.setType !== 'warmup') volumeMap[exName].working += volKg;
@@ -1614,7 +1616,8 @@
         }
 
         async function exportDataJSON() {
-            downloadJSON({...state,schemaVersion:DATA_SCHEMA_VERSION,exportDate:new Date().toISOString()},`gym_tracker_backup_${getLocalDateString()}.json`);
+            const logs=state.logs.map(l=>l.type==='weights'&&!Number.isInteger(Number(l.reps))?{...l,legacyFractionalReps:true}:l);
+            downloadJSON({...state,logs,schemaVersion:DATA_SCHEMA_VERSION,exportDate:new Date().toISOString()},`gym_tracker_backup_${getLocalDateString()}.json`);
             showToast('تم تجهيز النسخة الاحتياطية للتنزيل');
         }
 
