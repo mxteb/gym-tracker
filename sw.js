@@ -1,58 +1,40 @@
-const CACHE_NAME = 'gym-tracker-v9';
-const APP_SHELL = ['./', './index.html', './manifest.json'];
-const OPTIONAL_ASSETS = [
-    'https://cdn.tailwindcss.com',
-    'https://cdn.jsdelivr.net/npm/chart.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-    'https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap'
-];
-
-self.addEventListener('install', (event) => {
-    event.waitUntil((async () => {
-        const cache = await caches.open(CACHE_NAME);
-        await cache.addAll(APP_SHELL);
-        await Promise.allSettled(OPTIONAL_ASSETS.map((url) => cache.add(url)));
-    })());
-    self.skipWaiting();
+'use strict';
+const CACHE_PREFIX='gym-tracker-';
+const CACHE_NAME='gym-tracker-v10-1';
+const APP_SHELL=['./index.html','./styles.css','./storage.js','./data.js','./app.js','./manifest.json','./assets/icon-192.png','./assets/icon-512.png'];
+const home=new URL('./index.html',self.registration.scope).href;
+self.addEventListener('install',event=>{
+ event.waitUntil((async()=>{
+  const cache=await caches.open(CACHE_NAME);
+  await cache.addAll(APP_SHELL.map(path => new Request(new URL(path,self.registration.scope), {cache:'reload'})));
+  // Activation waits until existing pages close, keeping each app version coherent.
+ })());
 });
-
-self.addEventListener('activate', (event) => {
-    event.waitUntil((async () => {
-        const keys = await caches.keys();
-        await Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)));
-        await self.clients.claim();
-    })());
-});
-
-self.addEventListener('fetch', (event) => {
-    const request = event.request;
-    if (request.method !== 'GET') return;
-
-    if (request.mode === 'navigate') {
-        event.respondWith((async () => {
-            try {
-                const response = await fetch(request);
-                if (response && response.ok) {
-                    const cache = await caches.open(CACHE_NAME);
-                    cache.put('./index.html', response.clone());
-                }
-                return response;
-            } catch (error) {
-                return (await caches.match(request)) || (await caches.match('./index.html'));
-            }
-        })());
-        return;
-    }
-
-    event.respondWith((async () => {
-        const cached = await caches.match(request);
-        const network = fetch(request).then(async (response) => {
-            if (response && (response.ok || response.type === 'opaque')) {
-                const cache = await caches.open(CACHE_NAME);
-                await cache.put(request, response.clone());
-            }
-            return response;
-        }).catch(() => null);
-        return cached || (await network) || new Response('', { status: 504, statusText: 'Offline' });
-    })());
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+ const keys=await caches.keys();
+ await Promise.all(keys.filter(k=>k.startsWith(CACHE_PREFIX)&&k!==CACHE_NAME).map(k=>caches.delete(k)));
+ await self.clients.claim();
+})()));
+self.addEventListener('fetch',event=>{
+ const req=event.request,url=new URL(req.url);
+ if(req.method!=='GET'||url.origin!==self.location.origin)return;
+ const isShell=APP_SHELL.some(path=>new URL(path,self.registration.scope).pathname===url.pathname);
+ const isHome=req.mode==='navigate'&&(url.pathname===new URL(self.registration.scope).pathname||url.pathname===new URL(home).pathname);
+ if(!isShell&&!isHome)return;
+ // Versioned app-shell cache is updated atomically by a new worker installation.
+ event.respondWith((async()=>{
+  const cache=await caches.open(CACHE_NAME);
+  const key=isHome?home:new URL(url.pathname,url.origin).href;
+  const cached=await cache.match(key);
+  if(cached)return cached;
+  try {
+   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),8000);
+   let response;try{response=await fetch(req,{signal:controller.signal});}finally{clearTimeout(timer);}
+   if(response.ok){try{await cache.put(key,response.clone());}catch{}return response;}
+   if(isHome)return new Response('تعذر فتح التطبيق الآن. حاول مرة أخرى.',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8'}});
+   return response;
+  } catch {
+   return new Response(isHome?'التطبيق غير متاح بدون اتصال؛ افتحه مرة واحدة بالإنترنت.':'Offline',{status:503,headers:{'Content-Type':'text/plain; charset=utf-8'}});
+  }
+ })());
 });
