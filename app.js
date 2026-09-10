@@ -13,20 +13,47 @@
             saving = true;
             const controls = [...document.querySelectorAll('button,input,select')];
             const disabled = controls.map(el => el.disabled);
+            let inputError = null;
             controls.forEach(el => el.disabled = true);
             try { await action(); }
             catch (error) {
                 state = GymStorage.rollback() || state;
                 restoreActiveSession();
                 updateGenderUI();
+                inputError = error;
                 showToast(error.message || 'تعذر إتمام العملية');
             } finally {
                 controls.forEach((el,i) => el.disabled = disabled[i]);
                 saving = false;
                 document.getElementById('input-weight').disabled=activeLoadMode==='bodyweight'||activeLoadMode==='timed';
                 renderTodayLogs(); updateTopHeaderStats(); updateSessionUI();
+                if(inputError?.fieldId) showFieldError(inputError);
             }
         }
+        function readField(id,label,min,max,options) {
+            try {return GymData.inputNumber(document.getElementById(id).value,label,min,max,options);}
+            catch(error){error.fieldId=id;throw error;}
+        }
+        function showFieldError(error) {
+            const input=document.getElementById(error.fieldId);
+            if(!input)return;
+            for(let parent=input.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
+            input.setAttribute('aria-invalid','true');
+            let hint=document.getElementById(input.id+'-error');
+            if(!hint){hint=document.createElement('p');hint.id=input.id+'-error';hint.className='input-error';input.insertAdjacentElement('afterend',hint);input.parentElement.classList.add('has-input-error');}
+            hint.textContent=error.message;
+            const described=new Set((input.getAttribute('aria-describedby')||'').split(' ').filter(Boolean));described.add(hint.id);
+            input.setAttribute('aria-describedby',[...described].join(' '));
+            input.focus();
+        }
+        function clearFieldError(input) {
+            if(!input?.id)return;
+            input.removeAttribute('aria-invalid');
+            document.getElementById(input.id+'-error')?.remove();input.parentElement?.classList.remove('has-input-error');
+            const remaining=(input.getAttribute('aria-describedby')||'').split(' ').filter(id=>id&&id!==input.id+'-error');
+            if(remaining.length)input.setAttribute('aria-describedby',remaining.join(' '));else input.removeAttribute('aria-describedby');
+        }
+
         function escapeHTML(str) {
             if (typeof str !== 'string') return '';
             return str.replace(/[&<>"']/g, function(m) {
@@ -209,13 +236,7 @@
         let activeSessionId = null;
         let sessionTimerInterval = null;
 
-        function calculate1RM(weight, reps) {
-            const w = parseFloat(weight) || 0;
-            const r = Number(reps) || 1;
-            if (!w || !Number.isInteger(r) || r < 1 || r > 15) return null;
-            if (r === 1) return w;
-            return Math.round(w * (1 + (r / 30)) * 10) / 10;
-        }
+        function calculate1RM(weight, reps) {return GymData.oneRepMax(weight,reps);}
 
         function get1RMLabel(weight, reps) {
             const value = calculate1RM(weight, reps);
@@ -356,20 +377,27 @@
             return getActiveSession() || startWorkoutSession('free');
         }
 
+        function openFinishSession() {
+            const session=getActiveSession();if(!session)return;
+            const input=document.getElementById('finish-session-duration');clearFieldError(input);
+            input.value=Math.max(1,Math.round((Date.now()-session.startedAt)/60000));
+            document.getElementById('finish-session-modal').classList.remove('hidden');input.focus();
+        }
+        function closeFinishSession() {
+            document.getElementById('finish-session-modal').classList.add('hidden');
+            document.getElementById('btn-finish-session').focus();
+        }
         async function finishWorkoutSession() {
             const session = getActiveSession();
             if (!session) return;
             const elapsed = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
-            const answer = window.prompt('مدة الجلسة الفعلية بالدقائق (تشمل الراحة والكارديو):', String(elapsed));
-            if (answer === null) return;
-            const duration = Number(answer);
-            if (!Number.isFinite(duration) || duration < 1 || duration > elapsed + 1440) throw Error('أدخل مدة صحيحة بالدقائق');
+            const duration=readField('finish-session-duration','مدة الجلسة',1,elapsed+1440);
+            const sessionLogs = state.logs.filter(l => l.sessionId === session.id);
+            const cardioMinutes = sessionLogs.filter(l => l.type !== 'weights').reduce((n,l) => n + (Number(l.duration) || 0), 0);
+            if (cardioMinutes > duration) {const error=Error('مدة الكارديو المسجلة أكبر من مدة الجلسة. صحح المدة أو تسجيل الكارديو.');error.fieldId='finish-session-duration';throw error;}
             session.endedAt = Date.now();
             session.startedAt = session.endedAt - duration * 60000;
             session.status = 'completed';
-            const sessionLogs = state.logs.filter(l => l.sessionId === session.id);
-            const cardioMinutes = sessionLogs.filter(l => l.type !== 'weights').reduce((n,l) => n + (Number(l.duration) || 0), 0);
-            if (cardioMinutes > duration) throw Error('مدة الكارديو المسجلة أكبر من مدة الجلسة. صحح المدة أو تسجيل الكارديو.');
             const weightLogs = sessionLogs.filter(l => l.type === 'weights');
             const workingLogs = weightLogs.filter(l => l.setType !== 'warmup');
             session.estimatedCalories = estimateWeightSessionCalories(session, sessionLogs);
@@ -389,7 +417,9 @@
             const rirValues = workingLogs.filter(l => l.rir !== null && l.rir !== undefined && l.rir !== '').map(l => Number(l.rir)).filter(Number.isFinite);
             const avgRir = rirValues.length ? (rirValues.reduce((a, b) => a + b, 0) / rirValues.length).toFixed(1) : 'غير محدد';
             const validOneRms = workingLogs.filter(l => l.loadMode !== 'timed').map(l => calculate1RM(getProgressWeightKg(l), l.reps)).filter(Number.isFinite);
-            const bestOneRm = validOneRms.length ? Math.max(...validOneRms) + ' كجم' : 'غير متاح';
+            const bestLog=workingLogs.filter(l=>l.loadMode!=='timed').sort((a,b)=>(calculate1RM(getProgressWeightKg(b),b.reps)||0)-(calculate1RM(getProgressWeightKg(a),a.reps)||0))[0];
+            const bestOneRm = validOneRms.length ? Math.max(...validOneRms) + ' كجم — '+bestLog.exerciseName+(bestLog.loadMode==='per_hand'?' (لكل يد)':'') : 'غير متاح';
+            document.getElementById('finish-session-modal').classList.add('hidden');
             showModal({
                 title: `ملخص ${session.name} ✅`,
                 message: `المدة: ${durationLabel} دقيقة | الجولات الفعلية: ${workingLogs.length} | الحجم الفعلي: ${(session.totalVolumeKg / 1000).toFixed(2)} طن | متوسط RIR: ${avgRir} | أعلى 1RM مسجل بين التمارين: ${bestOneRm} | السعرات التقديرية للحديد والكارديو: ${session.totalEstimatedCalories}`,
@@ -408,6 +438,7 @@
                 const dates = [...new Set(state.logs.filter(l => l.type === 'weights').map(l => l.date))].sort().reverse();
                 if (!dates.length) return showToast('لا توجد جلسة سابقة لنسخها');
                 const legacyLogs = state.logs.filter(l => l.type === 'weights' && l.date === dates[0]);
+                resetRoutineFilter();
                 activePresetFilterIds = [...new Set(legacyLogs.map(l => l.exerciseId))];
                 renderExerciseDropdown();
                 renderCopiedSessionPlan(legacyLogs, `جلسة ${dates[0]}`);
@@ -415,6 +446,7 @@
                 return;
             }
             const previousLogs = state.logs.filter(l => l.sessionId === previous.id && l.type === 'weights');
+            resetRoutineFilter();
             activePresetFilterIds = [...new Set(previousLogs.map(l => l.exerciseId))];
             renderExerciseDropdown();
             renderCopiedSessionPlan(previousLogs, previous.name);
@@ -499,14 +531,18 @@
             const exIds = ROUTINE_PRESETS[routineKey];
             if (!exIds) return;
 
+            currentFilterCat='all';currentFilterEquip='all';
+            document.getElementById('exercise-search-input').value='';
+            renderCategoryTabs();setEquipFilter('all',document.querySelector('[data-equip="all"]'));
             activePresetFilterIds = exIds;
             renderExerciseDropdown();
-            showToast('تم تحميل الروتين الجاهز بنجاح ⚡');
+            showToast('تم عرض قائمة التمارين الجاهزة ⚡');
         }
 
         function resetRoutineFilter() {
-            activePresetFilterIds = null;
-            renderExerciseDropdown();
+            activePresetFilterIds = null;currentFilterCat='all';
+            document.getElementById('exercise-search-input').value='';renderCategoryTabs();
+            setEquipFilter('all',document.querySelector('[data-equip="all"]'));
             showToast('تم إظهار جميع التمارين 🎯');
         }
 
@@ -547,8 +583,6 @@
 
         function setWorkoutCategoryFilter(cat, btnEl) {
             currentFilterCat = cat;
-            activePresetFilterIds = null;
-            document.getElementById('exercise-search-input').value = '';
 
             document.querySelectorAll('.cat-btn').forEach(btn => {
                 btn.classList.remove('bg-gradient-to-r', 'from-cyan-500', 'to-blue-600', 'text-white', 'shadow-md', 'active');
@@ -564,8 +598,6 @@
 
         function setEquipFilter(equip, btnEl) {
             currentFilterEquip = equip;
-            activePresetFilterIds = null;
-            document.getElementById('exercise-search-input').value = '';
 
             document.querySelectorAll('.equip-btn').forEach(btn => {
                 btn.className = "equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800";
@@ -580,19 +612,10 @@
             const dropdown = document.getElementById('exercise-dropdown');
             const searchVal = document.getElementById('exercise-search-input').value.trim().toLowerCase();
 
-            let filtered = state.exercises.filter(e => !e.archived);
-
-            if (activePresetFilterIds) {
-                filtered = filtered.filter(e => activePresetFilterIds.includes(e.id));
-            } else {
-                if (currentFilterCat !== 'all') {
-                    if (currentFilterCat === 'upper') filtered = filtered.filter(e => e.category === 'push' || e.category === 'pull');
-                    else if (currentFilterCat === 'lower') filtered = filtered.filter(e => e.category === 'legs' || e.category === 'abs');
-                    else filtered = filtered.filter(e => e.category === currentFilterCat);
-                }
-                if (currentFilterEquip !== 'all') filtered = filtered.filter(e => e.equip === currentFilterEquip);
-                if (searchVal) filtered = filtered.filter(e => e.name.toLowerCase().includes(searchVal));
-            }
+            const previousId=dropdown.value;
+            const filtered=GymData.filterExercises(state.exercises,{presetIds:activePresetFilterIds,category:currentFilterCat,equipment:currentFilterEquip,search:searchVal});
+            const summary=document.getElementById('filter-summary');
+            if(summary)summary.textContent=(activePresetFilterIds?'قائمة جاهزة':'كل التمارين')+' · '+filtered.length+' نتيجة';
 
             dropdown.innerHTML = '';
             if (filtered.length === 0) {
@@ -614,6 +637,7 @@
             });
 
             dropdown.appendChild(fragment);
+            if(filtered.some(ex=>ex.id===previousId))dropdown.value=previousId;
             onExerciseSelectChange();
         }
 
@@ -659,7 +683,7 @@
 
         function update1RMLiveDisplay() {
             const rawWeight = parseFloat(document.getElementById('input-weight').value) || 0;
-            const reps = parseInt(document.getElementById('input-reps').value) || 10;
+            const reps = Number(document.getElementById('input-reps').value);
             let weightInKg = activeWeightUnit === 'lbs' ? rawWeight / 2.20462 : rawWeight;
             const span = document.getElementById('val-1rm-live');
             if (!span) return;
@@ -683,11 +707,7 @@
             return 'external';
         }
 
-        function setLoadMode(mode) {
-            activeLoadMode = mode || 'external';
-            const select = document.getElementById('load-mode-select');
-            if (select) select.value = activeLoadMode;
-            const hints = {
+        const LOAD_HINTS = {
                 external: 'يسجل الوزن المدخل كما هو ويستخدمه في القوة والحجم.',
                 per_hand: 'الرقم هو وزن الدمبل الواحد؛ الحجم التدريبي يحسب اليدين ×2.',
                 bodyweight: 'يستخدم وزن جسمك من البروفايل. خانة الوزن يمكن تركها صفرًا.',
@@ -695,7 +715,12 @@
                 assisted: 'أدخل مقدار المساعدة؛ التقدم يتحسن عندما تقل المساعدة.',
                 timed: 'للبلانك والتمارين الزمنية؛ يسجل الثواني بدل العدات ولا يحسب 1RM.'
             };
-            document.getElementById('load-mode-hint').textContent = hints[activeLoadMode] || hints.external;
+
+        function setLoadMode(mode) {
+            activeLoadMode = mode || 'external';
+            const select = document.getElementById('load-mode-select');
+            if (select) select.value = activeLoadMode;
+            document.getElementById('load-mode-hint').textContent = LOAD_HINTS[activeLoadMode] || LOAD_HINTS.external;
             document.getElementById('timed-duration-field').classList.toggle('hidden', activeLoadMode !== 'timed');
             document.getElementById('reps-field-wrapper').classList.toggle('hidden', activeLoadMode === 'timed');
             const weightInput = document.getElementById('input-weight');
@@ -708,6 +733,7 @@
         function updateLastPerformanceDisplay(exerciseId) {
             const textEl = document.getElementById('last-performance-text');
             const copyBtn = document.getElementById('btn-copy-last-perf');
+            const picker=document.getElementById('previous-set-picker');picker.classList.add('hidden');
 
             if (!exerciseId) {
                 textEl.textContent = 'اختر تمرين للعرض';
@@ -736,12 +762,15 @@
                 }).join('');
                 textEl.className = 'text-xs font-bold text-cyan-300';
                 copyBtn.classList.remove('hidden');
+                const select=document.getElementById('previous-set-select');select.replaceChildren();
+                lastPerfData.forEach((log,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=`${index+1}. ${log.loadMode==='timed'?log.durationSeconds+' ثانية':(log.displayWeight??getCanonicalWeightKg(log))+' '+(log.unit==='lbs'?'باوند':'كجم')+' × '+log.reps} · ${logMetadata(log)}`;select.appendChild(option);});
+                select.value=String(Math.max(0,lastPerfData.findIndex(log=>log.setType!=='warmup')));picker.classList.remove('hidden');
             }
         }
 
         function copyLastPerformance() {
             if (!lastPerfData.length) return;
-            const firstWorkingSet = lastPerfData.find(l => l.setType !== 'warmup') || lastPerfData[0];
+            const firstWorkingSet = lastPerfData[Number(document.getElementById('previous-set-select').value)] || lastPerfData[0];
             if (firstWorkingSet.unit && firstWorkingSet.unit !== activeWeightUnit) {
                 setWeightUnit(firstWorkingSet.unit);
             }
@@ -751,24 +780,35 @@
             document.getElementById('val-reps-display').textContent = firstWorkingSet.reps;
             if (firstWorkingSet.loadMode) setLoadMode(firstWorkingSet.loadMode);
             if (firstWorkingSet.loadMode === 'timed') document.getElementById('input-duration-sec').value = firstWorkingSet.durationSeconds || 60;
-            setSetType(firstWorkingSet.setType || 'normal', document.querySelector('[data-settype="' + (firstWorkingSet.setType || 'normal') + '"]'));
-            if (firstWorkingSet.rir == null) setRIR('', document.querySelector('[data-rir=""]'));
-            if (firstWorkingSet.rir !== undefined && firstWorkingSet.rir !== null) {
+            const previousType=firstWorkingSet.setType==='drop'?'dropset':firstWorkingSet.setType==='failure'?'normal':firstWorkingSet.setType||'normal';
+            setSetType(previousType,document.querySelector('[data-settype="'+previousType+'"]'));
+            if (firstWorkingSet.rir == null || !Number.isInteger(Number(firstWorkingSet.rir))) setRIR('', document.querySelector('[data-rir=""]'));
+            if (firstWorkingSet.rir != null && Number.isInteger(Number(firstWorkingSet.rir))) {
                 const rirBtn = document.querySelector(`.rir-btn[data-rir="${firstWorkingSet.rir}"]`);
                 setRIR(String(firstWorkingSet.rir), rirBtn);
             }
 
             updateWeightConvertedDisplay();
             update1RMLiveDisplay();
-            showToast('تم نسخ أداء الجلسة السابقة 📋');
+            showToast('تمت تعبئة الجولة المختارة؛ اضغط حفظ بعد أدائها 📋');
         }
 
+        const SET_LABELS={normal:'عادية',warmup:'تسخين',dropset:'دروب',drop:'دروب',superset:'سوبر',failure:'فشل (سجل سابق)'};
+        const SET_HELP={normal:'جولة العمل الأساسية بوزن وعدات تختارها. تُحسب ضمن جولات العمل.',warmup:'جولة خفيفة للتحضير. تبقى في السجل وتُستبعد من جولات العمل ومنحنى التطور.',dropset:'تخفض الوزن بعد جولة وتكمل العدات. سجّل كل مرحلة وحدها، واختر «بدون مؤقت» بين المراحل.',superset:'تمرينان متتاليان بدون راحة بينهما. سجّل كل تمرين وحده، واختر «بدون مؤقت» حتى تنتهي منهما.',failure:'تصنيف محفوظ من نسخة سابقة. استخدم RIR 0 عند تسجيل جولة جديدة وصلت فيها للفشل.'};
+        function updateSetHelp(){document.getElementById('set-type-help').textContent=SET_HELP[activeSetType]||SET_HELP.normal;}
+        function logMetadata(log){
+            const type=SET_LABELS[log.setType]||SET_LABELS.normal;
+            const rir=log.rir==null?'RIR غير محدد':log.rir===4?'RIR 4+':'RIR '+log.rir;
+            return type+' · '+rir;
+        }
         function setSetType(type, btnEl) {
-            activeSetType = type;
+            activeSetType = type==='drop'?'dropset':type;
             document.querySelectorAll('.set-type-btn').forEach(btn => {
                 btn.className = "set-type-btn py-2 px-1 rounded-xl border text-center";
             });
             if (btnEl) btnEl.className = "set-type-btn active py-2 px-1 rounded-xl border text-center";
+            document.querySelectorAll('.set-type-btn').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.settype===activeSetType)));
+            updateSetHelp();
         }
 
         function setRIR(rirVal, btnEl) {
@@ -777,6 +817,7 @@
                 btn.className = "rir-btn py-2 rounded-xl border text-center";
             });
             if (btnEl) btnEl.className = "rir-btn active py-2 rounded-xl border text-center";
+            document.querySelectorAll('.rir-btn').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.rir===String(activeRIR??''))));
         }
 
         function setWeightUnit(unit) {
@@ -843,9 +884,9 @@
             const ex = state.exercises.find(e => e.id === exId);
             if (!ex) return;
 
-            const rawWeight = validateAndClamp(document.getElementById('input-weight').value, 0, activeWeightUnit === 'lbs' ? 2204.62 : 1000, 0);
-            const reps = activeLoadMode === 'timed' ? 1 : Math.round(validateAndClamp(document.getElementById('input-reps').value, 1, 150, 10));
-            const durationSeconds = activeLoadMode === 'timed' ? validateAndClamp(document.getElementById('input-duration-sec').value, 1, 3600, 60) : null;
+            const rawWeight = ['bodyweight','timed'].includes(activeLoadMode)?0:readField('input-weight','الوزن',0,activeWeightUnit==='lbs'?2204.62:1000);
+            const reps = activeLoadMode === 'timed' ? 1 : readField('input-reps','العدات',1,150,{integer:true});
+            const durationSeconds = activeLoadMode === 'timed' ? readField('input-duration-sec','المدة بالثواني',1,3600) : null;
             let weightInKg = activeLoadMode === 'timed' ? 0 : activeWeightUnit === 'lbs' ? rawWeight / 2.20462 : rawWeight;
             const bodyWeightKg = parseFloat(state.profile.weight) || 0;
             if (['bodyweight', 'added', 'assisted'].includes(activeLoadMode) && !bodyWeightKg) {
@@ -888,7 +929,7 @@
                 calculationVersion: 'v10-session'
             };
 
-            GymData.recalculateWeightLog(logEntry);
+            Object.assign(logEntry,GymData.validateLog(logEntry));
             state.logs.push(logEntry);
             await dbSaveAll('logs', state.logs);
 
@@ -899,8 +940,8 @@
 
             document.getElementById('logs-date-filter').value = getLocalDateString();
             renderTodayLogs();
-            const customRestSecs = parseInt(document.getElementById('rest-timer-duration').value) || 90;
-            startRestTimer(customRestSecs, ex.name);
+            const customRestSecs = Number(document.getElementById('rest-timer-duration').value);
+            if(customRestSecs>0)startRestTimer(customRestSecs, ex.name);else stopRestTimer();
         }
 
         async function saveCardioSet(cardioType) {
@@ -909,7 +950,6 @@
             const ex = state.exercises.find(e => e.id === exId);
             if (!ex) return;
 
-            const session = await ensureActiveSession();
             const today = getLocalDateString();
             let calories = 0;
             let logData = {
@@ -917,7 +957,6 @@
                 schemaVersion: DATA_SCHEMA_VERSION,
                 date: today,
                 timestamp: Date.now(),
-                sessionId: session ? session.id : null,
                 exerciseId: ex.id,
                 exerciseName: ex.name,
                 category: ex.category,
@@ -926,23 +965,24 @@
             };
 
             if (cardioType === 'treadmill') {
-                const speed = validateAndClamp(document.getElementById('input-tm-speed').value, 1, 25, 5.5);
-                const incline = validateAndClamp(document.getElementById('input-tm-incline').value, 0, 25, 1.0);
-                const duration = validateAndClamp(document.getElementById('input-tm-duration').value, 1, 180, 20);
+                const speed = readField('input-tm-speed','السرعة',1,25);
+                const incline = readField('input-tm-incline','الميل',0,25);
+                const duration = readField('input-tm-duration','المدة بالدقائق',1,180);
                 const movement = document.getElementById('tm-movement-type').value;
                 calories = calculateCalories('treadmill', { speed, incline, duration, movement, bodyWeightKgAtLog: logData.bodyWeightKgAtLog });
                 logData = { ...logData, speed, incline, duration, movement, calories, caloriesEstimated: true };
             } else {
-                const duration = validateAndClamp(document.getElementById('input-be-duration').value, 1, 180, 15);
+                const duration = readField('input-be-duration','المدة بالدقائق',1,180);
                 const intensity = document.getElementById('cardio-intensity-select').value;
-                const wattsRaw = parseFloat(document.getElementById('input-cardio-watts').value);
-                const watts = Number.isFinite(wattsRaw) ? wattsRaw : null;
+                const watts = readField('input-cardio-watts','الواط',0,2000,{optional:true});
                 const machineMap = { ex_65: 'bike', ex_66: 'elliptical', ex_67: 'stairs', ex_68: 'rowing', ex_69: 'airbike' };
                 const machine = ex.machine || machineMap[ex.id] || 'bike';
                 calories = calculateCalories('bike_elliptical', { machine, intensity, watts, duration, bodyWeightKgAtLog: logData.bodyWeightKgAtLog });
                 logData = { ...logData, machine, intensity, watts, duration, calories, caloriesEstimated: true };
             }
 
+            Object.assign(logData,GymData.validateLog(logData));
+            const session=await ensureActiveSession();logData.sessionId=session.id;
             state.logs.push(logData);
             await dbSaveAll('logs', state.logs);
 
@@ -970,76 +1010,116 @@
             });
         }
 
-        function openEditLog(logId) {
-            const log = state.logs.find(l => l.id === logId);
-            if (!log) return;
-            document.getElementById('edit-log-id').value = logId;
-            const isWeight = log.type === 'weights';
-            document.getElementById('edit-weight-fields').classList.toggle('hidden', !isWeight);
-            document.getElementById('edit-cardio-fields').classList.toggle('hidden', isWeight);
-            if (isWeight) {
-                const isTimed = log.loadMode === 'timed';
-                document.getElementById('edit-log-weight-row').classList.toggle('hidden', isTimed);
-                document.getElementById('edit-log-reps-row').classList.toggle('hidden', isTimed);
-                document.getElementById('edit-log-rir-row').classList.toggle('hidden', isTimed);
-                document.getElementById('edit-log-seconds-row').classList.toggle('hidden', !isTimed);
-                document.getElementById('edit-log-weight').max = log.unit === 'lbs' ? 2204.62 : 1000;
-                document.getElementById('edit-log-weight').value = log.displayWeight ?? getCanonicalWeightKg(log);
-                document.getElementById('edit-log-reps').value = log.reps || 1;
-                document.getElementById('edit-log-rir').value = log.rir ?? '';
-                document.getElementById('edit-log-seconds').value = log.durationSeconds || 60;
-            } else {
-                document.getElementById('edit-log-duration').value = log.duration || 1;
-            }
-            document.getElementById('edit-log-modal').classList.remove('hidden');
-            document.getElementById('btn-cancel-edit-log').focus();
-        }
-
-        async function saveEditedLog() {
-            const id = document.getElementById('edit-log-id').value;
-            const log = state.logs.find(l => l.id === id);
-            if (!log) return;
-            if (log.type === 'weights') {
-                if (log.loadMode === 'timed') {
-                    log.durationSeconds = validateAndClamp(document.getElementById('edit-log-seconds').value, 1, 3600, log.durationSeconds || 60);
-                } else {
-                const displayWeight = validateAndClamp(document.getElementById('edit-log-weight').value, 0, log.unit === 'lbs' ? 2204.62 : 1000, 0);
-                const reps = validateAndClamp(document.getElementById('edit-log-reps').value, 1, 150, 1);
-                if (!Number.isInteger(reps) && reps !== Number(log.reps)) throw Error('أدخل عدات صحيحة؛ القيم الكسرية القديمة يمكن الاحتفاظ بها دون تغيير');
-                if (!Number.isInteger(reps)) log.legacyFractionalReps = true;
-                const rirRaw = document.getElementById('edit-log-rir').value;
-                const weightKg = log.unit === 'lbs' ? Math.round((displayWeight / 2.20462) * 10) / 10 : displayWeight;
-                const bodyWeightKg = parseFloat(log.bodyWeightKgAtLog) || (log.loadMode === 'bodyweight' ? Number(log.effectiveLoadKg) : log.loadMode === 'added' ? Number(log.effectiveLoadKg) - getCanonicalWeightKg(log) : log.loadMode === 'assisted' ? Number(log.effectiveLoadKg) + getCanonicalWeightKg(log) : 0);
-                if (bodyWeightKg) log.bodyWeightKgAtLog = bodyWeightKg;
-                let effectiveLoadKg = weightKg;
-                if (log.loadMode === 'bodyweight') effectiveLoadKg = bodyWeightKg;
-                else if (log.loadMode === 'added') effectiveLoadKg = bodyWeightKg + weightKg;
-                else if (log.loadMode === 'assisted') effectiveLoadKg = Math.max(0, bodyWeightKg - weightKg);
-                log.displayWeight = displayWeight;
-                log.weight = weightKg;
-                log.reps = reps;
-                log.rir = rirRaw === '' ? null : validateAndClamp(rirRaw, 0, 4, null);
-                log.effectiveLoadKg = effectiveLoadKg;
-                log.volumeLoadKg = log.loadMode === 'per_hand' ? weightKg * 2 : effectiveLoadKg;
-                log.oneRepMax = log.loadMode === 'timed' ? null : calculate1RM(effectiveLoadKg, reps);
-                }
-            } else {
-                const oldDuration=log.duration;
-                const oldCalories=log.calories;
-                const historicalWeight=log.bodyWeightKgAtLog;
-                log.duration = validateAndClamp(document.getElementById('edit-log-duration').value, 1, 300, log.duration || 1);
-                if (!historicalWeight) log.calories=Math.round((oldCalories||0)*log.duration/oldDuration*10)/10;
-                else if (log.type === 'treadmill') log.calories = calculateCalories('treadmill', log);
-                else log.calories = calculateCalories('bike_elliptical', log);
-            }
-            GymData.recalculateWeightLog(log);
-            log.editedAt = Date.now();
-            if (log.sessionId) await refreshCompletedSessionSummary(log.sessionId);
-            await GymStorage.save(state);
+        let editReturnFocus = null;
+        function closeEditLog() {
             document.getElementById('edit-log-modal').classList.add('hidden');
-            renderTodayLogs();
-            updateTopHeaderStats();
-            showToast('تم تعديل التسجيل بدون إنشاء سجل مكرر');
+            editReturnFocus?.focus();
+        }
+        function updateEditModeUI() {
+            const mode=document.getElementById('edit-log-load-mode').value;
+            const timed=mode==='timed',body=['bodyweight','added','assisted'].includes(mode);
+            document.getElementById('edit-log-weight-row').classList.toggle('hidden',timed||mode==='bodyweight');
+            document.getElementById('edit-log-reps-row').classList.toggle('hidden',timed);
+            document.getElementById('edit-log-seconds-row').classList.toggle('hidden',!timed);
+            document.getElementById('edit-log-body-row').classList.toggle('hidden',!body);
+            document.getElementById('edit-log-load-hint').textContent=LOAD_HINTS[mode];
+        }
+        function openEditLog(logId) {
+            const log=state.logs.find(l=>l.id===logId);if(!log)return;
+            editReturnFocus=document.activeElement;
+            const modal=document.getElementById('edit-log-modal');
+            modal.querySelectorAll('[aria-invalid]').forEach(clearFieldError);
+            document.getElementById('edit-log-id').value=logId;
+            const exSelect=document.getElementById('edit-log-exercise');exSelect.replaceChildren();
+            for(const ex of state.exercises.filter(e=>e.type===log.type&&(!e.archived||e.id===log.exerciseId))){
+                const option=document.createElement('option');option.value=ex.id;option.textContent=ex.name;exSelect.appendChild(option);
+            }
+            exSelect.value=log.exerciseId;
+            const isWeight=log.type==='weights';
+            document.getElementById('edit-weight-fields').classList.toggle('hidden',!isWeight);
+            document.getElementById('edit-cardio-fields').classList.toggle('hidden',isWeight);
+            if(isWeight){
+                document.getElementById('edit-log-load-mode').value=log.loadMode||'external';
+                document.getElementById('edit-log-set-type').value=log.setType==='drop'?'dropset':log.setType||'normal';
+                document.getElementById('edit-log-weight').max=log.unit==='lbs'?2204.62:1000;
+                document.getElementById('edit-log-weight-label').textContent='الوزن المسجل ('+(log.unit==='lbs'?'باوند':'كجم')+')';
+                document.getElementById('edit-log-weight').value=log.displayWeight??getCanonicalWeightKg(log);
+                document.getElementById('edit-log-reps').value=log.reps;
+                document.getElementById('edit-log-rir').value=log.rir??'';
+                document.getElementById('edit-log-seconds').value=log.durationSeconds||60;
+                const inferredBody=log.loadMode==='bodyweight'?Number(log.effectiveLoadKg):log.loadMode==='added'?Number(log.effectiveLoadKg)-getCanonicalWeightKg(log):log.loadMode==='assisted'?Number(log.effectiveLoadKg)+getCanonicalWeightKg(log):0;
+                document.getElementById('edit-log-body').value=log.bodyWeightKgAtLog||inferredBody||'';
+                updateEditModeUI();
+            }else{
+                document.getElementById('edit-log-duration').value=log.duration;
+                document.getElementById('edit-cardio-body').value=log.bodyWeightKgAtLog||'';
+                const treadmill=log.type==='treadmill';
+                document.getElementById('edit-treadmill-fields').classList.toggle('hidden',!treadmill);
+                document.getElementById('edit-machine-fields').classList.toggle('hidden',treadmill);
+                if(treadmill){
+                    document.getElementById('edit-log-speed').value=log.speed;
+                    document.getElementById('edit-log-incline').value=log.incline??1;
+                    document.getElementById('edit-log-movement').value=log.movement||'walking';
+                }else{
+                    document.getElementById('edit-log-machine').value=log.machine||'bike';
+                    document.getElementById('edit-log-intensity').value=log.intensity||'moderate';
+                    document.getElementById('edit-log-watts').value=log.watts??'';
+                }
+            }
+            modal.classList.remove('hidden');document.getElementById('btn-cancel-edit-log').focus();
+        }
+        async function saveEditedLog() {
+            const id=document.getElementById('edit-log-id').value;
+            const index=state.logs.findIndex(l=>l.id===id);if(index<0)return;
+            const original=state.logs[index],log={...original};
+            const exercise=state.exercises.find(ex=>ex.id===document.getElementById('edit-log-exercise').value&&ex.type===log.type);
+            if(!exercise)throw Error('اختر تمرينًا من نفس نوع التسجيل');
+            Object.assign(log,{exerciseId:exercise.id,exerciseName:exercise.name,category:exercise.category});
+            if(log.type==='weights'){
+                log.loadMode=document.getElementById('edit-log-load-mode').value;
+                log.setType=document.getElementById('edit-log-set-type').value;
+                log.rir=readField('edit-log-rir','RIR',0,4,{optional:true,integer:true,legacyValue:original.rir==null?undefined:Number(original.rir)});
+                if(log.rir!=null&&!Number.isInteger(log.rir))log.legacyFractionalRir=true;else delete log.legacyFractionalRir;
+                if(log.loadMode==='timed'){
+                    log.durationSeconds=readField('edit-log-seconds','المدة بالثواني',1,3600);
+                    log.weight=0;log.displayWeight=0;log.reps=1;
+                }else{
+                    log.displayWeight=log.loadMode==='bodyweight'?0:readField('edit-log-weight','الوزن',0,log.unit==='lbs'?2204.62:1000);
+                    log.weight=log.unit==='lbs'?log.displayWeight/2.20462:log.displayWeight;
+                    log.reps=readField('edit-log-reps','العدات',1,150,{integer:true,legacyValue:Number(original.reps)});
+                    if(!Number.isInteger(log.reps))log.legacyFractionalReps=true;else delete log.legacyFractionalReps;
+                    if(['bodyweight','added','assisted'].includes(log.loadMode))log.bodyWeightKgAtLog=readField('edit-log-body','وزن الجسم وقت الجولة',20,350);
+                    delete log.durationSeconds;
+                }
+            }else{
+                log.duration=readField('edit-log-duration','المدة بالدقائق',1,300);
+                const historicalWeight=readField('edit-cardio-body','وزن الجسم وقت التسجيل',20,350,{optional:true});
+                if(log.type==='treadmill'){
+                    log.speed=readField('edit-log-speed','السرعة',1,25);
+                    log.incline=readField('edit-log-incline','الميل',0,25);
+                    log.movement=document.getElementById('edit-log-movement').value;
+                }else{
+                    log.machine=document.getElementById('edit-log-machine').value;
+                    log.intensity=document.getElementById('edit-log-intensity').value;
+                    log.watts=readField('edit-log-watts','الواط',0,2000,{optional:true});
+                }
+                const parameters=log.type==='treadmill'?['speed','incline','movement']:['machine','intensity','watts'];
+                const changedParameters=parameters.some(key=>(log[key]??null)!==(original[key]??null));
+                if(!historicalWeight&&changedParameters){const error=Error('أدخل وزن الجسم وقت التسجيل لإعادة حساب السعرات بعد تغيير تفاصيل الكارديو');error.fieldId='edit-cardio-body';throw error;}
+                if(historicalWeight){log.bodyWeightKgAtLog=historicalWeight;log.calories=calculateCalories(log.type,log);}
+                else {delete log.bodyWeightKgAtLog;log.calories=Math.round((original.calories||0)*log.duration/original.duration*10)/10;}
+                const session=state.sessions.find(s=>s.id===log.sessionId&&s.status==='completed');
+                if(session){
+                    const cardioMinutes=state.logs.filter(l=>l.sessionId===session.id&&l.type!=='weights'&&l.id!==id).reduce((total,l)=>total+Number(l.duration||0),0)+log.duration;
+                    if(cardioMinutes>(session.endedAt-session.startedAt)/60000){const error=Error('مجموع مدة الكارديو أكبر من مدة الجلسة المسجلة');error.fieldId='edit-log-duration';throw error;}
+                }
+            }
+            Object.assign(log,GymData.validateLog(log),{editedAt:Date.now()});
+            state.logs[index]=log;
+            if(log.sessionId)await refreshCompletedSessionSummary(log.sessionId);
+            await GymStorage.save(state);
+            closeEditLog();onExerciseSelectChange();
+            showToast('تم تعديل التسجيل وتحديث ملخص الجلسة بدون تكرار');
         }
 
         function renderTodayLogs() {
@@ -1049,7 +1129,7 @@
             const selectedDate = document.getElementById('logs-date-filter').value || today;
             const todayLogs = state.logs.filter(l => l.date === selectedDate).sort((a,b) => (b.timestamp||0)-(a.timestamp||0));
 
-            document.getElementById('today-sets-count').textContent = `${todayLogs.length} جولات`;
+            document.getElementById('today-sets-count').textContent = todayLogs.length===1?'جولة واحدة':`${todayLogs.length} جولات`;
 
             if (todayLogs.length === 0) {
                 container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs glass-card border border-slate-800">لا توجد جولات مسجلة في هذا التاريخ. 💪</div>`;
@@ -1071,7 +1151,7 @@
                     const printWeight = log.displayWeight ?? getCanonicalWeightKg(log);
                     const loadLabel = log.loadMode === 'per_hand' ? ' لكل يد' : log.loadMode === 'assisted' ? ' مساعدة' : log.loadMode === 'added' ? ' إضافي' : '';
                     if (log.loadMode === 'timed') detailText = `<span class="font-bold text-cyan-300">${escapeHTML(String(log.durationSeconds || 0))} ثانية</span>`;
-                    else detailText = `<span class="font-bold text-cyan-300">${escapeHTML(String(printWeight))} ${unitLabel}${loadLabel}</span> × <span class="font-bold text-cyan-300">${escapeHTML(String(log.reps))} عدات</span> <span class="text-[10px] text-emerald-400 font-bold">[1RM: ${escapeHTML(get1RMLabel(getProgressWeightKg(log), log.reps))}]</span>`;
+                    else detailText = `<span class="font-bold text-cyan-300">${log.loadMode==='bodyweight'?'وزن الجسم ('+escapeHTML(String(log.bodyWeightKgAtLog??log.effectiveLoadKg??'—'))+' كجم)':escapeHTML(String(printWeight))+' '+unitLabel+loadLabel}</span> × <span class="font-bold text-cyan-300">${escapeHTML(String(log.reps))} عدات</span> <span class="text-[10px] text-emerald-400 font-bold">[1RM: ${escapeHTML(get1RMLabel(getProgressWeightKg(log), log.reps))}]</span>`;
                 } else {
                     detailText = `<span class="text-cyan-300 font-bold">${log.duration} دقيقة</span>`;
                 }
@@ -1080,13 +1160,14 @@
                     <div class="space-y-1">
                         <div class="font-bold text-xs text-slate-200">${escapeHTML(log.exerciseName)}</div>
                         <div class="text-xs text-slate-300">${detailText}</div>
+                        ${log.type==='weights'?`<div class="log-metadata">${escapeHTML(logMetadata(log))}</div>`:`<div class="log-metadata">${escapeHTML(log.type==='treadmill'?`${log.movement==='running'?'جري':'مشي'} · ${log.speed} كم/س · ميل ${log.incline??1}%`:({light:'شدة خفيفة',moderate:'شدة متوسطة',vigorous:'شدة عالية'}[log.intensity]||'شدة غير محددة'))}</div>`}
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="text-right">
                             <div class="text-[10px] font-black text-amber-400">${log.type === 'weights' && ['v9-session','v10-session'].includes(log.calculationVersion) ? 'سعرات ضمن الجلسة' : `${escapeHTML(String(log.calories || 0))}🔥 تقديري`}</div>
                         </div>
                         <button data-action="edit-log" data-id="${escapeHTML(log.id)}" aria-label="تعديل التسجيل" class="text-slate-500 hover:text-cyan-400 p-1.5 transition"><i class="fa-solid fa-pen text-sm"></i></button>
-                        <button data-action="delete-log" data-id="${escapeHTML(log.id)}" class="text-slate-500 hover:text-red-400 p-1.5 transition">
+                        <button aria-label="حذف التسجيل" data-action="delete-log" data-id="${escapeHTML(log.id)}" class="text-slate-500 hover:text-red-400 p-1.5 transition">
                             <i class="fa-solid fa-trash-can text-sm"></i>
                         </button>
                     </div>
@@ -1131,6 +1212,7 @@
         }
 
         function runLocalClassification(cleanName) {
+            if (/(ضغط.*(أرجل|ارجل)|مكبس.*(أرجل|ارجل))/i.test(cleanName)) return {cat:'legs',equip:'machine'};
             if (/(رفرفة.*خلف|rear.*delt)/i.test(cleanName)) return {cat:'pull',equip:null};
             if (/(rowing|تجديف|treadmill|مشي|دراجة|elliptical|stair)/i.test(cleanName)) return {cat:'cardio',equip:'cardio'};
             for (const [key, val] of Object.entries(EXERCISE_DICTIONARY).sort((a,b) => b[0].length-a[0].length)) {
@@ -1541,33 +1623,17 @@
         }
 
         async function saveProfile() {
-            if (!state.profile) {
-                state.profile = { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, activityFactor: 1.375, history: [] };
+            const next={...state.profile,id:'user_profile',updatedAt:Date.now(),name:document.getElementById('prof-name').value.trim()};
+            for(const [key,label,min,max] of [['weight','الوزن',20,350],['height','الطول',50,250],['waist','محيط الخصر',30,250],['age','العمر',5,120],['fat','نسبة الدهون',1,70],['muscle','نسبة العضلات',1,80],['water','نسبة السوائل',1,90]]) {
+                next[key]=readField('prof-'+key,label,min,max,{optional:true,integer:key==='age',legacyValue:key==='age'?Number(state.profile.age):undefined})??'';
             }
-            state.profile.id = 'user_profile';
-            state.profile.updatedAt = Date.now();
-            state.profile.name = document.getElementById('prof-name').value.trim();
-            state.profile.weight = validateAndClamp(document.getElementById('prof-weight').value, 20, 350, '');
-            state.profile.height = validateAndClamp(document.getElementById('prof-height').value, 50, 250, '');
-            state.profile.waist = validateAndClamp(document.getElementById('prof-waist').value, 30, 250, '');
-            state.profile.age = validateAndClamp(document.getElementById('prof-age').value, 5, 120, '');
-            state.profile.fat = validateAndClamp(document.getElementById('prof-fat').value, 1, 70, '');
-            state.profile.muscle = validateAndClamp(document.getElementById('prof-muscle').value, 1, 80, '');
-            state.profile.water = validateAndClamp(document.getElementById('prof-water').value, 1, 90, '');
-            state.profile.activityFactor = parseFloat(document.getElementById('prof-activity').value) || 1.375;
-
-            const today = getLocalDateString();
-            if (!state.profile.history) state.profile.history = [];
-
-            if (state.profile.weight) {
-                state.profile.history = state.profile.history.filter(h => h.date !== today);
-                state.profile.history.push({ date: today, weight: parseFloat(state.profile.weight), waist: parseFloat(state.profile.waist) || '' });
-            }
-
-            await dbSaveAll('profile', [state.profile]);
-            renderBentoGridAnalysis();
-            renderProfileHistoryList();
-            updateTopHeaderStats();
+            next.activityFactor=readField('prof-activity','مستوى النشاط',1,3);
+            const today=getLocalDateString();next.history=[...(state.profile.history||[])];
+            if(next.weight){next.history=next.history.filter(h=>h.date!==today);next.history.push({date:today,weight:next.weight,waist:next.waist});}
+            // Validate before replacing the live profile; preserve all historical entries.
+            GymData.validate({profile:next});
+            state.profile=next;await dbSaveAll();
+            renderBentoGridAnalysis();renderProfileHistoryList();updateTopHeaderStats();
             showToast('تم حفظ القياسات والبروفايل بنجاح 🎯');
         }
 
@@ -1616,9 +1682,17 @@
         }
 
         async function exportDataJSON() {
-            const logs=state.logs.map(l=>l.type==='weights'&&!Number.isInteger(Number(l.reps))?{...l,legacyFractionalReps:true}:l);
-            downloadJSON({...state,logs,schemaVersion:DATA_SCHEMA_VERSION,exportDate:new Date().toISOString()},`gym_tracker_backup_${getLocalDateString()}.json`);
-            showToast('تم تجهيز النسخة الاحتياطية للتنزيل');
+            const logs=state.logs.map(log=>{
+                const l={...log};if(l.type==='weights'){
+                    if(!Number.isInteger(Number(l.reps)))l.legacyFractionalReps=true;
+                    if(l.rir!=null&&!Number.isInteger(Number(l.rir)))l.legacyFractionalRir=true;
+                }return l;
+            });
+            const backup={...state,logs,schemaVersion:DATA_SCHEMA_VERSION,exportDate:new Date().toISOString()};
+            let validationError=null;try{GymData.validate(backup);}catch(error){validationError=error;}
+            downloadJSON(backup,`gym_tracker_backup_${getLocalDateString()}.json`);
+            if(validationError)showModal({title:'تم تجهيز النسخة مع تنبيه',message:'احتفظ بالنسخة. يلزم تصحيح سجل قديم قبل إعادة استيرادها: '+validationError.message,confirmText:'فهمت',cancelText:'إغلاق'});
+            else showToast('تم فحص النسخة الاحتياطية وتجهيزها للتنزيل');
         }
 
         async function downloadSafetyBackup() {
@@ -1761,11 +1835,13 @@
             document.addEventListener('keydown', event => {
                 const modal=document.querySelector('.modal-overlay:not(.hidden)');if(!modal)return;
                 const buttons=[...modal.querySelectorAll('button,input:not([type=hidden]),select')].filter(e=>!e.disabled&&e.getClientRects().length);
-                if(event.key==='Escape'){modal.classList.add('hidden');return;}
+                if(event.key==='Escape'){if(saving)return;event.preventDefault();if(modal.id==='edit-log-modal')closeEditLog();else if(modal.id==='finish-session-modal')closeFinishSession();else document.getElementById('modal-cancel-btn').click();return;}
                 if(event.key==='Tab'&&buttons.length){const first=buttons[0],last=buttons[buttons.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
             });
             document.getElementById('logs-date-filter').addEventListener('change', () => {logsRenderLimit=15;renderTodayLogs();});
             document.addEventListener('visibilitychange', () => {if (!document.hidden) {updateSessionUI();restoreRestTimer();}});
+            document.addEventListener('input',event=>clearFieldError(event.target));
+            document.addEventListener('change',event=>clearFieldError(event.target));
             document.body.addEventListener('click', function(e) {
                 const stepperBtn = e.target.closest('[data-step-target]');
                 if (stepperBtn) {
@@ -1824,8 +1900,11 @@
             document.getElementById('btn-stop-timer').addEventListener('click', stopRestTimer);
             document.getElementById('btn-start-session').addEventListener('click', () => runMutation(() => startWorkoutSession()));
             document.getElementById('btn-copy-session').addEventListener('click', () => runMutation(copyPreviousSession));
-            document.getElementById('btn-finish-session').addEventListener('click', () => runMutation(finishWorkoutSession));
-            document.getElementById('btn-cancel-edit-log').addEventListener('click', () => document.getElementById('edit-log-modal').classList.add('hidden'));
+            document.getElementById('btn-finish-session').addEventListener('click',openFinishSession);
+            document.getElementById('btn-confirm-finish').addEventListener('click',()=>runMutation(finishWorkoutSession));
+            document.getElementById('btn-cancel-finish').addEventListener('click',closeFinishSession);
+            document.getElementById('btn-cancel-edit-log').addEventListener('click',closeEditLog);
+            document.getElementById('edit-log-load-mode').addEventListener('change',updateEditModeUI);
             document.getElementById('btn-confirm-edit-log').addEventListener('click', () => runMutation(saveEditedLog));
 
             document.getElementById('btn-load-more-logs').addEventListener('click', function() {
@@ -1874,7 +1953,7 @@
 
         window.addEventListener('DOMContentLoaded', async () => {
             try { await loadStateFromDB(); } catch(error) { document.getElementById('db-status-badge').textContent=error.message; return; }
-            initEventListeners();
+            initEventListeners();updateSetHelp();
             document.getElementById('logs-date-filter').value = getLocalDateString();
             renderCategoryTabs();
             renderExerciseDropdown();

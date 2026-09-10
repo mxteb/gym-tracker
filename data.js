@@ -11,7 +11,28 @@ const setTypes=['normal','warmup','drop','failure','dropset','superset'];
 const object = (x,label) => {if(!x||typeof x!=='object'||Array.isArray(x))fail(label);return x;};
 const str=(x,label,max=300)=>{if(typeof x!=='string'||!x.length||x.length>max)fail(label);return x;};
 const id=(x)=>{str(x,'معرف السجل',150);if(!/^[\w-]+$/.test(x))fail('معرف السجل');return x;};
-const num=(x,label,min=0,max=1e15)=>{if(x===''||x===null||typeof x==='boolean'||!Number.isFinite(Number(x))||Number(x)<min||Number(x)>max)fail(label);return Number(x);};
+const num=(x,label,min=0,max=1e15)=>{if(!['string','number'].includes(typeof x)||(typeof x==='string'&&!x.trim())||!Number.isFinite(Number(x))||Number(x)<min||Number(x)>max)fail(label);return Number(x);};
+function inputNumber(value,label,min,max,{optional=false,integer=false,legacyValue}={}) {
+ if(value==null||String(value).trim()==='') {
+  if(optional)return null;
+  throw Error('أدخل '+label);
+ }
+ const n=Number(value);
+ if(!['string','number'].includes(typeof value)||!Number.isFinite(n)||n<min||n>max)throw Error(label+' يجب أن يكون بين '+min+' و'+max);
+ if(integer&&!Number.isInteger(n)&&n!==legacyValue)throw Error(label+' يجب أن يكون عددًا صحيحًا');
+ return n;
+}
+function oneRepMax(weight,reps) {
+ const w=Number(weight),r=Number(reps);
+ return !Number.isFinite(w)||w<=0||!Number.isInteger(r)||r<1||r>15?null:r===1?w:Math.round(w*(1+r/30)*10)/10;
+}
+function filterExercises(exercises,{presetIds=null,category='all',equipment:tool='all',search=''}={}) {
+ const query=search.trim().toLowerCase();
+ return exercises.filter(e=>!e.archived&&(!presetIds||presetIds.includes(e.id))&&
+  (category==='all'||(category==='upper'?['push','pull'].includes(e.category):category==='lower'?['legs','abs'].includes(e.category):e.category===category))&&
+  (tool==='all'||e.equip===tool)&&(!query||e.name.toLowerCase().includes(query)))
+  .sort((a,b)=>presetIds?presetIds.indexOf(a.id)-presetIds.indexOf(b.id):a.id.localeCompare(b.id,'en',{numeric:true}));
+}
 const date=x=>{str(x,'التاريخ',10);if(!/^\d{4}-\d{2}-\d{2}$/.test(x)||!Number.isFinite(Date.parse(x))||new Date(x+'T00:00:00Z').toISOString().slice(0,10)!==x)fail('التاريخ');return x;};
 const choice=(x,allowed,label)=>{if(!allowed.includes(x))fail(label);return x;};
 const optionalNumber=(x,key,min,max)=>x[key]==null?{}:{[key]:num(x[key],key,min,max)};
@@ -39,7 +60,7 @@ function log(x, allowLegacyFractions=false){
   out.displayWeight=x.displayWeight!=null?num(x.displayWeight,'الوزن المعروض',0,10000):out.weight*(out.unit==='lbs'?2.20462:1);
   out.reps=num(x.reps||1,'العدات',1,150);if(!Number.isInteger(out.reps)){if(!allowLegacyFractions && x.legacyFractionalReps!==true)fail('العدات يجب أن تكون عددًا صحيحًا');out.legacyFractionalReps=true;}
   out.setType=choice(x.setType||'normal',setTypes,'نوع الجولة');out.rir=x.rir==null||x.rir===''?null:num(x.rir,'RIR',0,4);
-  if(out.rir!==null&&!Number.isInteger(out.rir))fail('RIR');
+  if(out.rir!==null&&!Number.isInteger(out.rir)){if(x.legacyFractionalRir!==true)fail('RIR');out.legacyFractionalRir=true;}
   if(out.loadMode==='timed'){out.durationSeconds=num(x.durationSeconds,'الثواني',1,3600);out.weight=0;out.displayWeight=0;out.reps=1;}
   for(const key of ['effectiveLoadKg','volumeLoadKg','oneRepMax'])Object.assign(out,optionalNumber(x,key,0,100000));
   out.calories=num(x.calories||0,'السعرات',0,100000);
@@ -74,7 +95,7 @@ function recalculateWeightLog(x) {
  }
  const effective=mode==='bodyweight'?body:mode==='added'?body+weight:mode==='assisted'?Math.max(0,body-weight):weight;
  const reps=Number(x.reps);
- Object.assign(x,{effectiveLoadKg:effective,volumeLoadKg:mode==='per_hand'?weight*2:effective,oneRepMax:!effective||!Number.isInteger(reps)||reps<1||reps>15?null:reps===1?effective:Math.round(effective*(1+reps/30)*10)/10});
+ Object.assign(x,{effectiveLoadKg:effective,volumeLoadKg:mode==='per_hand'?weight*2:effective,oneRepMax:oneRepMax(effective,reps)});
  return x;
 }
 function validate(raw){
@@ -82,7 +103,7 @@ function validate(raw){
  if(!raw.profile&&!raw.logs&&!raw.exercises&&!raw.sessions)fail('لا توجد بيانات تطبيق');
  const out={};if(raw.profile)out.profile=profile(raw.profile);
  for(const [key,fn,max] of [['logs',log,200000],['exercises',exercise,10000],['sessions',session,100000]]) {
-  if(raw[key]!==undefined){out[key]=array(raw[key],max,key).map(item=>key==='logs'?log(item,Number(raw.schemaVersion||9)<=9):fn(item));if(key==='logs')out[key].forEach(recalculateWeightLog);const ids=new Set(out[key].map(x=>x.id));if(ids.size!==out[key].length)fail('معرفات مكررة في '+key);}
+  if(raw[key]!==undefined){out[key]=array(raw[key],max,key).map((item,i)=>{try{return key==='logs'?log(item,Number(raw.schemaVersion||9)<=9):fn(item);}catch(error){throw Error(error.message+' ('+key+'، السجل '+(i+1)+')');}});if(key==='logs')out[key].forEach(recalculateWeightLog);const ids=new Set(out[key].map(x=>x.id));if(ids.size!==out[key].length)fail('معرفات مكررة في '+key);}
  }
  return out;
 }
@@ -97,5 +118,6 @@ function merge(current,incoming) {
  const active=next.sessions.filter(x=>x.status==='active');if(active.length>1)fail('توجد جلستان نشطتان؛ أنهِ الجلسة الحالية أو استورد نسخة بجلسات مكتملة');
  return next;
 }
-window.GymData={validate,merge,recalculateWeightLog};
+function validateLog(value) {return recalculateWeightLog(log(value));}
+window.GymData={validate,merge,recalculateWeightLog,validateLog,inputNumber,oneRepMax,filterExercises};
 })();
