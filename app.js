@@ -378,6 +378,7 @@
         }
 
         function openFinishSession() {
+            if(!document.getElementById('finish-session-modal')){showToast('حدّث ملفات الموقع كاملة لفتح نافذة إنهاء الجلسة');return;}
             const session=getActiveSession();if(!session)return;
             const input=document.getElementById('finish-session-duration');clearFieldError(input);
             input.value=Math.max(1,Math.round((Date.now()-session.startedAt)/60000));
@@ -733,7 +734,7 @@
         function updateLastPerformanceDisplay(exerciseId) {
             const textEl = document.getElementById('last-performance-text');
             const copyBtn = document.getElementById('btn-copy-last-perf');
-            const picker=document.getElementById('previous-set-picker');picker.classList.add('hidden');
+            const picker=document.getElementById('previous-set-picker');picker?.classList.add('hidden');
 
             if (!exerciseId) {
                 textEl.textContent = 'اختر تمرين للعرض';
@@ -762,15 +763,15 @@
                 }).join('');
                 textEl.className = 'text-xs font-bold text-cyan-300';
                 copyBtn.classList.remove('hidden');
-                const select=document.getElementById('previous-set-select');select.replaceChildren();
+                const select=document.getElementById('previous-set-select');if(select && picker){select.replaceChildren();
                 lastPerfData.forEach((log,index)=>{const option=document.createElement('option');option.value=String(index);option.textContent=`${index+1}. ${log.loadMode==='timed'?log.durationSeconds+' ثانية':(log.displayWeight??getCanonicalWeightKg(log))+' '+(log.unit==='lbs'?'باوند':'كجم')+' × '+log.reps} · ${logMetadata(log)}`;select.appendChild(option);});
-                select.value=String(Math.max(0,lastPerfData.findIndex(log=>log.setType!=='warmup')));picker.classList.remove('hidden');
+                select.value=String(Math.max(0,lastPerfData.findIndex(log=>log.setType!=='warmup')));picker.classList.remove('hidden');}
             }
         }
 
         function copyLastPerformance() {
             if (!lastPerfData.length) return;
-            const firstWorkingSet = lastPerfData[Number(document.getElementById('previous-set-select').value)] || lastPerfData[0];
+            const firstWorkingSet = lastPerfData[Number(document.getElementById('previous-set-select')?.value ?? Math.max(0,lastPerfData.findIndex(log=>log.setType!=='warmup')))] || lastPerfData[0];
             if (firstWorkingSet.unit && firstWorkingSet.unit !== activeWeightUnit) {
                 setWeightUnit(firstWorkingSet.unit);
             }
@@ -795,7 +796,7 @@
 
         const SET_LABELS={normal:'عادية',warmup:'تسخين',dropset:'دروب',drop:'دروب',superset:'سوبر',failure:'فشل (سجل سابق)'};
         const SET_HELP={normal:'جولة العمل الأساسية بوزن وعدات تختارها. تُحسب ضمن جولات العمل.',warmup:'جولة خفيفة للتحضير. تبقى في السجل وتُستبعد من جولات العمل ومنحنى التطور.',dropset:'تخفض الوزن بعد جولة وتكمل العدات. سجّل كل مرحلة وحدها، واختر «بدون مؤقت» بين المراحل.',superset:'تمرينان متتاليان بدون راحة بينهما. سجّل كل تمرين وحده، واختر «بدون مؤقت» حتى تنتهي منهما.',failure:'تصنيف محفوظ من نسخة سابقة. استخدم RIR 0 عند تسجيل جولة جديدة وصلت فيها للفشل.'};
-        function updateSetHelp(){document.getElementById('set-type-help').textContent=SET_HELP[activeSetType]||SET_HELP.normal;}
+        function updateSetHelp(){const help=document.getElementById('set-type-help');if(help)help.textContent=SET_HELP[activeSetType]||SET_HELP.normal;}
         function logMetadata(log){
             const type=SET_LABELS[log.setType]||SET_LABELS.normal;
             const rir=log.rir==null?'RIR غير محدد':log.rir===4?'RIR 4+':'RIR '+log.rir;
@@ -1025,6 +1026,7 @@
             document.getElementById('edit-log-load-hint').textContent=LOAD_HINTS[mode];
         }
         function openEditLog(logId) {
+            if(!document.getElementById('edit-log-exercise')){showToast('حدّث ملفات الموقع كاملة لفتح محرر السجل الجديد');return;}
             const log=state.logs.find(l=>l.id===logId);if(!log)return;
             editReturnFocus=document.activeElement;
             const modal=document.getElementById('edit-log-modal');
@@ -1901,10 +1903,10 @@
             document.getElementById('btn-start-session').addEventListener('click', () => runMutation(() => startWorkoutSession()));
             document.getElementById('btn-copy-session').addEventListener('click', () => runMutation(copyPreviousSession));
             document.getElementById('btn-finish-session').addEventListener('click',openFinishSession);
-            document.getElementById('btn-confirm-finish').addEventListener('click',()=>runMutation(finishWorkoutSession));
-            document.getElementById('btn-cancel-finish').addEventListener('click',closeFinishSession);
+            document.getElementById('btn-confirm-finish')?.addEventListener('click',()=>runMutation(finishWorkoutSession));
+            document.getElementById('btn-cancel-finish')?.addEventListener('click',closeFinishSession);
             document.getElementById('btn-cancel-edit-log').addEventListener('click',closeEditLog);
-            document.getElementById('edit-log-load-mode').addEventListener('change',updateEditModeUI);
+            document.getElementById('edit-log-load-mode')?.addEventListener('change',updateEditModeUI);
             document.getElementById('btn-confirm-edit-log').addEventListener('click', () => runMutation(saveEditedLog));
 
             document.getElementById('btn-load-more-logs').addEventListener('click', function() {
@@ -1952,6 +1954,11 @@
         }
 
         window.addEventListener('DOMContentLoaded', async () => {
+            registerServiceWorker();
+            if(!document.getElementById('previous-set-picker')){
+                const notice=document.createElement('div');notice.setAttribute('role','status');notice.style.cssText='padding:12px;background:#78350f;color:white;text-align:center';
+                notice.textContent='ملفات الموقع غير متوافقة. ارفع index.html مع باقي ملفات التحديث ثم أغلق التطبيق وافتحه. سجلك محفوظ.';document.body.prepend(notice);
+            }
             try { await loadStateFromDB(); } catch(error) { document.getElementById('db-status-badge').textContent=error.message; return; }
             initEventListeners();updateSetHelp();
             document.getElementById('logs-date-filter').value = getLocalDateString();
@@ -1964,7 +1971,6 @@
             update1RMLiveDisplay();
             updateSessionUI();
             restoreRestTimer();
-            registerServiceWorker();
         });
 
     })();

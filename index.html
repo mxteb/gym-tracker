@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>متتبع التمارين - Gym Tracker Pro v10 ⚡ PWA</title>
+    <title>متتبع التمارين - Gym Tracker Pro v10.3.1.3 ⚡ PWA</title>
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="GymTracker">
     <meta name="theme-color" content="#070b19">
-    <meta name="description" content="تطبيق تتبع التمارين الرياضية بالذكاء والسعرات الحرارية ومؤشرات القوة 1RM و RPE">
+    <meta name="description" content="تطبيق تتبع التمارين الرياضية والسعرات الحرارية ومؤشرات القوة 1RM و RPE">
 
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./assets/icon-192.png">
@@ -67,7 +67,7 @@
                     </div>
                     <span id="active-session-timer" class="text-xs font-black text-cyan-300 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700">00:00</span>
                 </div>
-                <select id="session-routine-select" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                <select aria-label="نوع الجلسة" id="session-routine-select" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
                     <option value="free">جلسة حرة</option>
                     <option value="ppl_push">دفع (Push)</option>
                     <option value="ppl_pull">سحب (Pull)</option>
@@ -77,17 +77,20 @@
                 </select>
                 <div class="grid grid-cols-3 gap-2">
                     <button id="btn-start-session" class="py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold">ابدأ الجلسة</button>
-                    <button id="btn-copy-session" class="py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-bold">نسخ السابقة</button>
+                    <button id="btn-copy-session" class="py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-bold">استخدام السابقة كخطة</button>
                     <button id="btn-finish-session" disabled class="py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold">إنهاء وملخص</button>
                 </div>
                 <div id="copied-session-plan" class="hidden text-[10px] text-slate-300 bg-slate-900/70 rounded-xl p-2 border border-slate-800"></div>
             </div>
 
+            <details id="exercise-filters" class="glass-card filter-panel">
+                <summary>القوائم والفلاتر <span id="filter-summary" class="field-hint">كل التمارين</span></summary>
+                <div class="space-y-3 filter-content">
             <div class="glass-card p-3 border border-cyan-500/30 space-y-2">
                 <div class="flex justify-between items-center text-xs">
                     <span class="font-bold text-cyan-300 flex items-center gap-1.5">
                         <i class="fa-solid fa-bolt text-amber-400"></i>
-                        <span>الروتينات والجداول الجاهزة (Quick Routines):</span>
+                        <span>قوائم تمارين جاهزة:</span>
                     </span>
                     <button id="btn-reset-routine-filter" class="text-[10px] text-slate-400 hover:text-cyan-300 underline">عرض الكل</button>
                 </div>
@@ -122,6 +125,9 @@
                 <button data-equip="cardio" class="equip-btn px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap bg-slate-900 text-slate-400 border border-slate-800">كارديو 🏃‍♂️</button>
             </div>
 
+                </div>
+            </details>
+
             <div class="glass-card p-4 space-y-4">
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
@@ -149,10 +155,13 @@
                     </div>
                     <button type="button" id="btn-copy-last-perf" class="hidden px-2.5 py-1 bg-cyan-950 hover:bg-cyan-900 border border-cyan-700/60 rounded-lg text-[10px] font-bold text-cyan-300 flex items-center gap-1 transition">
                         <i class="fa-solid fa-copy"></i>
-                        <span>نسخ</span>
+                        <span>تعبئة الجولة</span>
                     </button>
                 </div>
 
+                <label id="previous-set-picker" class="hidden field-hint">الجولة السابقة المراد تعبئتها:
+                    <select id="previous-set-select" class="glass-input w-full px-3 py-2 rounded-xl text-sm" aria-label="اختيار جولة من الأداء السابق"></select>
+                </label>
                 <div id="dynamic-input-container">
                     <div id="form-weights" class="space-y-4">
                         <div class="space-y-2">
@@ -221,18 +230,19 @@
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):</label>
                             <div id="rir-container" class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-xs font-bold">
-                                <button type="button" data-rir="" class="rir-btn active py-2 rounded-xl border text-center">غير محدد</button>
-                                <button type="button" data-rir="0" class="rir-btn py-2 rounded-xl border text-center">0 (فشل🔥)</button>
-                                <button type="button" data-rir="1" class="rir-btn py-2 rounded-xl border text-center">1 عدة</button>
-                                <button type="button" data-rir="2" class="rir-btn py-2 rounded-xl border text-center">2 عدة</button>
-                                <button type="button" data-rir="3" class="rir-btn py-2 rounded-xl border text-center">3 عدات</button>
-                                <button type="button" data-rir="4" class="rir-btn py-2 rounded-xl border text-center">4+ عدات</button>
+                                <button type="button" data-rir="" aria-pressed="true" class="rir-btn active py-2 rounded-xl border text-center">غير محدد</button>
+                                <button type="button" data-rir="0" aria-pressed="false" class="rir-btn py-2 rounded-xl border text-center">0 (فشل🔥)</button>
+                                <button type="button" data-rir="1" aria-pressed="false" class="rir-btn py-2 rounded-xl border text-center">1 عدة</button>
+                                <button type="button" data-rir="2" aria-pressed="false" class="rir-btn py-2 rounded-xl border text-center">2 عدة</button>
+                                <button type="button" data-rir="3" aria-pressed="false" class="rir-btn py-2 rounded-xl border text-center">3 عدات</button>
+                                <button type="button" data-rir="4" aria-pressed="false" class="rir-btn py-2 rounded-xl border text-center">4+ عدات</button>
                             </div>
                         </div>
 
                         <div class="space-y-1 pt-1">
                             <label for="rest-timer-duration" class="block text-xs font-medium text-slate-300">وقت الراحة التلقائي للجولة:</label>
                             <select id="rest-timer-duration" class="w-full glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                                <option value="0">بدون مؤقت (بين مراحل الدروب أو تمريني السوبر)</option>
                                 <option value="60">60 ثانية (تمارين العزل والتراي/الباي)</option>
                                 <option value="90" selected>90 ثانية (معياري)</option>
                                 <option value="120">120 ثانية (2 دقيقة - تمارين مركبة)</option>
@@ -243,12 +253,13 @@
                         <div class="space-y-1.5 pt-1">
                             <label class="block text-xs font-medium text-slate-300">نوع الجولة:</label>
                             <div id="set-type-container" class="grid grid-cols-4 gap-1.5 text-xs font-bold">
-                                <button type="button" data-settype="normal" class="set-type-btn active py-2 px-1 rounded-xl border text-center">عادية</button>
-                                <button type="button" data-settype="warmup" class="set-type-btn py-2 px-1 rounded-xl border text-center">تسخين☀️</button>
-                                <button type="button" data-settype="dropset" class="set-type-btn py-2 px-1 rounded-xl border text-center">دروب📉</button>
-                                <button type="button" data-settype="superset" class="set-type-btn py-2 px-1 rounded-xl border text-center">سوبر⚡</button>
+                                <button type="button" data-settype="normal" aria-pressed="true" class="set-type-btn active py-2 px-1 rounded-xl border text-center">عادية</button>
+                                <button type="button" data-settype="warmup" aria-pressed="false" class="set-type-btn py-2 px-1 rounded-xl border text-center">تسخين☀️</button>
+                                <button type="button" data-settype="dropset" aria-pressed="false" class="set-type-btn py-2 px-1 rounded-xl border text-center">دروب📉</button>
+                                <button type="button" data-settype="superset" aria-pressed="false" class="set-type-btn py-2 px-1 rounded-xl border text-center">سوبر⚡</button>
                             </div>
-                            <p class="field-hint">يُسجل الفشل العضلي تلقائيًا عند اختيار RIR 0.</p>
+                            <p id="set-type-help" class="field-hint" aria-live="polite"></p>
+                            <p class="field-hint">RIR 0 يعني أنك وصلت للفشل. نوع الجولة وRIR يظهران في السجل.</p>
                         </div>
 
                         <button id="btn-save-weights" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
@@ -358,7 +369,7 @@
                     </div>
                     <div>
                         <h3 class="font-bold text-sm text-cyan-300">إضافة تمرين مخصص جديد</h3>
-                        <p class="text-[11px] text-slate-400">اكتب اسم التمرين وسيقوم التطبيق بفحصه وتصنيفه تلقائياً</p>
+                        <p class="text-[11px] text-slate-400">اكتب اسم التمرين ويقترح التطبيق تصنيفه؛ راجع الفئة والأداة قبل الحفظ</p>
                     </div>
                 </div>
 
@@ -371,7 +382,7 @@
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label for="new-ex-cat" class="block text-xs text-slate-400 mb-1">الفئة التدريبية (تلقائي):</label>
+                            <label for="new-ex-cat" class="block text-xs text-slate-400 mb-1">الفئة التدريبية:</label>
                             <select id="new-ex-cat" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
                                 <option value="push">دفع 🏋️</option>
                                 <option value="pull">سحب 🧗</option>
@@ -382,7 +393,7 @@
                         </div>
 
                         <div>
-                            <label for="new-ex-equip" class="block text-xs text-slate-400 mb-1">نوع الجهاز/الأداة (تلقائي):</label>
+                            <label for="new-ex-equip" class="block text-xs text-slate-400 mb-1">نوع الجهاز/الأداة:</label>
                             <select id="new-ex-equip" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
                                 <option value="barbell">أوزان حرة (بار)</option>
                                 <option value="dumbbell">أوزان حرة (دمبل)</option>
@@ -477,7 +488,7 @@
                 <div>
                     <h2 class="font-black text-base text-cyan-300 flex items-center gap-2">
                         <i class="fa-solid fa-chart-pie text-cyan-400"></i>
-                        <span>لوحة التحليل الذكي (Bento Grid)</span>
+                        <span>تحليل القياسات والسعرات التقديرية</span>
                     </h2>
                     <p class="text-xs text-slate-400 mt-0.5">تحليل رياضي تقريبي يعتمد على مدخلات بروفايلك، وليس تشخيصًا طبيًا</p>
                 </div>
@@ -617,18 +628,18 @@
 
                     <button id="btn-wipe-all-data" class="w-full py-2 px-3 rounded-xl bg-red-950/50 hover:bg-red-900/80 text-red-300 font-semibold text-xs border border-red-800/60 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>إعادة ضبط التطبيق بالكامل (مسح IndexedDB)</span>
+                        <span>مسح جميع بيانات التطبيق</span>
                     </button>
                 </div>
             </div>
         </section>
     </main>
 
-    <div class="fixed bottom-20 left-0 right-0 z-30 px-4 pointer-events-none">
-        <div class="max-w-xl mx-auto glass p-2.5 rounded-xl border border-slate-700/60 text-[10px] text-slate-400 text-center leading-tight shadow-lg pointer-events-auto">
-            💡 <span class="font-bold text-slate-300 font-sans">تنويه رياضي:</span> 1RM يظهر حتى 15 عدة فقط، والسعرات والمؤشرات الصحية تقديرات وليست قياسات مخبرية.
-        </div>
-    </div>
+    <details class="app-help max-w-xl mx-auto">
+        <summary>عن الأرقام التقديرية وحفظ البيانات</summary>
+        <p>السعرات و1RM ومؤشرات الجسم تقديرات إرشادية. 1RM يظهر حتى 15 عدة فقط. البيانات محفوظة على هذا الجهاز؛ صدّر نسخة JSON للاحتفاظ بها خارج المتصفح.</p>
+        <p class="field-hint">الإصدار 10.3</p>
+    </details>
 
     <nav id="floating-dock" class="floating-dock px-2 py-2">
         <div class="flex justify-around items-center">
@@ -667,19 +678,49 @@
     </div>
 
     <div id="edit-log-modal" role="dialog" aria-modal="true" aria-labelledby="edit-dialog-title" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-cyan-700 shadow-2xl animate-fade-in">
+        <div class="glass-card edit-dialog p-5 space-y-4 border border-cyan-700 shadow-2xl">
             <h3 id="edit-dialog-title" class="font-black text-base text-cyan-200">تعديل التسجيل</h3>
             <input type="hidden" id="edit-log-id">
+            <div class="edit-field"><label for="edit-log-exercise">التمرين (من نفس نوع التسجيل)</label><select id="edit-log-exercise" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></select></div>
             <div id="edit-weight-fields" class="space-y-3">
-                <div id="edit-log-weight-row"><label class="text-[11px] text-slate-400">الوزن المسجل</label><input id="edit-log-weight" type="number" min="0" max="1000" step="0.1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
-                <div id="edit-log-reps-row"><label class="text-[11px] text-slate-400">العدات</label><input id="edit-log-reps" type="number" min="1" max="150" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
-                <div id="edit-log-rir-row"><label class="text-[11px] text-slate-400">RIR (اتركه فارغًا لغير محدد)</label><input id="edit-log-rir" type="number" min="0" max="4" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
-                <div id="edit-log-seconds-row" class="hidden"><label class="text-[11px] text-slate-400">المدة بالثواني</label><input id="edit-log-seconds" type="number" min="1" max="3600" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div class="edit-field"><label for="edit-log-set-type">نوع الجولة</label><select id="edit-log-set-type" class="w-full glass-input px-3 py-2 rounded-xl text-sm"><option value="normal">عادية</option><option value="warmup">تسخين</option><option value="dropset">دروب</option><option value="superset">سوبر</option><option value="failure">فشل — تصنيف سابق</option></select></div>
+                <div class="edit-field"><label for="edit-log-load-mode">طريقة تسجيل الحمل</label><select id="edit-log-load-mode" class="w-full glass-input px-3 py-2 rounded-xl text-sm"><option value="external">وزن خارجي / بار / جهاز</option><option value="per_hand">دمبل — لكل يد</option><option value="bodyweight">وزن الجسم</option><option value="added">وزن الجسم + إضافي</option><option value="assisted">وزن جسم بمساعدة</option><option value="timed">تمرين بالوقت</option></select></div>
+                <p id="edit-log-load-hint" class="field-hint"></p>
+                <div id="edit-log-weight-row" class="edit-field"><label for="edit-log-weight" id="edit-log-weight-label">الوزن المسجل</label><input id="edit-log-weight" type="number" min="0" max="1000" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div id="edit-log-body-row" class="edit-field hidden"><label for="edit-log-body">وزن الجسم وقت الجولة (كجم)</label><input id="edit-log-body" type="number" min="20" max="350" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div id="edit-log-reps-row" class="edit-field"><label for="edit-log-reps">العدات</label><input id="edit-log-reps" type="number" min="1" max="150" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div id="edit-log-rir-row" class="edit-field"><label for="edit-log-rir">RIR (فارغ = غير محدد)</label><input id="edit-log-rir" type="number" min="0" max="4" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div id="edit-log-seconds-row" class="edit-field hidden"><label for="edit-log-seconds">المدة بالثواني</label><input id="edit-log-seconds" type="number" min="1" max="3600" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
             </div>
-            <div id="edit-cardio-fields" class="hidden"><label class="text-[11px] text-slate-400">المدة بالدقائق</label><input id="edit-log-duration" type="number" min="1" max="300" step="1" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
-            <div class="flex justify-end gap-2">
+            <div id="edit-cardio-fields" class="hidden space-y-3">
+                <div class="edit-field"><label for="edit-log-duration">المدة بالدقائق</label><input id="edit-log-duration" type="number" min="1" max="300" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <div class="edit-field"><label for="edit-cardio-body">وزن الجسم وقت التسجيل (كجم)</label><input id="edit-cardio-body" type="number" min="20" max="350" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                <p class="field-hint">للسجلات القديمة: يمكنك تعديل المدة فقط دون وزن الجسم. أدخل الوزن التاريخي عند تغيير السرعة أو الشدة لإعادة الحساب.</p>
+                <div id="edit-treadmill-fields" class="space-y-3">
+                    <div class="edit-field"><label for="edit-log-speed">السرعة (كم/س)</label><input id="edit-log-speed" type="number" min="1" max="25" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                    <div class="edit-field"><label for="edit-log-incline">الميل %</label><input id="edit-log-incline" type="number" min="0" max="25" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                    <div class="edit-field"><label for="edit-log-movement">الحركة</label><select id="edit-log-movement" class="w-full glass-input px-3 py-2 rounded-xl text-sm"><option value="walking">مشي</option><option value="running">جري</option></select></div>
+                </div>
+                <div id="edit-machine-fields" class="space-y-3">
+                    <div class="edit-field"><label for="edit-log-machine">الجهاز</label><select id="edit-log-machine" class="w-full glass-input px-3 py-2 rounded-xl text-sm"><option value="bike">دراجة ثابتة</option><option value="elliptical">إليبتيكال</option><option value="stairs">درج</option><option value="rowing">تجديف</option><option value="airbike">دراجة هوائية</option></select></div>
+                    <div class="edit-field"><label for="edit-log-intensity">الشدة</label><select id="edit-log-intensity" class="w-full glass-input px-3 py-2 rounded-xl text-sm"><option value="light">خفيفة</option><option value="moderate">متوسطة</option><option value="vigorous">عالية</option></select></div>
+                    <div class="edit-field"><label for="edit-log-watts">الواط (اختياري للدراجة الثابتة)</label><input id="edit-log-watts" type="number" min="0" max="2000" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+                </div>
+            </div>
+            <div class="edit-actions flex justify-end gap-2">
                 <button id="btn-cancel-edit-log" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">إلغاء</button>
                 <button id="btn-confirm-edit-log" class="px-4 py-2 rounded-xl bg-cyan-600 text-white text-xs font-bold">حفظ التعديل</button>
+            </div>
+        </div>
+    </div>
+    <div id="finish-session-modal" role="dialog" aria-modal="true" aria-labelledby="finish-session-title" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
+        <div class="glass-card edit-dialog p-5 space-y-4">
+            <h3 id="finish-session-title">إنهاء الجلسة</h3>
+            <div class="edit-field"><label for="finish-session-duration">المدة الفعلية بالدقائق (تشمل الراحة والكارديو)</label><input id="finish-session-duration" type="number" min="1" step="any" class="w-full glass-input px-3 py-2 rounded-xl text-sm"></div>
+            <p class="field-hint">راجع المدة إذا تركت الجلسة مفتوحة بعد انتهاء تمرينك.</p>
+            <div class="flex justify-end gap-2">
+                <button id="btn-cancel-finish" class="px-4 py-2 rounded-xl bg-slate-800">الرجوع للتمرين</button>
+                <button id="btn-confirm-finish" class="px-4 py-2 rounded-xl bg-cyan-600">إنهاء وعرض الملخص</button>
             </div>
         </div>
     </div>
