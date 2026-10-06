@@ -2,6 +2,7 @@
         'use strict';
 
         const DATA_SCHEMA_VERSION = 10;
+        const { ROUTINE_PRESETS, EXERCISE_DICTIONARY, DEFAULT_EXERCISES, CATEGORY_NAMES, EQUIP_NAMES, ROUTINE_LABELS, LOAD_HINTS, SET_LABELS, SET_HELP } = GymCatalog;
         let saving = false;
         async function dbSaveAll() { await GymStorage.save(state); }
         function uniqueId(prefix) { return prefix + '_' + (crypto.randomUUID ? crypto.randomUUID() : Array.from(crypto.getRandomValues(new Uint32Array(4)), x=>x.toString(16)).join('-')); }
@@ -68,150 +69,11 @@
             return `${year}-${month}-${day}`;
         }
 
-        function getCanonicalWeightKg(log) {
-            const stored = parseFloat(log && log.weight);
-            if (Number.isFinite(stored)) return stored;
-            const displayed = parseFloat(log && log.displayWeight) || 0;
-            return log && log.unit === 'lbs' ? displayed / 2.20462 : displayed;
-        }
+        function getCanonicalWeightKg(log) { return GymCalc.canonicalWeightKg(log); }
 
-        function getVolumeLoadKg(log) {
-            if (log.loadMode === 'timed') return 0;
-            if (Number.isFinite(parseFloat(log.volumeLoadKg))) return parseFloat(log.volumeLoadKg);
-            const base = getCanonicalWeightKg(log);
-            const multiplier = log.loadMode === 'per_hand' ? 2 : 1;
-            return base * multiplier;
-        }
+        function getVolumeLoadKg(log) { return GymCalc.volumeLoadKg(log); }
 
-        function getProgressWeightKg(log) {
-            if (log.loadMode === 'timed') return null;
-            if (log.loadMode === 'assisted' && Number.isFinite(parseFloat(log.effectiveLoadKg))) return parseFloat(log.effectiveLoadKg);
-            if ((log.loadMode === 'bodyweight' || log.loadMode === 'added') && Number.isFinite(parseFloat(log.effectiveLoadKg))) return parseFloat(log.effectiveLoadKg);
-            return getCanonicalWeightKg(log);
-        }
-
-        const ROUTINE_PRESETS = {
-            ppl_push: ['ex_1', 'ex_2', 'ex_4', 'ex_12', 'ex_15', 'ex_20'],
-            ppl_pull: ['ex_24', 'ex_26', 'ex_27', 'ex_38', 'ex_40'],
-            ppl_legs: ['ex_44', 'ex_47', 'ex_49', 'ex_50', 'ex_58'],
-            ul_upper: ['ex_1', 'ex_24', 'ex_12', 'ex_26', 'ex_15', 'ex_38'],
-            ul_lower: ['ex_44', 'ex_52', 'ex_47', 'ex_49', 'ex_50', 'ex_58']
-        };
-
-        const EXERCISE_DICTIONARY = {
-            'hip adduction': { cat: 'legs', equip: 'machine' },
-            'hip abduction': { cat: 'legs', equip: 'machine' },
-            'adduction': { cat: 'legs', equip: 'machine' },
-            'abduction': { cat: 'legs', equip: 'machine' },
-            'hip thrust': { cat: 'legs', equip: 'machine' },
-            'leg press': { cat: 'legs', equip: 'machine' },
-            'leg extension': { cat: 'legs', equip: 'machine' },
-            'leg curl': { cat: 'legs', equip: 'machine' },
-            'squat': { cat: 'legs', equip: 'barbell' },
-            'hack squat': { cat: 'legs', equip: 'machine' },
-            'goblet squat': { cat: 'legs', equip: 'dumbbell' },
-            'bulgarian split squat': { cat: 'legs', equip: 'dumbbell' },
-            'rdl': { cat: 'legs', equip: 'barbell' },
-            'romanian deadlift': { cat: 'legs', equip: 'barbell' },
-            'deadlift': { cat: 'legs', equip: 'barbell' },
-            'calf raise': { cat: 'legs', equip: 'machine' },
-            'lunge': { cat: 'legs', equip: 'dumbbell' },
-            'bench press': { cat: 'push', equip: 'barbell' },
-            'incline bench press': { cat: 'push', equip: 'barbell' },
-            'incline dumbbell press': { cat: 'push', equip: 'dumbbell' },
-            'dumbbell press': { cat: 'push', equip: 'dumbbell' },
-            'chest press': { cat: 'push', equip: 'machine' },
-            'shoulder press': { cat: 'push', equip: 'dumbbell' },
-            'overhead press': { cat: 'push', equip: 'barbell' },
-            'lateral raise': { cat: 'push', equip: 'dumbbell' },
-            'tricep pushdown': { cat: 'push', equip: 'cable_body' },
-            'dips': { cat: 'push', equip: 'cable_body' },
-            'pec deck': { cat: 'push', equip: 'machine' },
-            'lat pulldown': { cat: 'pull', equip: 'machine' },
-            'seated cable row': { cat: 'pull', equip: 'cable_body' },
-            'bent over row': { cat: 'pull', equip: 'barbell' },
-            'dumbbell row': { cat: 'pull', equip: 'dumbbell' },
-            'pull up': { cat: 'pull', equip: 'cable_body' },
-            'bicep curl': { cat: 'pull', equip: 'dumbbell' },
-            'hammer curl': { cat: 'pull', equip: 'dumbbell' },
-            'face pull': { cat: 'pull', equip: 'cable_body' },
-            'shrugs': { cat: 'pull', equip: 'dumbbell' }
-        };
-
-        const DEFAULT_EXERCISES = [
-            { id: 'ex_1', name: 'بنش بريس مستوي بالبار (Barbell Bench Press)', category: 'push', type: 'weights', equip: 'barbell' },
-            { id: 'ex_2', name: 'بنش بريس مائل بالبار (Incline Barbell Bench Press)', category: 'push', type: 'weights', equip: 'barbell' },
-            { id: 'ex_3', name: 'ضغط صدر بالدمبل مستوي (Flat Dumbbell Bench Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_4', name: 'ضغط صدر بالدمبل مائل (Incline Dumbbell Bench Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_5', name: 'ضغط صدر بالدمبل سفلي (Decline Dumbbell Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_6', name: 'تفتيح صدر بالدمبل (Dumbbell Flyes)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_7', name: 'ضغط صدر بالماكينة (Chest Press Machine)', category: 'push', type: 'weights', equip: 'machine' },
-            { id: 'ex_8', name: 'ضغط صدر مائل بالماكينة (Incline Chest Press Machine)', category: 'push', type: 'weights', equip: 'machine' },
-            { id: 'ex_9', name: 'تفتيح صدر جهاز الفراشة (Pec Deck / Fly Machine)', category: 'push', type: 'weights', equip: 'machine' },
-            { id: 'ex_10', name: 'سحب كيبل متقاطع للصدر (Cable Crossover)', category: 'push', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_11', name: 'ضغط أكتاف بالبار واقف (Overhead Barbell Press)', category: 'push', type: 'weights', equip: 'barbell' },
-            { id: 'ex_12', name: 'ضغط أكتاف بالدمبل جالس (Seated Dumbbell Shoulder Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_13', name: 'ضغط أكتاف أرنولد (Arnold Press)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_14', name: 'ضغط أكتاف ماكينة (Shoulder Press Machine)', category: 'push', type: 'weights', equip: 'machine' },
-            { id: 'ex_15', name: 'رفرفة أكتاف جانبي بالدمبل (Dumbbell Lateral Raise)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_16', name: 'رفرفة أكتاف جانبي كيبل (Cable Lateral Raise)', category: 'push', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_17', name: 'رفرفة أكتاف جانبي جهاز (Lateral Raise Machine)', category: 'push', type: 'weights', equip: 'machine' },
-            { id: 'ex_18', name: 'رفرفة أمامي بالدمبل (Dumbbell Front Raise)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_19', name: 'متوازي (Dips)', category: 'push', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_20', name: 'تمديد ترايسيبس بالكيبل (Cable Triceps Pushdown)', category: 'push', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_21', name: 'ترايسيبس كيبل بالحبل (Rope Triceps Pushdown)', category: 'push', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_22', name: 'ترايسيبس بالدمبل خلف الرأس (Dumbbell Overhead Extension)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_23', name: 'ترايسيبس كيك باك بالدمبل (Dumbbell Kickbacks)', category: 'push', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_24', name: 'سحب ظهر عريض عالي (Lat Pulldown Machine)', category: 'pull', type: 'weights', equip: 'machine' },
-            { id: 'ex_25', name: 'سحب ظهر قبضة ضيقة (Close-Grip Lat Pulldown)', category: 'pull', type: 'weights', equip: 'machine' },
-            { id: 'ex_26', name: 'سحب ظهر أرضي كيبل (Seated Cable Row)', category: 'pull', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_27', name: 'سحب ظهر فردي بالدمبل (Single-Arm Dumbbell Row)', category: 'pull', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_28', name: 'سحب ظهر بالبار (Barbell Bent-Over Row)', category: 'pull', type: 'weights', equip: 'barbell' },
-            { id: 'ex_29', name: 'جهاز T-Bar Row', category: 'pull', type: 'weights', equip: 'machine' },
-            { id: 'ex_30', name: 'جهاز سحب ظهر علوي (High Row Machine)', category: 'pull', type: 'weights', equip: 'machine' },
-            { id: 'ex_31', name: 'عقلة (Pull-ups / Chin-ups)', category: 'pull', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_32', name: 'جهاز العقلة المساعد (Assisted Pull-Up Machine)', category: 'pull', type: 'weights', equip: 'machine' },
-            { id: 'ex_33', name: 'بلوفر بالدمبل (Dumbbell Pullover)', category: 'pull', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_34', name: 'رفرفة أكتاف خلفي جهاز (Reverse Pec Deck)', category: 'pull', type: 'weights', equip: 'machine' },
-            { id: 'ex_35', name: 'رفرفة خلفي بالدمبل (Rear Delt Dumbbell Fly)', category: 'pull', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_36', name: 'سحب كيبل للوجه - أكتاف خلفية (Cable Face Pull)', category: 'pull', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_37', name: 'هز أكتاف / ترابيس بالدمبل (Dumbbell Shrugs)', category: 'pull', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_38', name: 'مرجحة بايسبس بالبار (Barbell Biceps Curl)', category: 'pull', type: 'weights', equip: 'barbell' },
-            { id: 'ex_39', name: 'مرجحة بايسبس بالدمبل (Dumbbell Biceps Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_40', name: 'مرجحة بايسبس هامر / مطرقة (Dumbbell Hammer Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_41', name: 'مرجحة بايسبس على بنش مائل (Incline Dumbbell Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_42', name: 'مرجحة بايسبس بالكيبل (Cable Biceps Curl)', category: 'pull', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_43', name: 'مرجحة بايسبس تركيز (Concentration Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_44', name: 'سكوات بالبار (Barbell Squat)', category: 'legs', type: 'weights', equip: 'barbell' },
-            { id: 'ex_45', name: 'سكوات على جهاز السميث (Smith Machine Squat)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_46', name: 'هاك سكوات ماكينة (Hack Squat Machine)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_47', name: 'مكبس أرجل (Leg Press Machine)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_48', name: 'سكوات كوب بالدمبل (Dumbbell Goblet Squat)', category: 'legs', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_49', name: 'جهاز تمديد الأرجل أمامي (Leg Extension Machine)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_50', name: 'جهاز ثني الأرجل خلفي جالس (Seated Leg Curl)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_51', name: 'جهاز ثني الأرجل خلفي مستلقي (Lying Leg Curl)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_52', name: 'ديدليفت روماني بالبار (Barbell RDL)', category: 'legs', type: 'weights', equip: 'barbell' },
-            { id: 'ex_53', name: 'ديدليفت روماني بالدمبل (Dumbbell RDL)', category: 'legs', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_54', name: 'طعن / لانجز بالدمبل (Dumbbell Lunges)', category: 'legs', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_55', name: 'سكوات بلغاري بالدمبل (Bulgarian Split Squat)', category: 'legs', type: 'weights', equip: 'dumbbell' },
-            { id: 'ex_56', name: 'جهاز ضم وإبعاد الفخذ (Abductor / Adductor Machine)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_57', name: 'جهاز هيب ثرست للمقعدة (Hip Thrust Machine)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_58', name: 'جهاز سمانة واقف (Standing Calf Raise Machine)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_59', name: 'جهاز سمانة جالس (Seated Calf Raise Machine)', category: 'legs', type: 'weights', equip: 'machine' },
-            { id: 'ex_60', name: 'طحن معدة (Crunches)', category: 'abs', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_61', name: 'رفع الأرجل معلق (Hanging Leg Raise)', category: 'abs', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_62', name: 'تمرين البلانك (Plank)', category: 'abs', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_63', name: 'طحن معدة بالكيبل (Cable Crunch)', category: 'abs', type: 'weights', equip: 'cable_body' },
-            { id: 'ex_64', name: 'جهاز المشي (Treadmill)', category: 'cardio', type: 'treadmill', equip: 'cardio' },
-            { id: 'ex_65', name: 'دراجة تمارين ثابتة (Stationary Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
-            { id: 'ex_66', name: 'جهاز الغزالة / أوبتكال (Elliptical Trainer)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
-            { id: 'ex_67', name: 'جهاز سلالم الدرج (Stair Master)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
-            { id: 'ex_68', name: 'جهاز التجديف (Rowing Machine)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
-            { id: 'ex_69', name: 'دراجة هوائية (Air Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' }
-        ];
-
-        const CATEGORY_NAMES = { push: 'دفع 🏋️', pull: 'سحب 🧗', legs: 'أرجل 🦵', abs: 'بطن 🧱', cardio: 'كارديو 🏃' };
-        const EQUIP_NAMES = { barbell: 'بار 🏋️‍♂️', dumbbell: 'دمبل 🏋️‍♀️', machine: 'أجهزة 🤖', cable_body: 'كابل/وزن جسم 🦾', cardio: 'كارديو 🏃‍♂️' };
+        function getProgressWeightKg(log) { return GymCalc.progressWeightKg(log); }
 
         let state = {
             profile: { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, activityFactor: 1.375, history: [] },
@@ -260,86 +122,17 @@
             restoreActiveSession();
         }
 
-        function calculateCalories(type, data) {
-            const userWeight = parseFloat(data.bodyWeightKgAtLog) || parseFloat(state.profile.weight) || 75;
-            let netCalories = 0;
+        function calculateCalories(type, data) { return GymCalc.calories(type, data, state.profile.weight); }
 
-            if (type === 'weights') {
-                // Calories for resistance training are estimated once per completed
-                // session from duration and overall effort, never from kilograms lifted.
-                return 0;
-
-            } else if (type === 'treadmill') {
-                const speedKmH = parseFloat(data.speed) || 6.0;
-                const inclineLevel = Number.isFinite(Number(data.incline)) ? Number(data.incline) : 1.0;
-                const durationMins = parseFloat(data.duration) || 15;
-                const speedMMin = speedKmH * (1000 / 60);
-                const inclineFrac = inclineLevel / 100;
-
-                const movement = data.movement === 'running' ? 'running' : 'walking';
-                let vo2 = movement === 'walking'
-                    ? 3.5 + (0.1 * speedMMin) + (1.8 * speedMMin * inclineFrac)
-                    : 3.5 + (0.2 * speedMMin) + (0.9 * speedMMin * inclineFrac);
-
-                const netVO2 = Math.max(vo2 - 3.5, 0.5);
-                netCalories = ((netVO2 * userWeight) / 200) * durationMins;
-
-            } else if (type === 'bike_elliptical') {
-                const durationMins = parseFloat(data.duration) || 15;
-                const intensity = ['light', 'moderate', 'vigorous'].includes(data.intensity) ? data.intensity : 'moderate';
-                const machine = data.machine || 'bike';
-                const metTable = {
-                    bike: { light: 4.0, moderate: 6.8, vigorous: 10.0 },
-                    elliptical: { light: 5.0, moderate: 7.0, vigorous: 9.0 },
-                    stairs: { light: 6.0, moderate: 8.8, vigorous: 11.0 },
-                    rowing: { light: 4.8, moderate: 7.0, vigorous: 12.0 },
-                    airbike: { light: 6.0, moderate: 9.0, vigorous: 12.0 }
-                };
-                let grossMET = (metTable[machine] || metTable.bike)[intensity];
-                const watts = parseFloat(data.watts);
-                if (Number.isFinite(watts) && watts > 0 && machine === 'bike') {
-                    const cyclingVO2 = 7 + ((1.8 * watts * 6.12) / userWeight);
-                    grossMET = Math.max(3, Math.min(16, cyclingVO2 / 3.5));
-                }
-                const netMET = Math.max(grossMET - 1.0, 1.0);
-                netCalories = netMET * userWeight * (durationMins / 60);
-            }
-
-            return Math.round(netCalories * 10) / 10;
-        }
-
-        function estimateWeightSessionCalories(session, sessionLogs) {
-            const totalMinutes = Math.max(0, ((session.endedAt || Date.now()) - session.startedAt) / 60000);
-            const cardioMinutes = sessionLogs.filter(l => l.type !== 'weights').reduce((n,l) => n + (Number(l.duration) || 0), 0);
-            const durationMins = Math.max(0, totalMinutes - cardioMinutes);
-            const working = sessionLogs.filter(l => l.type === 'weights' && l.setType !== 'warmup');
-            if (!working.length) return 0;
-            const rirValues = working.filter(l => l.rir !== null && l.rir !== undefined && l.rir !== '').map(l => Number(l.rir)).filter(Number.isFinite);
-            const averageRir = rirValues.length ? rirValues.reduce((a, b) => a + b, 0) / rirValues.length : 2;
-            const grossMET = averageRir <= 1 ? 6.0 : averageRir <= 2 ? 5.0 : 3.5;
-            const netMET = Math.max(grossMET - 1, 1);
-            const userWeight = parseFloat(session.bodyWeightKgAtStart) || parseFloat(sessionLogs.find(l => l.bodyWeightKgAtLog)?.bodyWeightKgAtLog) || 75;
-            return Math.round(netMET * userWeight * (durationMins / 60) * 10) / 10;
-        }
+        function estimateWeightSessionCalories(session, sessionLogs) { return GymCalc.weightSessionCalories(session, sessionLogs); }
 
         async function refreshCompletedSessionSummary(sessionId) {
             const session = state.sessions.find(s => s.id === sessionId && s.status === 'completed');
             if (!session) return;
             const sessionLogs = state.logs.filter(l => l.sessionId === session.id);
-            const workingLogs = sessionLogs.filter(l => l.type === 'weights' && l.setType !== 'warmup');
-            session.estimatedCalories = estimateWeightSessionCalories(session, sessionLogs);
-            session.cardioCalories = sessionLogs.filter(l => l.type !== 'weights').reduce((n,l) => n + (Number(l.calories) || 0), 0);
-            session.totalEstimatedCalories = Math.round((session.estimatedCalories + session.cardioCalories) * 10) / 10;
-            session.totalVolumeKg = workingLogs.reduce((sum, l) => sum + getVolumeLoadKg(l) * (Number(l.reps) || 1), 0);
-            session.workingSets = workingLogs.length;
-            session.exerciseIds = [...new Set(sessionLogs.map(l => l.exerciseId))];
+            Object.assign(session, GymCalc.sessionSummary(session, sessionLogs));
             session.editedAt = Date.now();
         }
-
-        const ROUTINE_LABELS = {
-            free: 'جلسة حرة', ppl_push: 'دفع (Push)', ppl_pull: 'سحب (Pull)',
-            ppl_legs: 'أرجل (Legs)', ul_upper: 'علوي (Upper)', ul_lower: 'سفلي (Lower)'
-        };
 
         function getActiveSession() {
             return state.sessions.find(s => s.id === activeSessionId && s.status === 'active') || null;
@@ -401,12 +194,7 @@
             session.status = 'completed';
             const weightLogs = sessionLogs.filter(l => l.type === 'weights');
             const workingLogs = weightLogs.filter(l => l.setType !== 'warmup');
-            session.estimatedCalories = estimateWeightSessionCalories(session, sessionLogs);
-            session.cardioCalories = sessionLogs.filter(l => l.type !== 'weights').reduce((n,l) => n + (Number(l.calories) || 0), 0);
-            session.totalEstimatedCalories = Math.round((session.estimatedCalories + session.cardioCalories) * 10) / 10;
-            session.totalVolumeKg = workingLogs.reduce((sum, l) => sum + getVolumeLoadKg(l) * (Number(l.reps) || 1), 0);
-            session.workingSets = workingLogs.length;
-            session.exerciseIds = [...new Set(sessionLogs.map(l => l.exerciseId))];
+            Object.assign(session, GymCalc.sessionSummary(session, sessionLogs));
             session.editedAt = Date.now();
             await dbSaveAll('sessions', state.sessions);
             activeSessionId = null;
@@ -698,24 +486,7 @@
             }
         }
 
-        function getDefaultLoadMode(exercise) {
-            if (!exercise) return 'external';
-            if (exercise.id === 'ex_62') return 'timed';
-            if (exercise.id === 'ex_32') return 'assisted';
-            if (['ex_19', 'ex_31', 'ex_60', 'ex_61'].includes(exercise.id)) return 'bodyweight';
-            if (['ex_22','ex_33','ex_48'].includes(exercise.id)) return 'external';
-            if (exercise.equip === 'dumbbell') return 'per_hand';
-            return 'external';
-        }
-
-        const LOAD_HINTS = {
-                external: 'يسجل الوزن المدخل كما هو ويستخدمه في القوة والحجم.',
-                per_hand: 'الرقم هو وزن الدمبل الواحد؛ الحجم التدريبي يحسب اليدين ×2.',
-                bodyweight: 'يستخدم وزن جسمك من البروفايل. خانة الوزن يمكن تركها صفرًا.',
-                added: 'أدخل الوزن الإضافي فقط؛ الحمل الفعلي = وزن الجسم + الوزن الإضافي.',
-                assisted: 'أدخل مقدار المساعدة؛ التقدم يتحسن عندما تقل المساعدة.',
-                timed: 'للبلانك والتمارين الزمنية؛ يسجل الثواني بدل العدات ولا يحسب 1RM.'
-            };
+        function getDefaultLoadMode(exercise) { return GymCalc.defaultLoadMode(exercise); }
 
         function setLoadMode(mode) {
             activeLoadMode = mode || 'external';
@@ -793,9 +564,6 @@
             update1RMLiveDisplay();
             showToast('تمت تعبئة الجولة المختارة؛ اضغط حفظ بعد أدائها 📋');
         }
-
-        const SET_LABELS={normal:'عادية',warmup:'تسخين',dropset:'دروب',drop:'دروب',superset:'سوبر',failure:'فشل (سجل سابق)'};
-        const SET_HELP={normal:'جولة العمل الأساسية بوزن وعدات تختارها. تُحسب ضمن جولات العمل.',warmup:'جولة خفيفة للتحضير. تبقى في السجل وتُستبعد من جولات العمل ومنحنى التطور.',dropset:'تخفض الوزن بعد جولة وتكمل العدات. سجّل كل مرحلة وحدها، واختر «بدون مؤقت» بين المراحل.',superset:'تمرينان متتاليان بدون راحة بينهما. سجّل كل تمرين وحده، واختر «بدون مؤقت» حتى تنتهي منهما.',failure:'تصنيف محفوظ من نسخة سابقة. استخدم RIR 0 عند تسجيل جولة جديدة وصلت فيها للفشل.'};
         function updateSetHelp(){const help=document.getElementById('set-type-help');if(help)help.textContent=SET_HELP[activeSetType]||SET_HELP.normal;}
         function logMetadata(log){
             const type=SET_LABELS[log.setType]||SET_LABELS.normal;
@@ -1213,33 +981,7 @@
             document.getElementById('rest-timer-widget').classList.add('hidden');
         }
 
-        function runLocalClassification(cleanName) {
-            if (/(ضغط.*(أرجل|ارجل)|مكبس.*(أرجل|ارجل))/i.test(cleanName)) return {cat:'legs',equip:'machine'};
-            if (/(رفرفة.*خلف|rear.*delt)/i.test(cleanName)) return {cat:'pull',equip:null};
-            if (/(rowing|تجديف|treadmill|مشي|دراجة|elliptical|stair)/i.test(cleanName)) return {cat:'cardio',equip:'cardio'};
-            for (const [key, val] of Object.entries(EXERCISE_DICTIONARY).sort((a,b) => b[0].length-a[0].length)) {
-                if (cleanName.includes(key)) {
-                    return { cat: val.cat, equip: val.equip };
-                }
-            }
-
-            let cat = null;
-            let equip = null;
-
-            if (/(ضغط|صدر|بنش|أكتاف|اكتاف|كتف|ترايسيبس|تراي|متوازي|رفرفة|تفتيح|press|bench|chest|shoulder|tricep|fly|dip|overhead|pec|push)/i.test(cleanName)) cat = 'push';
-            else if (/(سحب|ظهر|عقلة|عقله|بايسبس|باي|ترابيس|مطرقة|هامر|رو|بلوفر|وجه|pulldown|row|pull|back|biceps|curl|shrug|chin|lat|face|rear|delt)/i.test(cleanName)) cat = 'pull';
-            else if (/(سكوات|أرجل|ارجل|فخذ|سمانة|طعن|مكبس|مقعدة|مؤخرة|هيب|ضم|إبعاد|ابعاد|ضام|ادكشن|ابداكشن|squat|leg|lunge|calf|thrust|extension|curl|adduct|abduct|hip|glute|hamstring|quad|rdl|deadlift)/i.test(cleanName)) cat = 'legs';
-            else if (/(بطن|معدة|معده|بلانك|طحن|crunch|plank|abs|core|situp)/i.test(cleanName)) cat = 'abs';
-            else if (/(مشي|دراجة|دراجه|سير|غزالة|غزاله|كارديو|سلم|تجديف|treadmill|bike|run|elliptical|stair|rowing|cardio)/i.test(cleanName)) cat = 'cardio';
-
-            if (/(بار|باربل|barbell|ez)/i.test(cleanName)) equip = 'barbell';
-            else if (/(دمبل|دمبلز|dumbbell)/i.test(cleanName)) equip = 'dumbbell';
-            else if (/(جهاز|ماكينة|ماكينه|سميث|مكبس|machine|smith|adductor|abductor|deck)/i.test(cleanName)) equip = 'machine';
-            else if (/(كيبل|كابل|حبل|وزن جسم|cable|body|rope|dip|pullup)/i.test(cleanName)) equip = 'cable_body';
-            else if (/(كارديو|تأهيل|cardio)/i.test(cleanName)) equip = 'cardio';
-
-            return { cat, equip };
-        }
+        function runLocalClassification(cleanName) { return GymCalc.classifyExercise(cleanName); }
 
         function onCustomExerciseInput(val) {
             const cleanName = val.trim().toLowerCase();
@@ -1450,21 +1192,7 @@
             const logs=state.logs.filter(l=>l.exerciseId===exerciseId && l.type==='weights' && l.setType!=='warmup');
             const newest=logs.slice().sort((a,b)=>(b.timestamp||Date.parse(b.date))-(a.timestamp||Date.parse(a.date)))[0];
             const mode=document.getElementById('progress-load-mode').value || newest?.loadMode || 'external';
-            const filtered=logs.filter(l=>(l.loadMode||'external')===mode);
-            const groups=new Map();
-            for(const l of filtered) {
-                const key=l.sessionId||l.date;
-                const value=mode==='timed'?Number(l.durationSeconds)||0:getProgressWeightKg(l);
-                const existing=groups.get(key);
-                const rm=mode==='timed'?null:calculate1RM(value,l.reps);
-                if(!existing)groups.set(key,{date:l.date,time:l.timestamp||Date.parse(l.date),weight:value,reps:l.reps,oneRm:rm,rir:l.rir});
-                else {
-                    existing.time=Math.min(existing.time,l.timestamp||Date.parse(l.date));
-                    if(value>existing.weight||(value===existing.weight&&l.reps>existing.reps)){Object.assign(existing,{weight:value,reps:l.reps,rir:l.rir});}
-                    if(Number.isFinite(rm))existing.oneRm=Math.max(existing.oneRm||0,rm);
-                }
-            }
-            return {mode,groups:[...groups.values()].sort((a,b)=>a.time-b.time)};
+            return {mode,groups:GymCalc.progressionGroups(state.logs,exerciseId,mode)};
         }
         function renderExerciseProgressionHistory(selectedExId) {
             const container=document.getElementById('exercise-progression-history-list');
@@ -1542,56 +1270,36 @@
             if (!calContainer) return;
             calContainer.innerHTML = ''; healthContainer.innerHTML = ''; compContainer.innerHTML = '';
 
-            const p = state.profile;
-            const weight = parseFloat(p.weight);
-            const height = parseFloat(p.height);
-            const waist = parseFloat(p.waist);
-            const fat = parseFloat(p.fat);
-            const muscle = parseFloat(p.muscle);
-            const water = parseFloat(p.water);
-            const age = parseFloat(p.age) || 25;
-            const isMan = p.isMan !== false;
-
-            if (!weight || !height) {
+            const m = GymCalc.bodyMetrics(state.profile);
+            if (!m) {
                 calContainer.innerHTML = `<div class="col-span-3 glass-card p-4 text-center text-xs text-slate-400">يرجى الانتقال لصفحة "البروفايل" وإدخال الطول والوزن لظهور التحليل الذكي 🧠</div>`;
                 return;
             }
-
-            let bmr = (10 * weight) + (6.25 * height) - (5 * age) + (isMan ? 5 : -161);
-            const activityFactor = parseFloat(p.activityFactor) || 1.375;
-            const tdee = Math.round(bmr * activityFactor);
-            const cutLow = Math.round(tdee * 0.90);
-            const cutHigh = Math.round(tdee * 0.80);
-            const bulkLow = Math.round(tdee * 1.05);
-            const bulkHigh = Math.round(tdee * 1.10);
-
+            const { tdee, cutLow, cutHigh, bulkLow, bulkHigh, bmi } = m;
             calContainer.innerHTML += createBentoCard('تثبيت الوزن (Maintenance)', tdee.toLocaleString() + '🔥', 'هدف التوازن 🎯', 'bg-cyan-950 text-cyan-300 border-cyan-800', 'text-cyan-300', 'تقدير يومي للمحافظة على الوزن، ويُراجع حسب تغير وزنك الفعلي.');
             calContainer.innerHTML += createBentoCard('نقصان الوزن (Fat Loss)', `${cutHigh.toLocaleString()}–${cutLow.toLocaleString()}🔥`, 'عجز 10–20% 📉', 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-emerald-300', 'نطاق مبدئي للتنشيف يُعدّل حسب تغير الوزن والأداء، دون ضمان تلقائي لمنع فقدان العضلات.');
             calContainer.innerHTML += createBentoCard('زيادة نظيفة (Lean Bulk)', `${bulkLow.toLocaleString()}–${bulkHigh.toLocaleString()}🔥`, 'فائض 5–10% 📈', 'bg-amber-950 text-amber-300 border-amber-800', 'text-amber-300', 'فائض محافظ كبداية، ثم يُعدّل حسب معدل زيادة الوزن.');
 
-            const heightM = height / 100;
-            const bmi = (weight / (heightM * heightM)).toFixed(1);
-            let bmiStatus = bmi < 18.5 ? 'أقل من النطاق الطبيعي 🟡' : bmi <= 24.9 ? 'ضمن النطاق الطبيعي 🟢' : bmi <= 29.9 ? 'أعلى من النطاق الطبيعي 🟠' : 'مرتفع حسب BMI 🔴';
+            const bmiStatus = { under: 'أقل من النطاق الطبيعي 🟡', normal: 'ضمن النطاق الطبيعي 🟢', over: 'أعلى من النطاق الطبيعي 🟠', high: 'مرتفع حسب BMI 🔴' }[m.bmiBand];
             healthContainer.innerHTML += createBentoCard('مؤشر الكتلة (BMI)', bmi, bmiStatus, 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-cyan-300', 'أداة فرز عامة لا تميز بين العضلات والدهون، وقد تضلل لدى لاعبي الحديد.');
 
-            if (waist) {
-                const whtr = (waist / height).toFixed(2);
-                let whtrStatus = whtr < 0.5 ? 'أقل من 0.5 🟢' : whtr < 0.6 ? 'يستحق المتابعة 🟠' : 'مرتفع كأداة فرز 🔴';
+            if (m.whtr) {
+                const whtr = m.whtr;
+                const whtrStatus = { low: 'أقل من 0.5 🟢', watch: 'يستحق المتابعة 🟠', high: 'مرتفع كأداة فرز 🔴' }[m.whtrBand];
                 healthContainer.innerHTML += createBentoCard('نسبة الخصر للطول (WHtR)', whtr, whtrStatus, 'bg-blue-950 text-blue-300 border-blue-800', 'text-blue-300', 'مؤشر بسيط مرتبط بالسمنة المركزية، وليس قياسًا مباشرًا للدهون الحشوية.');
             }
 
-            if (fat) {
-                const leanMass = weight * (1 - (fat / 100));
-                const ffmi = (leanMass / (heightM * heightM) + 6.3 * (1.8 - heightM)).toFixed(1);
+            if (m.fat) {
+                const fat = m.fat, ffmi = m.ffmi;
                 compContainer.innerHTML += createBentoCard('نسبة الدهون %', fat + '%', 'شحوم الجسم', 'bg-rose-950 text-rose-300 border-rose-800', 'text-rose-300', 'نسبة الدهون الكلية.');
                 compContainer.innerHTML += createBentoCard('مؤشر الكتلة الخالية من الدهون (FFMI)', ffmi, 'Fat-Free Mass Index', 'bg-purple-950 text-purple-300 border-purple-800', 'text-indigo-400', 'يشمل الكتلة الخالية من الدهون كلها، وليس العضلات وحدها.');
             }
 
-            if (muscle) {
-                compContainer.innerHTML += createBentoCard('العضلات %', muscle + '%', 'أنسجة عضلية', 'bg-teal-950 text-teal-300 border-teal-800', 'text-teal-400', 'نسبة الأنسجة العضلية.');
+            if (m.muscle) {
+                compContainer.innerHTML += createBentoCard('العضلات %', m.muscle + '%', 'أنسجة عضلية', 'bg-teal-950 text-teal-300 border-teal-800', 'text-teal-400', 'نسبة الأنسجة العضلية.');
             }
-            if (water) {
-                compContainer.innerHTML += createBentoCard('السوائل %', water + '%', 'ترطيب الخلايا', 'bg-sky-950 text-sky-300 border-sky-800', 'text-sky-300', 'نسبة السوائل الترطيبية.');
+            if (m.water) {
+                compContainer.innerHTML += createBentoCard('السوائل %', m.water + '%', 'ترطيب الخلايا', 'bg-sky-950 text-sky-300 border-sky-800', 'text-sky-300', 'نسبة السوائل الترطيبية.');
             }
         }
 
