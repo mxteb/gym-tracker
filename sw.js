@@ -1,7 +1,7 @@
 'use strict';
 const CACHE_PREFIX='gym-tracker-';
-const CACHE_NAME='gym-tracker-v10-5-0';
-const APP_SHELL=['./index.html','./styles.css','./storage.js','./data.js','./catalog.js','./calc.js','./app.js','./manifest.json','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE_NAME='gym-tracker-v10-6-0';
+const APP_SHELL=['./index.html','./styles.css','./theme.css','./storage.js','./data.js','./catalog.js','./calc.js','./visual.js','./app.js','./manifest.json','./assets/icon-192.png','./assets/icon-512.png','./assets/fonts/alexandria.woff','./assets/fonts/bigshoulders-stencil.woff','./assets/fonts/handjet.woff'];
 const home=new URL('./index.html',self.registration.scope).href;
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{

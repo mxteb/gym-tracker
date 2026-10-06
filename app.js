@@ -75,6 +75,113 @@
 
         function getProgressWeightKg(log) { return GymCalc.progressWeightKg(log); }
 
+        // v10.6 — نوع الرسمة ووزن الجهاز. عرض وإعدادات فقط؛ الحساب في data.js/calc.js.
+        const PLATE_LOADED = /(leg press|hack|smith|t-bar|مكبس|هاك|سميث|تي بار)/i;
+        function currentExercise() { return state.exercises.find(e => e.id === document.getElementById('exercise-dropdown')?.value); }
+        function rigFor(ex) { return ex?.rig || (PLATE_LOADED.test(ex?.name || '') ? 'plates' : 'pin'); }
+        function usesMachineWeight(ex, mode) { return !!ex && ex.type === 'weights' && mode === 'external' && ['machine', 'cable_body'].includes(ex.equip); }
+        function machineKgFor(ex, mode) { return usesMachineWeight(ex, mode) ? Number(ex.machineKg) || 0 : 0; }
+        function visualKind(ex, mode) {
+            if (!ex) return null;
+            if (ex.type === 'treadmill') return 'treadmill';
+            if (ex.type === 'bike_elliptical') return 'cardio';
+            if (mode === 'timed') return 'timed';
+            if (['bodyweight', 'added', 'assisted'].includes(mode)) return 'body';
+            if (mode === 'per_hand' || ex.equip === 'dumbbell') return 'dumbbell';
+            if (ex.equip === 'barbell') return 'bar';
+            if (ex.equip === 'machine' || ex.equip === 'cable_body') return rigFor(ex);
+            return null;
+        }
+        function renderEquipVisual() {
+            const host = document.getElementById('equip-visual');
+            if (!host || !window.GymVisual) return;
+            const ex = currentExercise();
+            const kind = visualKind(ex, activeLoadMode);
+            if (!kind) { GymVisual.render(host, null); return; }
+            const num = id => parseFloat(document.getElementById(id)?.value) || 0;
+            const toUnit = kg => activeWeightUnit === 'lbs' ? Math.round(kg * 2.20462 * 10) / 10 : kg;
+            const spec = { kind, unit: activeWeightUnit, mode: activeLoadMode, total: num('input-weight'), extra: num('input-weight') };
+            if (kind === 'bar') spec.barKg = Number.isFinite(Number(ex.barKg)) && ex.barKg !== undefined && ex.barKg !== '' ? toUnit(Number(ex.barKg)) : undefined;
+            if (kind === 'pin' || kind === 'plates') spec.machineKg = toUnit(machineKgFor(ex, activeLoadMode));
+            if (kind === 'body') spec.bodyKg = toUnit(parseFloat(state.profile.weight) || 0);
+            if (kind === 'timed') spec.seconds = num('input-duration-sec');
+            if (kind === 'treadmill') Object.assign(spec, { speed: num('input-tm-speed'), incline: num('input-tm-incline'), minutes: num('input-tm-duration') });
+            if (kind === 'cardio') {
+                const sel = document.getElementById('cardio-intensity-select');
+                Object.assign(spec, { minutes: num('input-be-duration'), watts: num('input-cardio-watts'), intensityLabel: sel?.selectedOptions[0]?.textContent || '' });
+            }
+            GymVisual.render(host, spec);
+        }
+        function renderEquipSettings() {
+            const box = document.getElementById('equip-settings');
+            if (!box) return;
+            const ex = currentExercise();
+            const machine = usesMachineWeight(ex, activeLoadMode);
+            const barbell = !!ex && ex.type === 'weights' && ex.equip === 'barbell' && activeLoadMode === 'external';
+            document.getElementById('machine-weight-row').classList.toggle('hidden', !machine);
+            document.getElementById('bar-weight-row').classList.toggle('hidden', !barbell);
+            box.classList.toggle('hidden', !machine && !barbell);
+            if (machine) {
+                const input = document.getElementById('input-machine-kg');
+                if (document.activeElement !== input) input.value = Number(ex.machineKg) > 0 ? ex.machineKg : '';
+                document.getElementById('rig-select').value = rigFor(ex);
+                const past = state.logs.filter(l => l.exerciseId === ex.id && l.type === 'weights' && (l.loadMode || 'external') === 'external' && (Number(l.machineKg) || 0) !== (Number(ex.machineKg) || 0)).length;
+                const applyBtn = document.getElementById('btn-apply-machine-past');
+                applyBtn.classList.toggle('hidden', !past);
+                applyBtn.textContent = `طبّق وزن الجهاز الحالي على جولاتي السابقة (${past})`;
+            }
+            if (barbell) {
+                const input = document.getElementById('input-bar-kg');
+                if (document.activeElement !== input) input.value = ex.barKg ?? '';
+            }
+        }
+        async function saveExerciseSetting(patch) {
+            const ex = currentExercise();
+            if (!ex) return;
+            const index = state.exercises.findIndex(e => e.id === ex.id);
+            const next = { ...ex, ...patch, editedAt: Date.now() };
+            for (const k of Object.keys(patch)) if (patch[k] === null || patch[k] === '') delete next[k];
+            state.exercises[index] = next;
+            await GymStorage.save(state);
+            renderEquipSettings(); update1RMLiveDisplay();
+        }
+        async function saveMachineKg() {
+            const raw = document.getElementById('input-machine-kg').value;
+            const value = raw === '' ? 0 : readField('input-machine-kg', 'وزن الجهاز', 0, 500);
+            await saveExerciseSetting({ machineKg: value > 0 ? value : null });
+        }
+        async function saveBarKg() {
+            const raw = document.getElementById('input-bar-kg').value;
+            const value = raw === '' ? null : readField('input-bar-kg', 'وزن البار', 0, 50);
+            await saveExerciseSetting({ barKg: value });
+        }
+        function applyMachineToPast() {
+            const ex = currentExercise();
+            if (!ex) return;
+            const kg = Number(ex.machineKg) || 0;
+            const targets = state.logs.filter(l => l.exerciseId === ex.id && l.type === 'weights' && (l.loadMode || 'external') === 'external' && (Number(l.machineKg) || 0) !== kg);
+            showModal({
+                title: 'تطبيق وزن الجهاز على السجل',
+                message: `بيتغير حساب ${targets.length} جولة سابقة لـ "${ex.name}" عشان تنحسب بوزن جهاز ${kg} كجم (الأقراص اللي سجلتها ما تتغير). تقدر ترجعها بكتابة صفر وتطبيقه مرة ثانية.`,
+                confirmText: 'طبّق', cancelText: 'إلغاء',
+                onConfirm: async () => {
+                    const sessions = new Set();
+                    state.logs = state.logs.map(l => {
+                        if (!targets.includes(l)) return l;
+                        const next = { ...l, editedAt: Date.now() };
+                        if (kg > 0) next.machineKg = kg; else delete next.machineKg;
+                        Object.assign(next, GymData.validateLog(next));
+                        if (l.sessionId) sessions.add(l.sessionId);
+                        return next;
+                    });
+                    for (const id of sessions) await refreshCompletedSessionSummary(id);
+                    await GymStorage.save(state);
+                    renderEquipSettings();
+                    showToast(`تم تحديث ${targets.length} جولة`);
+                }
+            });
+        }
+
         let state = {
             profile: { id: 'user_profile', name: '', weight: '', height: '', waist: '', age: '', fat: '', muscle: '', water: '', isMan: true, activityFactor: 1.375, history: [] },
             exercises: [],
@@ -162,7 +269,7 @@
             await dbSaveAll('sessions', state.sessions);
             if (ROUTINE_PRESETS[routine]) loadPresetRoutine(routine);
             updateSessionUI();
-            showToast(`بدأت ${session.name} 💪`);
+            showToast(`بدأت ${session.name}`);
             return session;
         }
 
@@ -211,7 +318,7 @@
             document.getElementById('finish-session-modal').classList.add('hidden');
             document.dispatchEvent(new CustomEvent('gym:session-finished', { detail: { sessionId: session.id } }));
             showModal({
-                title: `ملخص ${session.name} ✅`,
+                title: `ملخص ${session.name}`,
                 message: `المدة: ${durationLabel} دقيقة | الجولات الفعلية: ${workingLogs.length} | الحجم الفعلي: ${(session.totalVolumeKg / 1000).toFixed(2)} طن | متوسط RIR: ${avgRir} | أعلى 1RM مسجل بين التمارين: ${bestOneRm} | السعرات التقديرية للحديد والكارديو: ${session.totalEstimatedCalories}`,
                 confirmText: 'تم', cancelText: 'إغلاق'
             });
@@ -261,7 +368,7 @@
             });
             container.innerHTML = `<strong class="text-cyan-300">${escapeHTML(title)}:</strong> ` + Object.entries(grouped).map(([name, sets]) => `${escapeHTML(name)}: ${escapeHTML(sets.join(' · '))}`).join('<br>');
             container.classList.remove('hidden');
-            showToast(`تم تحميل ${Object.keys(grouped).length} تمارين من الجلسة السابقة 📋`);
+            showToast(`تم تحميل ${Object.keys(grouped).length} تمارين من الجلسة السابقة`);
         }
 
         function updateSessionUI() {
@@ -326,14 +433,14 @@
             renderCategoryTabs();setEquipFilter('all',document.querySelector('[data-equip="all"]'));
             activePresetFilterIds = exIds;
             renderExerciseDropdown();
-            showToast('تم عرض قائمة التمارين الجاهزة ⚡');
+            showToast('تم عرض قائمة التمارين الجاهزة');
         }
 
         function resetRoutineFilter() {
             activePresetFilterIds = null;currentFilterCat='all';
             document.getElementById('exercise-search-input').value='';renderCategoryTabs();
             setEquipFilter('all',document.querySelector('[data-equip="all"]'));
-            showToast('تم إظهار جميع التمارين 🎯');
+            showToast('تم إظهار جميع التمارين');
         }
 
         function renderCategoryTabs() {
@@ -341,17 +448,17 @@
             const fragment = document.createDocumentFragment();
 
             const categories = currentSplit === 'ppl' ? [
-                { id: 'all', label: 'الكل 🎯' },
-                { id: 'push', label: 'دفع 🏋️' },
-                { id: 'pull', label: 'سحب 🧗' },
-                { id: 'legs', label: 'أرجل 🦵' },
-                { id: 'abs', label: 'بطن 🧱' },
-                { id: 'cardio', label: 'كارديو 🏃' }
+                { id: 'all', label: 'الكل' },
+                { id: 'push', label: 'دفع' },
+                { id: 'pull', label: 'سحب' },
+                { id: 'legs', label: 'أرجل' },
+                { id: 'abs', label: 'بطن' },
+                { id: 'cardio', label: 'كارديو' }
             ] : [
-                { id: 'all', label: 'الكل 🎯' },
-                { id: 'upper', label: 'علوي (Upper 🦾)' },
-                { id: 'lower', label: 'سفلي (Lower 🦵)' },
-                { id: 'cardio', label: 'كارديو 🏃' }
+                { id: 'all', label: 'الكل' },
+                { id: 'upper', label: 'علوي (Upper)' },
+                { id: 'lower', label: 'سفلي (Lower)' },
+                { id: 'cardio', label: 'كارديو' }
             ];
 
             categories.forEach(cat => {
@@ -450,10 +557,11 @@
 
             if (!ex) {
                 equipBadge.textContent = 'غير محدد';
+                renderEquipSettings(); renderEquipVisual();
                 return;
             }
 
-            equipBadge.textContent = EQUIP_NAMES[ex.equip] || 'أوزان حرة 🏋️‍♂️';
+            equipBadge.textContent = EQUIP_NAMES[ex.equip] || 'أوزان حرة';
 
             if (ex.type === 'weights') {
                 const recent = state.logs.filter(l => l.exerciseId === ex.id).sort((a,b) => (b.timestamp||0)-(a.timestamp||0))[0];
@@ -469,6 +577,7 @@
             if (ex.type === 'weights') formWeights.classList.remove('hidden');
             else if (ex.type === 'treadmill') formTm.classList.remove('hidden');
             else if (ex.type === 'bike_elliptical') formBe.classList.remove('hidden');
+            renderEquipSettings(); renderEquipVisual();
         }
 
         function update1RMLiveDisplay() {
@@ -483,8 +592,10 @@
                 if (activeLoadMode === 'bodyweight') weightInKg = body;
                 if (activeLoadMode === 'added') weightInKg += body;
                 if (activeLoadMode === 'assisted') weightInKg = Math.max(0, body - weightInKg);
+                weightInKg += machineKgFor(currentExercise(), activeLoadMode);
                 span.textContent = get1RMLabel(weightInKg, reps);
             }
+            renderEquipVisual();
         }
 
         function getDefaultLoadMode(exercise) { return GymCalc.defaultLoadMode(exercise); }
@@ -501,6 +612,7 @@
             if (activeLoadMode === 'bodyweight' || activeLoadMode === 'timed') weightInput.value = 0;
             updateWeightConvertedDisplay();
             update1RMLiveDisplay();
+            renderEquipSettings();
         }
 
         function updateLastPerformanceDisplay(exerciseId) {
@@ -563,7 +675,7 @@
 
             updateWeightConvertedDisplay();
             update1RMLiveDisplay();
-            showToast('تمت تعبئة الجولة المختارة؛ اضغط حفظ بعد أدائها 📋');
+            showToast('تمت تعبئة الجولة المختارة؛ اضغط حفظ بعد أدائها');
         }
         function updateSetHelp(){const help=document.getElementById('set-type-help');if(help)help.textContent=SET_HELP[activeSetType]||SET_HELP.normal;}
         function logMetadata(log){
@@ -633,6 +745,7 @@
                 document.getElementById('val-reps-display').textContent = updated;
                 update1RMLiveDisplay();
             }
+            renderEquipVisual();
         }
 
         function updateWeightConvertedDisplay() {
@@ -646,6 +759,7 @@
             } else {
                 convertedSpan.textContent = `${(val / 2.20462).toFixed(1)} كجم (kg)`;
             }
+            renderEquipVisual();
         }
 
         async function saveSet() {
@@ -664,7 +778,8 @@
                 return;
             }
             const session = await ensureActiveSession();
-            let effectiveLoadKg = weightInKg;
+            const machineKg = machineKgFor(ex, activeLoadMode);
+            let effectiveLoadKg = weightInKg + machineKg;
             if (activeLoadMode === 'bodyweight') effectiveLoadKg = bodyWeightKg;
             else if (activeLoadMode === 'added') effectiveLoadKg = bodyWeightKg + weightInKg;
             else if (activeLoadMode === 'assisted') effectiveLoadKg = Math.max(0, bodyWeightKg - weightInKg);
@@ -691,6 +806,7 @@
                 rir: activeRIR,
                 setType: activeSetType,
                 loadMode: activeLoadMode,
+                ...(machineKg > 0 ? { machineKg } : {}),
                 bodyWeightKgAtLog: bodyWeightKg || null,
                 effectiveLoadKg,
                 volumeLoadKg,
@@ -706,7 +822,7 @@
             renderTodayLogs();
             updateTopHeaderStats();
             updateLastPerformanceDisplay(ex.id);
-            showToast(activeLoadMode === 'timed' ? `تم حفظ ${durationSeconds} ثانية ✔️` : `تم حفظ الجولة (${rawWeight} ${activeWeightUnit === 'lbs' ? 'باوند' : 'كجم'}) ✔️`);
+            showToast(activeLoadMode === 'timed' ? `تم حفظ ${durationSeconds} ثانية` : `تم حفظ الجولة (${rawWeight} ${activeWeightUnit === 'lbs' ? 'باوند' : 'كجم'})`);
 
             document.getElementById('logs-date-filter').value = getLocalDateString();
             renderTodayLogs();
@@ -759,12 +875,12 @@
             renderTodayLogs();
             updateTopHeaderStats();
             document.getElementById('logs-date-filter').value = getLocalDateString();renderTodayLogs();
-            showToast('تم حفظ تمرين الكارديو 🏃');
+            showToast('تم حفظ تمرين الكارديو');
         }
 
         function deleteLogItem(logId) {
             showModal({
-                title: 'حذف الجولة 🗑️',
+                title: 'حذف الجولة',
                 message: 'هل أنت متاكد من حذف هذه الجولة؟',
                 confirmText: 'احذف',
                 cancelText: 'إلغاء',
@@ -792,6 +908,7 @@
             document.getElementById('edit-log-reps-row').classList.toggle('hidden',timed);
             document.getElementById('edit-log-seconds-row').classList.toggle('hidden',!timed);
             document.getElementById('edit-log-body-row').classList.toggle('hidden',!body);
+            document.getElementById('edit-log-machinekg-row')?.classList.toggle('hidden',mode!=='external');
             document.getElementById('edit-log-load-hint').textContent=LOAD_HINTS[mode];
         }
         function openEditLog(logId) {
@@ -820,6 +937,7 @@
                 document.getElementById('edit-log-seconds').value=log.durationSeconds||60;
                 const inferredBody=log.loadMode==='bodyweight'?Number(log.effectiveLoadKg):log.loadMode==='added'?Number(log.effectiveLoadKg)-getCanonicalWeightKg(log):log.loadMode==='assisted'?Number(log.effectiveLoadKg)+getCanonicalWeightKg(log):0;
                 document.getElementById('edit-log-body').value=log.bodyWeightKgAtLog||inferredBody||'';
+                const machineInput=document.getElementById('edit-log-machinekg');if(machineInput)machineInput.value=Number(log.machineKg)>0?log.machineKg:'';
                 updateEditModeUI();
             }else{
                 document.getElementById('edit-log-duration').value=log.duration;
@@ -860,6 +978,7 @@
                     log.reps=readField('edit-log-reps','العدات',1,150,{integer:true,legacyValue:Number(original.reps)});
                     if(!Number.isInteger(log.reps))log.legacyFractionalReps=true;else delete log.legacyFractionalReps;
                     if(['bodyweight','added','assisted'].includes(log.loadMode))log.bodyWeightKgAtLog=readField('edit-log-body','وزن الجسم وقت الجولة',20,350);
+                    if(log.loadMode==='external'&&document.getElementById('edit-log-machinekg')){const m=readField('edit-log-machinekg','وزن الجهاز',0,500,{optional:true});if(m>0)log.machineKg=m;else delete log.machineKg;}
                     delete log.durationSeconds;
                 }
             }else{
@@ -903,7 +1022,7 @@
             document.getElementById('today-sets-count').textContent = todayLogs.length===1?'جولة واحدة':`${todayLogs.length} جولات`;
 
             if (todayLogs.length === 0) {
-                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs glass-card border border-slate-800">لا توجد جولات مسجلة في هذا التاريخ. 💪</div>`;
+                container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs glass-card border border-slate-800">لا توجد جولات مسجلة في هذا التاريخ.</div>`;
                 loadMoreWrapper.classList.add('hidden');
                 return;
             }
@@ -935,7 +1054,7 @@
                     </div>
                     <div class="flex items-center gap-3">
                         <div class="text-right">
-                            <div class="text-[10px] font-black text-amber-400">${log.type === 'weights' && ['v9-session','v10-session'].includes(log.calculationVersion) ? 'سعرات ضمن الجلسة' : `${escapeHTML(String(log.calories || 0))}🔥 تقديري`}</div>
+                            <div class="text-[10px] font-black text-amber-400">${log.type === 'weights' && ['v9-session','v10-session'].includes(log.calculationVersion) ? 'سعرات ضمن الجلسة' : `${escapeHTML(String(log.calories || 0))} تقديري`}</div>
                         </div>
                         <button data-action="edit-log" data-id="${escapeHTML(log.id)}" aria-label="تعديل التسجيل" class="text-slate-500 hover:text-cyan-400 p-1.5 transition"><i class="fa-solid fa-pen text-sm"></i></button>
                         <button aria-label="حذف التسجيل" data-action="delete-log" data-id="${escapeHTML(log.id)}" class="text-slate-500 hover:text-red-400 p-1.5 transition">
@@ -966,7 +1085,7 @@
                 if (!remaining) {
                     stopRestTimer();
                     if ('vibrate' in navigator) navigator.vibrate([150,100,150]);
-                    showToast('انتهى وقت الراحة! حان وقت الجولة التالية 🏋️');
+                    showToast('انتهى وقت الراحة! حان وقت الجولة التالية');
                     return false;
                 }
                 document.getElementById('rest-timer-widget').classList.remove('hidden');
@@ -1019,7 +1138,7 @@
 
             if (result.cat || result.equip) {
                 statusEl.className = "text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border bg-cyan-950/80 border-cyan-800 text-cyan-300 flex items-center gap-1.5";
-                statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400"></i> تم تصنيف التمرين تلقائياً بنجاح ⚡`;
+                statusEl.innerHTML = `<i class="fa-solid fa-bolt text-cyan-400"></i> تم تصنيف التمرين تلقائياً بنجاح`;
                 statusEl.classList.remove('hidden');
             } else {
                 statusEl.classList.add('hidden');
@@ -1036,7 +1155,7 @@
             if (state.exercises.some(e => !e.archived && e.name.trim().toLowerCase() === name.toLowerCase())) throw Error('التمرين موجود مسبقًا');
 
             if (!name) {
-                showToast('يرجى إدخال اسم التمرين أولاً ⚠️');
+                showToast('يرجى إدخال اسم التمرين أولاً');
                 return;
             }
 
@@ -1057,12 +1176,12 @@
             document.getElementById('new-ex-status').classList.add('hidden');
             renderManageExercisesList();
             renderExerciseDropdown();
-            showToast('تمت إضافة التمرين المخصص بنجاح! 🎉');
+            showToast('تمت إضافة التمرين المخصص بنجاح!');
         }
 
         function deleteExercise(exId) {
             showModal({
-                title: 'حذف تمرين مخصص ⚠️',
+                title: 'حذف تمرين مخصص',
                 message: 'هل أنت متاكد من حذف هذا التمرين المخصص؟ لن يتم حذف الجولات القديمة المسجلة به.',
                 confirmText: 'تأكيد الحذف',
                 cancelText: 'إلغاء',
@@ -1085,7 +1204,7 @@
             countEl.textContent = `${customExercises.length} تمارِينَ`;
 
             if (customExercises.length === 0) {
-                container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs glass-card border border-slate-800">لم تقم بإضافة أي تمارين مخصصة بعد. قم بإضافة تمارينك الخاصة أعلاه! 💡</div>`;
+                container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs glass-card border border-slate-800">لم تقم بإضافة أي تمارين مخصصة بعد. قم بإضافة تمارينك الخاصة أعلاه!</div>`;
                 return;
             }
 
@@ -1202,11 +1321,34 @@
             const {mode,groups}=progressionGroups(selectedExId);
             const unit=mode==='timed'?'ثانية':mode==='per_hand'?'كجم لكل يد':'كجم';
             badge.textContent=state.exercises.find(e=>e.id===selectedExId)?.name || 'تطور الأداء';
+            const ex=state.exercises.find(e=>e.id===selectedExId);
+            const maxW=Math.max(0,...groups.map(g=>g.weight));
+            const barKg=ex&&ex.barKg!==undefined&&ex.barKg!==''?Number(ex.barKg):20;
+            const plateColored=ex?.equip==='barbell'&&mode==='external';
             container.innerHTML=groups.map((row,i)=>{
                 const prev=groups[i-1];let delta='البداية';
                 if(prev){const d=Math.round((row.weight-prev.weight)*10)/10;const r=row.reps-prev.reps;delta=`${d>0?'+':''}${d} ${unit}`+(mode==='timed'?'':` | ${r>0?'+':''}${r} عدات`);}
-                return `<div class="glass-card p-3 text-xs"><div class="text-slate-400">${escapeHTML(row.date)}</div><strong>${Number(row.weight.toFixed(1))} ${unit}${mode==='timed'?'':` × ${row.reps} عدات`}</strong><div class="text-cyan-300">${escapeHTML(delta)}</div>${mode==='timed'?'':`<small>أعلى 1RM تقديري: ${row.oneRm??'غير متاح'} | RIR: ${row.rir??'غير محدد'}</small>`}</div>`;
+                const plate=plateColored&&window.GymVisual?GymVisual.heaviestPlateColor(row.weight,barKg):null;
+                const pct=maxW>0?Math.max(2,Math.round(row.weight/maxW*1000)/10):0;
+                const record=maxW>0&&row.weight===maxW;
+                return `<div class="glass-card p-3 text-xs progress-row${record?' is-record':''}"><div class="text-slate-400">${escapeHTML(row.date)}</div><strong>${Number(row.weight.toFixed(1))} ${unit}${mode==='timed'?'':` × ${row.reps} عدات`}</strong><div class="pbar" data-added aria-hidden="true"><i style="width:${pct}%;--plate:${plate?plate.color:'#8C8A84'}"></i></div><div class="text-cyan-300">${escapeHTML(delta)}</div>${mode==='timed'?'':`<small>أعلى 1RM تقديري: ${row.oneRm??'غير متاح'} | RIR: ${row.rir??'غير محدد'}</small>`}</div>`;
             }).reverse().join('') || 'لا توجد جولات عمل بهذه الطريقة';
+            renderProgressHero(groups,mode,unit,plateColored,barKg);
+        }
+        function renderProgressHero(groups,mode,unit,plateColored,barKg) {
+            const set=(id,text)=>{const e=document.getElementById(id);if(e)e.textContent=text;};
+            if(!groups.length){set('hero-1rm','—');set('hero-1rm-sub','');set('hero-top','—');set('hero-top-sub','');return;}
+            const top=groups.reduce((a,b)=>b.weight>a.weight||(b.weight===a.weight&&b.reps>a.reps)?b:a);
+            const fmt=n=>String(Math.round(n*10)/10);
+            set('hero-top',fmt(top.weight));
+            set('hero-top-sub',mode==='timed'?'ثانية':`${unit} × ${top.reps} · ${top.date}`);
+            const sub=document.getElementById('hero-top-sub');
+            const plate=plateColored&&window.GymVisual?GymVisual.heaviestPlateColor(top.weight,barKg):null;
+            if(sub&&plate){const chip=document.createElement('span');chip.className='plate-chip';chip.style.background=plate.color;chip.textContent=fmt(plate.kg);chip.title='أكبر قرص';sub.prepend(chip);}
+            const withRm=groups.filter(g=>Number.isFinite(g.oneRm));
+            if(mode==='timed'||!withRm.length){set('hero-1rm','—');set('hero-1rm-sub',mode==='timed'?'ما ينطبق على التمرين الزمني':'يظهر حتى 15 عدة');return;}
+            const best=withRm.reduce((a,b)=>b.oneRm>a.oneRm?b:a);
+            set('hero-1rm',fmt(best.oneRm));set('hero-1rm-sub',`${unit} · ${best.date}`);
         }
         function updateProgressChart() {
             const selectedExId=document.getElementById('chart-exercise-select').value;
@@ -1273,20 +1415,20 @@
 
             const m = GymCalc.bodyMetrics(state.profile);
             if (!m) {
-                calContainer.innerHTML = `<div class="col-span-3 glass-card p-4 text-center text-xs text-slate-400">يرجى الانتقال لصفحة "البروفايل" وإدخال الطول والوزن لظهور التحليل الذكي 🧠</div>`;
+                calContainer.innerHTML = `<div class="col-span-3 glass-card p-4 text-center text-xs text-slate-400">يرجى الانتقال لصفحة "البروفايل" وإدخال الطول والوزن لظهور التحليل الذكي</div>`;
                 return;
             }
             const { tdee, cutLow, cutHigh, bulkLow, bulkHigh, bmi } = m;
-            calContainer.innerHTML += createBentoCard('تثبيت الوزن (Maintenance)', tdee.toLocaleString() + '🔥', 'هدف التوازن 🎯', 'bg-cyan-950 text-cyan-300 border-cyan-800', 'text-cyan-300', 'تقدير يومي للمحافظة على الوزن، ويُراجع حسب تغير وزنك الفعلي.');
-            calContainer.innerHTML += createBentoCard('نقصان الوزن (Fat Loss)', `${cutHigh.toLocaleString()}–${cutLow.toLocaleString()}🔥`, 'عجز 10–20% 📉', 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-emerald-300', 'نطاق مبدئي للتنشيف يُعدّل حسب تغير الوزن والأداء، دون ضمان تلقائي لمنع فقدان العضلات.');
-            calContainer.innerHTML += createBentoCard('زيادة نظيفة (Lean Bulk)', `${bulkLow.toLocaleString()}–${bulkHigh.toLocaleString()}🔥`, 'فائض 5–10% 📈', 'bg-amber-950 text-amber-300 border-amber-800', 'text-amber-300', 'فائض محافظ كبداية، ثم يُعدّل حسب معدل زيادة الوزن.');
+            calContainer.innerHTML += createBentoCard('تثبيت الوزن (Maintenance)', tdee.toLocaleString() + '', 'هدف التوازن', 'bg-cyan-950 text-cyan-300 border-cyan-800', 'text-cyan-300', 'تقدير يومي للمحافظة على الوزن، ويُراجع حسب تغير وزنك الفعلي.');
+            calContainer.innerHTML += createBentoCard('نقصان الوزن (Fat Loss)', `${cutHigh.toLocaleString()}–${cutLow.toLocaleString()}`, 'عجز 10–20%', 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-emerald-300', 'نطاق مبدئي للتنشيف يُعدّل حسب تغير الوزن والأداء، دون ضمان تلقائي لمنع فقدان العضلات.');
+            calContainer.innerHTML += createBentoCard('زيادة نظيفة (Lean Bulk)', `${bulkLow.toLocaleString()}–${bulkHigh.toLocaleString()}`, 'فائض 5–10%', 'bg-amber-950 text-amber-300 border-amber-800', 'text-amber-300', 'فائض محافظ كبداية، ثم يُعدّل حسب معدل زيادة الوزن.');
 
-            const bmiStatus = { under: 'أقل من النطاق الطبيعي 🟡', normal: 'ضمن النطاق الطبيعي 🟢', over: 'أعلى من النطاق الطبيعي 🟠', high: 'مرتفع حسب BMI 🔴' }[m.bmiBand];
+            const bmiStatus = { under: 'أقل من النطاق الطبيعي', normal: 'ضمن النطاق الطبيعي', over: 'أعلى من النطاق الطبيعي', high: 'مرتفع حسب BMI' }[m.bmiBand];
             healthContainer.innerHTML += createBentoCard('مؤشر الكتلة (BMI)', bmi, bmiStatus, 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-cyan-300', 'أداة فرز عامة لا تميز بين العضلات والدهون، وقد تضلل لدى لاعبي الحديد.');
 
             if (m.whtr) {
                 const whtr = m.whtr;
-                const whtrStatus = { low: 'أقل من 0.5 🟢', watch: 'يستحق المتابعة 🟠', high: 'مرتفع كأداة فرز 🔴' }[m.whtrBand];
+                const whtrStatus = { low: 'أقل من 0.5', watch: 'يستحق المتابعة', high: 'مرتفع كأداة فرز' }[m.whtrBand];
                 healthContainer.innerHTML += createBentoCard('نسبة الخصر للطول (WHtR)', whtr, whtrStatus, 'bg-blue-950 text-blue-300 border-blue-800', 'text-blue-300', 'مؤشر بسيط مرتبط بالسمنة المركزية، وليس قياسًا مباشرًا للدهون الحشوية.');
             }
 
@@ -1311,7 +1453,7 @@
             updateGenderUI();
             renderBentoGridAnalysis();
             updateTopHeaderStats();
-            showToast(state.profile.isMan ? 'تم اختيار وضع الرجل 💪' : 'تم اختيار وضع الأنثى 🌸');
+            showToast(state.profile.isMan ? 'تم اختيار وضع الرجل' : 'تم اختيار وضع الأنثى');
         }
 
         function updateGenderUI() {
@@ -1322,13 +1464,13 @@
 
             if (state.profile.isMan !== false) {
                 btn.classList.add('neon-glow-amber', 'border-amber-500/60');
-                icon.textContent = '🔥';
-                text.textContent = 'مفعل: خيار الرجل 💪';
+                icon.textContent = '';
+                text.textContent = 'مفعل: خيار الرجل';
                 text.className = 'font-bold text-sm text-amber-300';
             } else {
                 btn.classList.remove('neon-glow-amber', 'border-amber-500/60');
-                icon.textContent = '🌸';
-                text.textContent = 'مفعل: خيار الأنثى 🌸';
+                icon.textContent = '';
+                text.textContent = 'مفعل: خيار الأنثى';
                 text.className = 'font-bold text-sm text-pink-300';
             }
         }
@@ -1345,7 +1487,7 @@
             GymData.validate({profile:next});
             state.profile=next;await dbSaveAll();
             renderBentoGridAnalysis();renderProfileHistoryList();updateTopHeaderStats();
-            showToast('تم حفظ القياسات والبروفايل بنجاح 🎯');
+            showToast('تم حفظ القياسات والبروفايل بنجاح');
         }
 
         function renderProfileUI() {
@@ -1450,7 +1592,7 @@
 
         function confirmClearTodayLogs() {
             showModal({
-                title: 'مسح جولات اليوم 🧹',
+                title: 'مسح جولات اليوم',
                 message: 'هل أنت متاكد من حذف جميع جولات وتسجيلات اليوم فقط؟',
                 confirmText: 'مسح اليوم',
                 cancelText: 'إلغاء',
@@ -1472,7 +1614,7 @@
 
         function confirmWipeAllData() {
             showModal({
-                title: 'إعادة ضبط شاملة 💣',
+                title: 'إعادة ضبط شاملة',
                 message: 'تحذير: سيتم حذف جميع البيانات الشخصية والسجلات والمكتبة ونسخ الأمان المحلية نهائياً وإعادة التطبيق للوضع الافتراضي.',
                 confirmText: 'مسح شامل لكل شيء',
                 cancelText: 'إلغاء',
@@ -1613,6 +1755,11 @@
                 update1RMLiveDisplay();
             });
             document.getElementById('load-mode-select').addEventListener('change', (event) => setLoadMode(event.target.value));
+            document.getElementById('input-machine-kg')?.addEventListener('change', () => runMutation(saveMachineKg));
+            document.getElementById('input-bar-kg')?.addEventListener('change', () => runMutation(saveBarKg));
+            document.getElementById('rig-select')?.addEventListener('change', (event) => runMutation(() => saveExerciseSetting({ rig: event.target.value })));
+            document.getElementById('btn-apply-machine-past')?.addEventListener('click', applyMachineToPast);
+            for (const id of ['input-duration-sec','input-tm-speed','input-tm-incline','input-tm-duration','input-be-duration','input-cardio-watts','cardio-intensity-select']) document.getElementById(id)?.addEventListener(id.endsWith('select') ? 'change' : 'input', renderEquipVisual);
 
             document.getElementById('unit-btn-kg').addEventListener('click', () => setWeightUnit('kg'));
             document.getElementById('unit-btn-lbs').addEventListener('click', () => setWeightUnit('lbs'));
@@ -1675,7 +1822,7 @@
             }
         }
 
-        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '10.5' });
+        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '10.6' });
 
         window.addEventListener('DOMContentLoaded', async () => {
             registerServiceWorker();

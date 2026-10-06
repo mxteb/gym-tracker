@@ -17,7 +17,7 @@ function canonicalWeightKg(log) {
 function volumeLoadKg(log) {
  if (log.loadMode === 'timed') return 0;
  if (Number.isFinite(parseFloat(log.volumeLoadKg))) return parseFloat(log.volumeLoadKg);
- const base = canonicalWeightKg(log);
+ const base = canonicalWeightKg(log) + (log.loadMode === 'external' || !log.loadMode ? Number(log.machineKg) || 0 : 0);
  const multiplier = log.loadMode === 'per_hand' ? 2 : 1;
  return base * multiplier;
 }
@@ -26,7 +26,8 @@ function progressWeightKg(log) {
  if (log.loadMode === 'timed') return null;
  if (log.loadMode === 'assisted' && Number.isFinite(parseFloat(log.effectiveLoadKg))) return parseFloat(log.effectiveLoadKg);
  if ((log.loadMode === 'bodyweight' || log.loadMode === 'added') && Number.isFinite(parseFloat(log.effectiveLoadKg))) return parseFloat(log.effectiveLoadKg);
- return canonicalWeightKg(log);
+ const machine = (log.loadMode === 'external' || !log.loadMode) ? Number(log.machineKg) || 0 : 0;
+ return canonicalWeightKg(log) + machine;
 }
 
 /** Net calories of one log. profileWeightKg is the current profile weight (fallback when the log has none). */

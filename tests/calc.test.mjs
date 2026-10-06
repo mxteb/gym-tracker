@@ -131,3 +131,26 @@ test('hand-calculated values', () => {
   assert.equal(m.ffmi, '20.8');
   assert.equal(GymCalc.bodyMetrics({ weight: 80 }), null);
 });
+
+test('machine weight (v10.6): optional, external only, old logs unchanged', () => {
+  const base = { id: 'l1', date: '2026-10-06', exerciseId: 'ex_1', exerciseName: 'ليق برس', type: 'weights', category: 'legs', unit: 'kg', reps: 10, loadMode: 'external' };
+  // without machineKg: exactly as before
+  const old = GymData.validateLog({ ...base, weight: 100 });
+  assert.equal(old.effectiveLoadKg, 100); assert.equal(old.volumeLoadKg, 100); assert.equal(old.machineKg, undefined);
+  // with machineKg 40: load counts 140 for volume, progress and 1RM; the typed plates stay 100
+  const m = GymData.validateLog({ ...base, weight: 100, machineKg: 40 });
+  assert.equal(m.displayWeight, 100); assert.equal(m.machineKg, 40);
+  assert.equal(m.effectiveLoadKg, 140); assert.equal(m.volumeLoadKg, 140);
+  assert.equal(m.oneRepMax, GymData.oneRepMax(140, 10));
+  assert.equal(GymCalc.progressWeightKg(m), 140);
+  assert.equal(GymCalc.volumeLoadKg({ loadMode: 'external', weight: 100, machineKg: 40 }), 140);
+  // other modes ignore it
+  const d = GymData.validateLog({ ...base, loadMode: 'per_hand', weight: 20, machineKg: 40 });
+  assert.equal(d.machineKg, undefined); assert.equal(d.volumeLoadKg, 40);
+  // zero means nothing stored
+  assert.equal(GymData.validateLog({ ...base, weight: 100, machineKg: 0 }).machineKg, undefined);
+  // exercise settings survive import validation
+  const v = GymData.validate({ exercises: [{ id: 'ex_1', name: 'ليق برس', category: 'legs', type: 'weights', equip: 'machine', machineKg: 40, rig: 'plates' }, { id: 'ex_2', name: 'بنش', category: 'push', type: 'weights', equip: 'barbell', barKg: 15 }] });
+  assert.equal(v.exercises[0].machineKg, 40); assert.equal(v.exercises[0].rig, 'plates'); assert.equal(v.exercises[1].barKg, 15);
+  assert.throws(() => GymData.validate({ exercises: [{ id: 'ex_1', name: 'x', category: 'legs', type: 'weights', rig: 'rocket' }] }));
+});

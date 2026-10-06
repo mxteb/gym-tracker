@@ -1,4 +1,5 @@
-# الاختبارات
-
-- `node --test tests/*.test.mjs` — يقارن كل الحسابات في `calc.js` مع نسختها الأصلية (`reference-v10.3.cjs`) على آلاف المدخلات العشوائية، ويتأكد من أرقام محسوبة يدوياً. يشتغل تلقائياً مع كل تعديل (GitHub Actions)، وبناء تطبيق الأندرويد يوقف لو فشل.
-- `node tests/ui-equivalence.mjs <رابط النسخة القديمة> <رابط الجديدة>` — يفتح النسختين في متصفح بنفس البيانات (`fixture-backup.json`) ويقارن نص كل شاشة وكل رسم بياني. يُستخدم وقت إعادة تنظيم الكود، لما المفروض الشكل ما يتغير أبداً.
+# Tests
+- `node --test tests/*.test.mjs` — calculations vs the original v10.3 code (3000 random cases) + hand-checked values + machine weight (v10.6).
+- `node tests/ui-equivalence.mjs <oldUrl> <newUrl> [chrome]` — loads the same backup into two versions and compares every screen's DOM text,
+  every progress chart, every exercise form and every edit dialog. Since v10.6 it ignores CSS, emojis and elements marked `data-added`,
+  so a look-only change passes while any change to numbers, labels or what the logic shows/hides fails.

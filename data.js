@@ -48,7 +48,7 @@ function profile(x) {
  return out;
 }
 function array(x,max,label){if(!Array.isArray(x)||x.length>max)fail(label);return x;}
-function exercise(x){object(x,'تمرين');return {id:id(x.id),name:str(x.name,'اسم التمرين'),category:choice(x.category,categories,'الفئة'),type:choice(x.type,types,'نوع التمرين'),equip:choice(x.equip||'machine',equipment,'الأداة'),...(x.machine?{machine:choice(x.machine,machines,'الجهاز')}:{}),isCustom:!!x.isCustom,archived:!!x.archived,...optionalNumber(x,'editedAt',0,1e15)};}
+function exercise(x){object(x,'تمرين');return {id:id(x.id),name:str(x.name,'اسم التمرين'),category:choice(x.category,categories,'الفئة'),type:choice(x.type,types,'نوع التمرين'),equip:choice(x.equip||'machine',equipment,'الأداة'),...(x.machine?{machine:choice(x.machine,machines,'الجهاز')}:{}),...optionalNumber(x,'machineKg',0,500),...(x.rig?{rig:choice(x.rig,['pin','plates'],'نوع الجهاز')}:{}),...optionalNumber(x,'barKg',0,50),isCustom:!!x.isCustom,archived:!!x.archived,...optionalNumber(x,'editedAt',0,1e15)};}
 function log(x, allowLegacyFractions=false){
  object(x,'جولة');const out={id:id(x.id),date:date(x.date),exerciseId:id(x.exerciseId),exerciseName:str(x.exerciseName,'اسم التمرين'),type:choice(x.type,types,'نوع الجولة'),category:choice(x.category,categories,'الفئة')};
  for(const key of ['timestamp','editedAt'])Object.assign(out,optionalNumber(x,key,0,1e15));
@@ -62,6 +62,7 @@ function log(x, allowLegacyFractions=false){
   out.setType=choice(x.setType||'normal',setTypes,'نوع الجولة');out.rir=x.rir==null||x.rir===''?null:num(x.rir,'RIR',0,4);
   if(out.rir!==null&&!Number.isInteger(out.rir)){if(x.legacyFractionalRir!==true)fail('RIR');out.legacyFractionalRir=true;}
   if(out.loadMode==='timed'){out.durationSeconds=num(x.durationSeconds,'الثواني',1,3600);out.weight=0;out.displayWeight=0;out.reps=1;}
+  if(x.machineKg!=null&&Number(x.machineKg)>0&&out.loadMode==='external')out.machineKg=num(x.machineKg,'وزن الجهاز',0,500);
   for(const key of ['effectiveLoadKg','volumeLoadKg','oneRepMax'])Object.assign(out,optionalNumber(x,key,0,100000));
   out.calories=num(x.calories||0,'السعرات',0,100000);
   if(x.calculationVersion==='v9-session'||x.calculationVersion==='v10-session')out.calculationVersion=x.calculationVersion;
@@ -93,7 +94,10 @@ function recalculateWeightLog(x) {
   if(body<=0)fail('وزن الجسم عند تسجيل الجولة غير صالح');
   x.bodyWeightKgAtLog=body;
  }
- const effective=mode==='bodyweight'?body:mode==='added'?body+weight:mode==='assisted'?Math.max(0,body-weight):weight;
+ // وزن الجهاز (اختياري) ينضاف فقط للوزن الخارجي؛ الجولات اللي ما فيها machineKg تبقى بنفس حسابها القديم.
+ const machine=mode==='external'?Number(x.machineKg)||0:0;
+ if(mode!=='external')delete x.machineKg;
+ const effective=mode==='bodyweight'?body:mode==='added'?body+weight:mode==='assisted'?Math.max(0,body-weight):weight+machine;
  const reps=Number(x.reps);
  Object.assign(x,{effectiveLoadKg:effective,volumeLoadKg:mode==='per_hand'?weight*2:effective,oneRepMax:oneRepMax(effective,reps)});
  return x;

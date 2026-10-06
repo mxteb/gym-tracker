@@ -118,8 +118,8 @@ const DEFAULT_EXERCISES = [
             { id: 'ex_68', name: 'جهاز التجديف (Rowing Machine)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
             { id: 'ex_69', name: 'دراجة هوائية (Air Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' }
         ];
-const CATEGORY_NAMES = { push: 'دفع 🏋️', pull: 'سحب 🧗', legs: 'أرجل 🦵', abs: 'بطن 🧱', cardio: 'كارديو 🏃' };
-const EQUIP_NAMES = { barbell: 'بار 🏋️‍♂️', dumbbell: 'دمبل 🏋️‍♀️', machine: 'أجهزة 🤖', cable_body: 'كابل/وزن جسم 🦾', cardio: 'كارديو 🏃‍♂️' };
+const CATEGORY_NAMES = { push: 'دفع', pull: 'سحب', legs: 'أرجل', abs: 'بطن', cardio: 'كارديو' };
+const EQUIP_NAMES = { barbell: 'بار', dumbbell: 'دمبل', machine: 'أجهزة', cable_body: 'كابل/وزن جسم', cardio: 'كارديو' };
 const ROUTINE_LABELS = {
             free: 'جلسة حرة', ppl_push: 'دفع (Push)', ppl_pull: 'سحب (Pull)',
             ppl_legs: 'أرجل (Legs)', ul_upper: 'علوي (Upper)', ul_lower: 'سفلي (Lower)'

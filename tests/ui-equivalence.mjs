@@ -1,5 +1,7 @@
 // Compares what two versions of the site show, screen by screen, for the same data.
 // Usage: node tests/ui-equivalence.mjs <oldUrl> <newUrl> [chromePath]
+// v10.6: compares the DOM text (ignores CSS, emojis, and anything marked data-added) so a pure look change passes
+// while any change to numbers, labels, or what logic shows/hides still fails.
 // Loads tests/fixture-backup.json (dates shifted to today) into each version through the app's own import,
 // then reads the visible text of every tab, every progress chart, and the edit dialog, and reports any difference.
 import { spawn } from 'node:child_process';
@@ -8,6 +10,9 @@ import path from 'node:path';
 
 const [oldUrl, newUrl, chrome = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'] = process.argv.slice(2);
 const HERE = path.dirname(new URL(import.meta.url).pathname);
+const VIS = `(root => { const c = root.cloneNode(true); c.querySelectorAll('[data-added],.hidden,[hidden],script,style,svg').forEach(e => e.remove()); c.querySelectorAll('#active-session-timer,#active-session-meta').forEach(e=>e.remove()); const parts=[]; const walk=n=>{ if(n.nodeType===3){parts.push(n.nodeValue);return;} if(n.nodeType!==1)return; const block=/^(DIV|P|SECTION|H1|H2|H3|LI|BUTTON|LABEL|OPTION|SUMMARY|STRONG|SMALL|SPAN)$/.test(n.tagName); if(n.tagName==='SELECT'){parts.push(' '+[...n.options].map(o=>o.textContent).join(' / ')+' ');return;} if(block)parts.push(' '); n.childNodes.forEach(walk); if(block)parts.push(' '); }; walk(c); return parts.join(''); })`;
+const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{2712}\u{2714}-\u{27BF}\u{2B00}-\u{2BFF}\u{23E9}-\u{23FA}\u{FE0F}\u{200D}]/gu;
+const norm = t => String(t).replace(EMOJI, '').replace(/\d\d:\d\d(:\d\d)?/g, '<time>').replace(/\s+/g, ' ').replace(/ \)/g, ')').trim();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function fixture() {
@@ -42,25 +47,25 @@ async function snapshot(page, data) {
   await sleep(1500);
   const out = {};
   const clean = `t => t.replace(/\\d\\d:\\d\\d(:\\d\\d)?/g,'<time>').replace(/[ \\t]+/g,' ').replace(/\\n\\s*\\n+/g,'\\n').trim()`;
-  out.header = await page.ev(`return (${clean})(document.querySelector('header').innerText)`);
+  out.header = norm(await page.ev(`return ${VIS}(document.querySelector('header'))`));
   for (const tab of ['workout', 'exercises', 'progress', 'bento', 'profile']) {
     await page.ev(`document.getElementById('nav-${tab}').click(); document.querySelectorAll('#screen-${tab} details').forEach(d=>d.open=true);`);
     await sleep(300);
-    out[tab] = await page.ev(`const s=document.getElementById('screen-${tab}'); const c=s.cloneNode(true); c.querySelectorAll('#active-session-timer,#active-session-meta').forEach(e=>e.remove()); document.body.append(c); c.classList.remove('hidden'); const t=c.innerText; c.remove(); return (${clean})(t)`);
+    out[tab] = norm(await page.ev(`const s=document.getElementById('screen-${tab}'); const c=s.cloneNode(true); c.classList.remove('hidden'); return ${VIS}(c)`));
   }
   // every progress chart: each exercise × each load mode × both metrics
   await page.ev(`document.getElementById('nav-progress').click();`);
   const exIds = await page.ev(`return [...document.querySelectorAll('#chart-exercise-select option')].map(o=>o.value)`);
   for (const ex of exIds) for (const mode of ['external', 'per_hand', 'bodyweight', 'added', 'assisted', 'timed']) for (const metric of ['actual', '1rm']) {
-    out[`chart ${ex} ${mode} ${metric}`] = await page.ev(`const s=document.getElementById('chart-exercise-select'); s.value='${ex}'; s.dispatchEvent(new Event('change',{bubbles:true})); const m=document.getElementById('progress-load-mode'); m.value='${mode}'; m.dispatchEvent(new Event('change',{bubbles:true})); document.getElementById('chart-mode-${metric === 'actual' ? 'actual' : '1rm'}').click(); return document.getElementById('progressChart').innerHTML + '||' + document.getElementById('exercise-progression-history-list').innerText`);
+    out[`chart ${ex} ${mode} ${metric}`] = await page.ev(`const s=document.getElementById('chart-exercise-select'); s.value='${ex}'; s.dispatchEvent(new Event('change',{bubbles:true})); const m=document.getElementById('progress-load-mode'); m.value='${mode}'; m.dispatchEvent(new Event('change',{bubbles:true})); document.getElementById('chart-mode-${metric === 'actual' ? 'actual' : '1rm'}').click(); return document.getElementById('progressChart').innerHTML + '||' + ${VIS}(document.getElementById('exercise-progression-history-list'))`).then(norm);
   }
   // each exercise in the workout form: last performance, load mode, live 1RM
   await page.ev(`document.getElementById('nav-workout').click();`);
   const all = await page.ev(`return [...document.querySelectorAll('#exercise-dropdown option')].map(o=>o.value)`);
-  for (const ex of all) out[`form ${ex}`] = await page.ev(`const d=document.getElementById('exercise-dropdown'); d.value='${ex}'; d.dispatchEvent(new Event('change',{bubbles:true})); return [document.getElementById('last-performance-text').innerText, document.getElementById('load-mode-select').value, document.getElementById('val-1rm-live').textContent, document.getElementById('selected-exercise-equip-badge').textContent].join(' | ')`);
+  for (const ex of all) out[`form ${ex}`] = await page.ev(`const d=document.getElementById('exercise-dropdown'); d.value='${ex}'; d.dispatchEvent(new Event('change',{bubbles:true})); return [${VIS}(document.getElementById('last-performance-text')), document.getElementById('load-mode-select').value, document.getElementById('val-1rm-live').textContent, document.getElementById('selected-exercise-equip-badge').textContent].join(' | ')`).then(norm);
   // edit dialog for every log
   const logIds = await page.ev(`return [...document.querySelectorAll('[data-action="edit-log"]')].map(b=>b.dataset.id)`);
-  for (const id of logIds) out[`edit ${id}`] = await page.ev(`document.querySelector('[data-action="edit-log"][data-id="${id}"]').click(); const m=document.getElementById('edit-log-modal'); const v=[...m.querySelectorAll('input,select')].filter(e=>e.offsetParent).map(e=>e.id+'='+e.value).join(' '); document.getElementById('btn-cancel-edit-log').click(); return v`);
+  for (const id of logIds) out[`edit ${id}`] = await page.ev(`document.querySelector('[data-action="edit-log"][data-id="${id}"]').click(); const m=document.getElementById('edit-log-modal'); const v=[...m.querySelectorAll('input:not([type=hidden]),select')].filter(e=>!e.closest('.hidden,[data-added]')).map(e=>e.id+'='+e.value).join(' '); document.getElementById('btn-cancel-edit-log').click(); return v`);
   return out;
 }
 
