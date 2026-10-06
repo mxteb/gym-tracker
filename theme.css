@@ -118,15 +118,18 @@ header h1{font-weight:800;letter-spacing:0}
 #dynamic-input-container > .equip-visual{margin-bottom:1rem}
 
 /* الوزن والعدات: رقم كبير بين أزرار كبيرة */
-#form-weights .flex.items-center.justify-between.gap-1\.5,#form-treadmill .flex.items-center.justify-between.gap-1\.5,#form-bike-elliptical .flex.items-center.justify-between.gap-1\.5{background:transparent;border:0;padding:0;gap:.5rem}
+#form-weights .flex.items-center.justify-between.gap-1\.5,#form-treadmill .flex.items-center.justify-between.gap-1\.5,#form-bike-elliptical .flex.items-center.justify-between.gap-1\.5{background:transparent;border:0;padding:0;gap:.5rem;display:grid;grid-template-columns:1fr 1fr;align-items:stretch}
+/* الرقم الكبير بسطر كامل، والأزرار تحته: النقص يمين والزيادة يسار مثل ترتيبها الأصلي */
+#form-weights .justify-between.gap-1\.5 > input,#form-treadmill .justify-between.gap-1\.5 > input,#form-bike-elliptical .justify-between.gap-1\.5 > input{grid-column:1 / -1;order:-1;width:100%!important}
+#form-weights .justify-between.gap-1\.5 > div{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+#form-weights .justify-between.gap-1\.5 .stepper-btn,#form-treadmill .stepper-btn,#form-bike-elliptical .stepper-btn{width:100%!important;height:3.4rem!important}
 #input-weight,#input-reps,#input-tm-speed,#input-tm-incline,#input-tm-duration,#input-be-duration,#input-duration-sec,#input-cardio-watts{background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;color:var(--ink);font-family:var(--stencil);font-weight:800;text-align:center;flex:1 1 0;width:0!important;min-width:0;padding:0}
-#input-weight{font-size:4.6rem!important;line-height:1;height:5.5rem}
+#input-weight{font-size:5.5rem!important;line-height:1;height:6rem}
 #input-reps{font-size:3.4rem!important;line-height:1;height:4.25rem}
 #input-tm-speed,#input-tm-incline,#input-tm-duration,#input-be-duration{font-size:2.6rem!important;height:3.5rem}
 #input-duration-sec{font-size:2.6rem!important;height:3.5rem;width:100%!important}
 #input-cardio-watts{font-size:2rem!important;height:3rem;width:100%!important}
 #input-weight:disabled{color:var(--dim)}
-#form-weights .stepper-btn{width:3.4rem!important;height:3.6rem!important}
 #form-treadmill .stepper-btn,#form-bike-elliptical .stepper-btn,#timed-duration-field .stepper-btn{height:3.2rem!important}
 #val-weight-converted{color:var(--ink-2)}
 #val-1rm-live{color:var(--ink)}
@@ -225,3 +228,4 @@ label.text-slate-300,.text-slate-300.font-medium{color:var(--mute)}
 summary{color:var(--ink)}
 #filter-summary{color:var(--mute)}
 #today-sets-count{white-space:nowrap;font-family:var(--font);font-size:.8rem}
+header h1{border:0!important;background:none!important;padding:0}
