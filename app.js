@@ -209,6 +209,7 @@
             const bestLog=workingLogs.filter(l=>l.loadMode!=='timed').sort((a,b)=>(calculate1RM(getProgressWeightKg(b),b.reps)||0)-(calculate1RM(getProgressWeightKg(a),a.reps)||0))[0];
             const bestOneRm = validOneRms.length ? Math.max(...validOneRms) + ' كجم — '+bestLog.exerciseName+(bestLog.loadMode==='per_hand'?' (لكل يد)':'') : 'غير متاح';
             document.getElementById('finish-session-modal').classList.add('hidden');
+            document.dispatchEvent(new CustomEvent('gym:session-finished', { detail: { sessionId: session.id } }));
             showModal({
                 title: `ملخص ${session.name} ✅`,
                 message: `المدة: ${durationLabel} دقيقة | الجولات الفعلية: ${workingLogs.length} | الحجم الفعلي: ${(session.totalVolumeKg / 1000).toFixed(2)} طن | متوسط RIR: ${avgRir} | أعلى 1RM مسجل بين التمارين: ${bestOneRm} | السعرات التقديرية للحديد والكارديو: ${session.totalEstimatedCalories}`,
@@ -1391,14 +1392,17 @@
             container.appendChild(fragment);
         }
 
-        async function exportDataJSON() {
+        function buildBackup() {
             const logs=state.logs.map(log=>{
                 const l={...log};if(l.type==='weights'){
                     if(!Number.isInteger(Number(l.reps)))l.legacyFractionalReps=true;
                     if(l.rir!=null&&!Number.isInteger(Number(l.rir)))l.legacyFractionalRir=true;
                 }return l;
             });
-            const backup={...state,logs,schemaVersion:DATA_SCHEMA_VERSION,exportDate:new Date().toISOString()};
+            return JSON.parse(JSON.stringify({...state,logs,schemaVersion:DATA_SCHEMA_VERSION,exportDate:new Date().toISOString()}));
+        }
+        async function exportDataJSON() {
+            const backup=buildBackup();
             let validationError=null;try{GymData.validate(backup);}catch(error){validationError=error;}
             downloadJSON(backup,`gym_tracker_backup_${getLocalDateString()}.json`);
             if(validationError)showModal({title:'تم تجهيز النسخة مع تنبيه',message:'احتفظ بالنسخة. يلزم تصحيح سجل قديم قبل إعادة استيرادها: '+validationError.message,confirmText:'فهمت',cancelText:'إغلاق'});
@@ -1417,8 +1421,17 @@
         async function importDataJSON(event) {
             const file=event.target.files?.[0];if(!file)return;
             if(file.size>25*1024*1024){showToast('الملف كبير جدًا؛ الحد 25 ميجابايت');event.target.value='';return;}
+            await importBackupText(await file.text());
+            event.target.value='';
+        }
+        function parseBackupText(text) {
+            try { return JSON.parse(text); }
+            catch { throw Error('الملف مو نسخة احتياطية من التطبيق، أو تالف. اختر ملف .json صدّرته من Gym Tracker.'); }
+        }
+        async function importBackupText(text) {
+            let ok=false;
             await runMutation(async()=>{
-                const incoming=GymData.validate(JSON.parse(await file.text()));
+                const incoming=GymData.validate(parseBackupText(text));
                 const candidate=GymData.merge(state,incoming);
                 const oldState=state;state=candidate;
                 try {
@@ -1430,8 +1443,9 @@
                 }catch(error){state=oldState;throw error;}
                 restoreActiveSession();renderCategoryTabs();renderExerciseDropdown();renderProfileUI();updateSessionUI();
                 showToast('تم دمج النسخة والتحقق منها وحفظها بنجاح');
+                ok=true;
             });
-            event.target.value='';
+            return ok;
         }
 
         function confirmClearTodayLogs() {
@@ -1661,6 +1675,8 @@
             }
         }
 
+        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '10.5' });
+
         window.addEventListener('DOMContentLoaded', async () => {
             registerServiceWorker();
             if(!document.getElementById('previous-set-picker')){
@@ -1679,6 +1695,7 @@
             update1RMLiveDisplay();
             updateSessionUI();
             restoreRestTimer();
+            document.dispatchEvent(new CustomEvent('gym:ready'));
         });
 
     })();
