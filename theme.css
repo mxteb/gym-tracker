@@ -10,7 +10,7 @@
  --bg:#121212; --bg-deep:#0A0A0A; --panel:#1B1B1A; --panel-2:#222221; --line:#333331; --line-soft:#262625;
  --ink:#EDEBE6; --ink-2:#C9C6BE; --mute:#9A978F; --dim:#6F6D68;
  --red:#C8322A; --red-hi:#E04A40; --led:#FF3B1F; --blue:#2F5DA8; --yellow:#E3B21B; --green:#2E8B57; --white:#EDEBE6;
- --font:'Alexandria',Tahoma,Arial,sans-serif; --stencil:'Big Shoulders Stencil','Alexandria',sans-serif; --ledf:'Handjet','Courier New',monospace;
+ --font:'Alexandria',Tahoma,Arial,sans-serif; --stencil:'Big Shoulders Stencil','Alexandria',sans-serif; --ledf:'Handjet','Alexandria',sans-serif;
  --r-sm:4px; --r:8px;
  color-scheme:dark;
 }
@@ -19,8 +19,8 @@
 body{background:var(--bg);color:var(--ink);font-family:var(--font);padding-bottom:calc(84px + env(safe-area-inset-bottom));letter-spacing:0}
 button,input,select,textarea{font-family:var(--font)}
 ::selection{background:var(--red);color:#fff}
-.num-stencil{font-family:var(--stencil);font-weight:800;letter-spacing:.01em}
-.num-led{font-family:var(--ledf);font-weight:800;letter-spacing:.02em}
+.num-stencil{font-family:var(--stencil);font-weight:800}
+.num-led{font-family:var(--ledf);font-weight:800}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--line);border-radius:0}
 .animate-fade-in{animation:none}
@@ -100,7 +100,7 @@ header h1{font-weight:800;letter-spacing:0}
 #selected-exercise-equip-badge{background:transparent;border:1px solid var(--line);border-radius:var(--r-sm);color:var(--mute)}
 #last-performance-container{background:var(--bg-deep)}
 #last-performance-container > div > span:first-child{display:none}
-#last-performance-text,#last-performance-text strong{font-family:var(--ledf);font-size:1.15rem;letter-spacing:.02em;color:var(--ink)}
+#last-performance-text,#last-performance-text strong{font-family:var(--ledf);font-size:1.15rem;color:var(--ink)}
 #btn-copy-last-perf{background:transparent;border:1px solid var(--line);color:var(--ink);min-height:40px}
 
 /* الرسمة فوق الوزن */
@@ -224,3 +224,4 @@ label.text-slate-300,.text-slate-300.font-medium{color:var(--mute)}
 #screen-exercises .w-8.h-8{display:none}
 summary{color:var(--ink)}
 #filter-summary{color:var(--mute)}
+#today-sets-count{white-space:nowrap;font-family:var(--font);font-size:.8rem}
