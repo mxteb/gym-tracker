@@ -1011,7 +1011,7 @@
             const loadMoreWrapper = document.getElementById('lazy-logs-load-more');
             const today = getLocalDateString();
             const selectedDate = document.getElementById('logs-date-filter').value || today;
-            const todayLogs = state.logs.filter(l => l.date === selectedDate).sort((a,b) => (b.timestamp||0)-(a.timestamp||0));
+            const todayLogs = state.logs.filter(l => l.date === selectedDate && !pendingDeletes.has(l.id)).sort((a,b) => (b.timestamp||0)-(a.timestamp||0));
 
             document.getElementById('today-sets-count').textContent = todayLogs.length===1?'جولة واحدة':`${todayLogs.length} جولات`;
 
@@ -1028,7 +1028,8 @@
             const fragment = document.createDocumentFragment();
             visibleLogs.forEach(log => {
                 const item = document.createElement('div');
-                item.className = 'glass-card p-3 flex justify-between items-center border border-slate-800 hover:border-slate-700 transition';
+                item.className = 'glass-card p-3 flex justify-between items-center border border-slate-800 hover:border-slate-700 transition log-row';
+                item.dataset.logId = log.id;
                 
                 let detailText = '';
                 if (log.type === 'weights') {
@@ -1779,6 +1780,10 @@
             document.getElementById('btn-plan-confirm')?.addEventListener('click', () => runMutation(confirmPlan));
             document.getElementById('plan-search')?.addEventListener('input', renderPlanList);
             document.getElementById('plan-list')?.addEventListener('change', e => { const b = e.target.closest('input[type=checkbox]'); if (!b) return; if (b.checked) planDraft.add(b.value); else planDraft.delete(b.value); document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`; });
+            initSwipe();
+            document.getElementById('btn-undo')?.addEventListener('click', undoDelete);
+            document.addEventListener('visibilitychange', () => { if (document.hidden) flushPendingDeletes(); });
+            window.addEventListener('pagehide', flushPendingDeletes);
             document.getElementById('progress-jump')?.addEventListener('click', e => { const b = e.target.closest('[data-jump]'); if (b) document.getElementById(b.dataset.jump)?.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
             document.getElementById('records-list')?.addEventListener('click', e => { const b = e.target.closest('.record-row'); if (b) openRecord(b.dataset.ex, b.dataset.mode); });
             document.getElementById('cal-prev')?.addEventListener('click', () => { calOffset--; renderCalendar(); });
@@ -2225,7 +2230,107 @@
             if (!drawn) box.appendChild(el('p', 'field-hint', 'احفظ وزنك (ومحيط خصرك لو تبي) من فوق، وكل يوم تحفظ فيه يصير نقطة في الرسم.'));
         }
 
-        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '10.8' });
+
+        /* ---------- v10.9: سحب الجولة (يمين = تعديل، يسار = حذف مع تراجع 6 ثواني) ----------
+         * منع الأخطاء: السحب ما يبدأ إلا إذا كانت الحركة أفقية واضحة (أكثر من 14px وضعف الحركة العمودية)،
+         * وما يتنفذ إلا إذا تعدى 40% من عرض الجولة. الحذف ما ينكتب في التخزين إلا بعد 6 ثواني، وتقدر تتراجع قبلها.
+         */
+        const pendingDeletes = new Map(); // logId -> timer
+        const UNDO_MS = 6000;
+        function undoBar() { return document.getElementById('undo-bar'); }
+        function showUndo(logId, label) {
+            const bar = undoBar(); if (!bar) return;
+            bar.querySelector('#undo-text').textContent = 'انحذفت: ' + label;
+            bar.dataset.logId = logId;
+            const meter = bar.querySelector('#undo-meter');
+            meter.style.transition = 'none'; meter.style.transform = 'scaleX(1)';
+            bar.classList.remove('hidden');
+            requestAnimationFrame(() => requestAnimationFrame(() => { meter.style.transition = `transform ${UNDO_MS}ms linear`; meter.style.transform = 'scaleX(0)'; }));
+        }
+        function hideUndo(logId) { const bar = undoBar(); if (bar && (!logId || bar.dataset.logId === logId)) bar.classList.add('hidden'); }
+        function swipeDelete(logId) {
+            const log = state.logs.find(l => l.id === logId);
+            if (!log || pendingDeletes.has(logId)) return;
+            const timer = setTimeout(() => commitDelete(logId), UNDO_MS);
+            pendingDeletes.set(logId, timer);
+            renderTodayLogs();
+            haptic('long');
+            showUndo(logId, `${shortName(log.exerciseName)} · ${log.type === 'weights' ? setLabel(log) : log.duration + ' دقيقة'}`);
+        }
+        function undoDelete() {
+            const logId = undoBar()?.dataset.logId;
+            if (!logId || !pendingDeletes.has(logId)) return;
+            clearTimeout(pendingDeletes.get(logId));
+            pendingDeletes.delete(logId);
+            hideUndo(logId);
+            renderTodayLogs();
+            haptic('tap');
+            showToast('رجعت الجولة');
+        }
+        function commitDelete(logId) {
+            if (!pendingDeletes.has(logId)) return;
+            if (saving) { pendingDeletes.set(logId, setTimeout(() => commitDelete(logId), 400)); return; }
+            pendingDeletes.delete(logId);
+            hideUndo(logId);
+            runMutation(async () => {
+                const deletedLog = state.logs.find(l => l.id === logId);
+                if (!deletedLog) return;
+                state.logs = state.logs.filter(l => l.id !== logId);
+                if (deletedLog.sessionId) await refreshCompletedSessionSummary(deletedLog.sessionId);
+                await GymStorage.save(state);
+                renderTodayLogs(); updateTopHeaderStats();
+                if (!document.getElementById('screen-progress').classList.contains('hidden')) initProgressScreen();
+            });
+        }
+        function flushPendingDeletes() { for (const id of [...pendingDeletes.keys()]) { clearTimeout(pendingDeletes.get(id)); commitDelete(id); } }
+
+        function initSwipe() {
+            const list = document.getElementById('today-logs-container');
+            if (!list || !window.PointerEvent) return;
+            let g = null;
+            const armedAt = w => Math.max(96, w * 0.4);
+            const reset = (row, animate) => { if (!row) return; row.style.transition = animate ? 'transform .18s ease-out' : 'none'; row.style.transform = ''; row.classList.remove('swipe-edit', 'swipe-delete'); setTimeout(() => row.classList.remove('swiping'), 50); };
+            list.addEventListener('pointerdown', e => {
+                if (e.button !== 0 || saving) return;
+                const row = e.target.closest('.log-row');
+                if (!row || e.target.closest('button,a,input,select')) return;
+                g = { row, id: row.dataset.logId, x: e.clientX, y: e.clientY, dx: 0, locked: false, pointer: e.pointerId, w: row.getBoundingClientRect().width };
+            });
+            list.addEventListener('pointermove', e => {
+                if (!g || e.pointerId !== g.pointer) return;
+                const dx = e.clientX - g.x, dy = e.clientY - g.y;
+                if (!g.locked) {
+                    if (Math.abs(dy) > 10 && Math.abs(dy) >= Math.abs(dx)) { g = null; return; } // تمرير عمودي: نترك الصفحة تتحرك
+                    if (Math.abs(dx) < 14 || Math.abs(dx) < Math.abs(dy) * 2) return;
+                    g.locked = true; g.row.classList.add('swiping');
+                    try { g.row.setPointerCapture(g.pointer); } catch {}
+                }
+                e.preventDefault();
+                const limit = g.w * 0.6, a = Math.abs(dx);
+                const eased = Math.sign(dx) * (a <= limit ? a : limit + (a - limit) * 0.25);
+                g.dx = dx;
+                g.row.style.transition = 'none';
+                g.row.style.transform = `translateX(${eased}px)`;
+                const armed = a >= armedAt(g.w);
+                g.row.classList.toggle('swipe-edit', dx > 0 && armed);
+                g.row.classList.toggle('swipe-delete', dx < 0 && armed);
+            }, { passive: false });
+            const end = e => {
+                if (!g || e.pointerId !== g.pointer) return;
+                const { row, id, dx, locked, w } = g; g = null;
+                if (!locked) return;
+                const armed = Math.abs(dx) >= armedAt(w);
+                if (armed && dx < 0) { row.style.transition = 'transform .15s ease-in'; row.style.transform = `translateX(${-w}px)`; setTimeout(() => swipeDelete(id), 150); return; }
+                reset(row, true);
+                if (armed && dx > 0) openEditLog(id);
+            };
+            list.addEventListener('pointerup', end);
+            list.addEventListener('pointercancel', e => { if (g && e.pointerId === g.pointer) { reset(g.row, true); g = null; } });
+            // نقرة بعد سحب ما تنحسب ضغطة
+            list.addEventListener('click', e => { if (e.target.closest('.log-row.swiping')) { e.stopPropagation(); e.preventDefault(); } }, true);
+        }
+
+        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '10.9' });
 
         window.addEventListener('DOMContentLoaded', async () => {
             registerServiceWorker();

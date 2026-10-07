@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>متتبع التمارين - Gym Tracker v10.6</title>
+    <title>متتبع التمارين - Gym Tracker v10.9</title>
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -34,7 +34,7 @@
 
     <header class="sticky top-0 z-40 glass px-4 py-3 mb-4 border-b border-slate-800 flex justify-between items-center">
         <div class="flex items-center space-x-3 space-x-reverse">
-            <div class="app-mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="40" height="40"><rect x="3" y="18" width="34" height="4" fill="#8C8A84"/><rect x="7" y="9" width="6" height="22" rx="1" fill="#C8322A"/><rect x="27" y="9" width="6" height="22" rx="1" fill="#C8322A"/><rect x="14" y="13" width="3" height="14" rx="1" fill="#EDEBE6"/><rect x="23" y="13" width="3" height="14" rx="1" fill="#EDEBE6"/></svg></div>
+            <div class="app-mark" aria-hidden="true"><svg viewBox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="15" fill="#C8322A"/><circle cx="20" cy="20" r="10" fill="none" stroke="#9E2620" stroke-width="1.2"/><circle cx="20" cy="20" r="5.2" fill="#2A2A29" stroke="#8C8A84" stroke-width="1.6"/><circle cx="20" cy="20" r="1.8" fill="#121212"/></svg></div>
             <div>
                 <h1 class="font-extrabold text-base sm:text-lg text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400 leading-tight">Gym Tracker Pro</h1>
                 <p class="text-[11px] text-slate-400 font-medium" id="db-status-badge">جاري ربط IndexedDB...</p>
@@ -389,6 +389,7 @@
                     <span id="today-sets-count" class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">0 جولات</span>
                 </div>
 
+                <p class="field-hint swipe-hint" data-added>اسحب الجولة يمين للتعديل، ويسار للحذف (وتقدر تتراجع 6 ثواني).</p>
                 <div id="today-logs-container" class="space-y-2"></div>
 
                 <div id="lazy-logs-load-more" class="hidden text-center pt-2">
@@ -734,7 +735,7 @@
     <details class="app-help max-w-xl mx-auto">
         <summary>عن الأرقام التقديرية وحفظ البيانات</summary>
         <p>السعرات و1RM ومؤشرات الجسم تقديرات إرشادية. 1RM يظهر حتى 15 عدة فقط. البيانات محفوظة على هذا الجهاز؛ صدّر نسخة JSON للاحتفاظ بها خارج المتصفح.</p>
-        <p class="field-hint">الإصدار 10.6</p>
+        <p class="field-hint">الإصدار 10.9</p>
     </details>
 
     <nav id="floating-dock" class="floating-dock px-2 py-2">
@@ -838,6 +839,11 @@
         </div>
     </div>
 
+    <div id="undo-bar" class="undo-bar hidden" role="status" aria-live="polite" data-added>
+        <span id="undo-text"></span>
+        <button type="button" id="btn-undo">تراجع</button>
+        <i id="undo-meter" aria-hidden="true"></i>
+    </div>
     <div id="toast-container" role="status" aria-live="polite" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 space-y-2 pointer-events-none w-full max-w-xs px-4"></div>
 
     <script src="./storage.js" defer></script>

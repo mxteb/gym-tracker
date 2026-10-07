@@ -1,6 +1,6 @@
 {
   "id": "./",
-  "name": "Gym Tracker Pro",
+  "name": "Gym Tracker",
   "short_name": "GymTracker",
   "lang": "ar",
   "dir": "rtl",
@@ -21,6 +21,12 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "./assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

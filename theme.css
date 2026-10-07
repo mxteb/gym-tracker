@@ -367,3 +367,20 @@ button.cal-day{min-height:0;padding:0}
 .record-headrow{min-height:0;padding:0 0 .3rem;font-size:.7rem;color:var(--mute);border-bottom:1px solid var(--line)}
 .body-chart svg,#progressChart svg{direction:ltr}
 .cal-head button{display:flex;align-items:center;justify-content:center}
+
+/* ---------- v10.9: سحب الجولة + تراجع ---------- */
+.log-row{touch-action:pan-y;position:relative;will-change:transform;user-select:none;-webkit-user-select:none}
+.log-row.swiping{z-index:2}
+.log-row.swipe-edit{border-color:var(--yellow)!important;box-shadow:inset 0 0 0 1px var(--yellow)}
+.log-row.swipe-delete{border-color:var(--red)!important;background:#2A1513!important}
+.log-row.swipe-edit::after,.log-row.swipe-delete::after{position:absolute;top:50%;transform:translateY(-50%);font-weight:800;font-size:.85rem;padding:.2rem .6rem;border-radius:var(--r-sm)}
+.log-row.swipe-edit::after{content:"تعديل";left:.6rem;background:var(--yellow);color:#111}
+.log-row.swipe-delete::after{content:"حذف";right:.6rem;background:var(--red);color:#fff}
+.swipe-hint{margin-top:-.25rem}
+.undo-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));width:calc(100vw - 1.5rem);max-width:30rem;z-index:120;display:flex;align-items:center;gap:.75rem;padding:.6rem .6rem .7rem .9rem;background:#000;border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:0 8px 28px #000c;overflow:hidden}
+.undo-bar.hidden{display:none}
+#undo-text{flex:1;min-width:0;font-size:.85rem;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#btn-undo{flex:none;min-height:44px;padding:0 1.1rem;border:1px solid var(--yellow);border-radius:var(--r-sm);background:transparent;color:var(--yellow);font-weight:800}
+#undo-meter{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--yellow);transform-origin:right}
+
+#today-logs-container{overflow:hidden;padding:2px 0}
