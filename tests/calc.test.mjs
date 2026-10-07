@@ -198,3 +198,10 @@ test('next-set suggestion (v10.7): RIR rules, units, modes, reasons', () => {
   // mode filter: asking for a mode with no history returns null
   assert.equal(S([L({ displayWeight: 60, weight: 60, reps: 10, rir: 2 })], { mode: 'timed' }), null);
 });
+
+test('suggestion rounds converted weights to 0.1', () => {
+  const r = GymCalc.suggestNext([
+    { id: 'a', exerciseId: 'ex_1', type: 'weights', date: '2026-10-01', timestamp: 1, sessionId: 's', unit: 'lbs', displayWeight: 135, weight: 135 / 2.20462, reps: 5, rir: null, loadMode: 'external', setType: 'normal' },
+    { id: 'b', exerciseId: 'ex_1', type: 'weights', date: '2026-10-01', timestamp: 2, sessionId: 's', unit: 'kg', displayWeight: 60, weight: 60, reps: 10, rir: null, loadMode: 'external', setType: 'normal' }], 'ex_1');
+  assert.equal(r.unit, 'kg'); assert.equal(r.weight, 61.2); assert.equal(r.reps, 6);
+});

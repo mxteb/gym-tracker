@@ -209,7 +209,7 @@ function suggestNext(logs, exerciseId, opts = {}) {
   ? (a, b) => (shown(b) < shown(a) || (shown(b) === shown(a) && Number(b.reps) > Number(a.reps))) ? b : a
   : (a, b) => (shown(b) > shown(a) || (shown(b) === shown(a) && Number(b.reps) > Number(a.reps))) ? b : a;
  const top = group.reduce(better);
- const w = Math.round(shown(top) * 100) / 100, reps = Number(top.reps) || 1, rir = rirOf(top);
+ const w = Math.round(shown(top) * 10) / 10, reps = Number(top.reps) || 1, rir = rirOf(top);
  const step = unit === 'lbs' ? 5 : 2.5;
  const u = unit === 'lbs' ? 'باوند' : 'كجم';
  const was = `آخر جلسة (${top.date}): ${mode === 'bodyweight' ? 'وزن الجسم' : w + ' ' + u} × ${reps}${rir === null ? ' بدون RIR' : ' وRIR ' + (rir === 4 ? '4+' : rir)}.`;
@@ -229,7 +229,7 @@ function suggestNext(logs, exerciseId, opts = {}) {
  if (rir === 0) return out('hold', w, reps, 'وصلت للفشل، فثبّت نفس الوزن والعدات لين تسويها وفيك عدة باقية.');
  if (rir !== null && rir >= 3) return out('add-weight', up, reps, `كان باقي فيك 3 عدات أو أكثر، يعني الوزن صار خفيف عليك. زد ${unitStep} وخلك على ${reps} عدات.`);
  if (reps >= REP_TOP) return out('add-weight', up, REP_RESET, `وصلت ${reps} عدة${rir === null ? '' : ' وفيك عدات باقية'}. زد ${unitStep} وارجع ${REP_RESET} عدات وابنِ عليها.`);
- return out('add-rep', w, reps + 1, rir === null ? 'ما سجلت RIR، فالاقتراح على العدات: نفس الوزن وعدة زيادة.' : `باقي فيك ${rir === 1 ? 'عدة' : 'عدتين'}: ثبّت الوزن وزد عدة.`);
+ return out('add-rep', w, reps + 1, rir === null ? 'ما سجلت RIR، فالاقتراح على العدات: ثبّت الوزن وزد عدة.' : `باقي فيك ${rir === 1 ? 'عدة' : 'عدتين'}: ثبّت الوزن وزد عدة.`);
 }
 
 window.GymCalc = { LBS_PER_KG, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };

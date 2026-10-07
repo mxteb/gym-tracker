@@ -292,3 +292,4 @@ header h1{border:0!important;background:none!important;padding:0}
 #rest-timer-widget > .text-xs{flex:1 1 auto;min-width:0;overflow:hidden}
 #timer-preset-desc{display:block;max-width:100%}
 #timer-display{flex:none;min-width:4.2rem;text-align:center}
+#toast-container > *{pointer-events:none!important}
