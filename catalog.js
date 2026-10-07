@@ -134,5 +134,15 @@ const LOAD_HINTS = {
             };
 const SET_LABELS = {normal:'عادية',warmup:'تسخين',dropset:'دروب',drop:'دروب',superset:'سوبر',failure:'فشل (سجل سابق)'};
 const SET_HELP = {normal:'جولة العمل الأساسية بوزن وعدات تختارها. تُحسب ضمن جولات العمل.',warmup:'جولة خفيفة للتحضير. تبقى في السجل وتُستبعد من جولات العمل ومنحنى التطور.',dropset:'تخفض الوزن بعد جولة وتكمل العدات. سجّل كل مرحلة وحدها، واختر «بدون مؤقت» بين المراحل.',superset:'تمرينان متتاليان بدون راحة بينهما. سجّل كل تمرين وحده، واختر «بدون مؤقت» حتى تنتهي منهما.',failure:'تصنيف محفوظ من نسخة سابقة. استخدم RIR 0 عند تسجيل جولة جديدة وصلت فيها للفشل.'};
-window.GymCatalog = Object.freeze({ ROUTINE_PRESETS, EXERCISE_DICTIONARY, DEFAULT_EXERCISES, CATEGORY_NAMES, EQUIP_NAMES, ROUTINE_LABELS, LOAD_HINTS, SET_LABELS, SET_HELP });
+// v10.8 — العضلة الأساسية لكل تمرين (للحجم الأسبوعي). التمارين المركبة تنحسب لعضلتها الأساسية بس.
+const MUSCLE_NAMES = { chest: 'صدر', back: 'ظهر', shoulders: 'أكتاف', arms: 'ذراع', legs: 'أرجل', abs: 'بطن' };
+const MUSCLE_BY_ID = {};
+const assign = (m, ids) => ids.forEach(n => { MUSCLE_BY_ID['ex_' + n] = m; });
+assign('chest', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 19]);
+assign('shoulders', [11, 12, 13, 14, 15, 16, 17, 18, 34, 35, 36]);
+assign('arms', [20, 21, 22, 23, 38, 39, 40, 41, 42, 43]);
+assign('back', [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 37]);
+assign('legs', [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]);
+assign('abs', [60, 61, 62, 63]);
+window.GymCatalog = Object.freeze({ MUSCLE_NAMES, MUSCLE_BY_ID, ROUTINE_PRESETS, EXERCISE_DICTIONARY, DEFAULT_EXERCISES, CATEGORY_NAMES, EQUIP_NAMES, ROUTINE_LABELS, LOAD_HINTS, SET_LABELS, SET_HELP });
 })();

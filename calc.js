@@ -232,5 +232,86 @@ function suggestNext(logs, exerciseId, opts = {}) {
  return out('add-rep', w, reps + 1, rir === null ? 'ما سجلت RIR، فالاقتراح على العدات: ثبّت الوزن وزد عدة.' : `باقي فيك ${rir === 1 ? 'عدة' : 'عدتين'}: ثبّت الوزن وزد عدة.`);
 }
 
-window.GymCalc = { LBS_PER_KG, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
+/* ---------- v10.8: التطور والتحليل ---------- */
+/** العضلة الأساسية: من الجدول للتمارين الجاهزة، ومن الاسم للمخصصة، وإلا من الفئة. null للكارديو. */
+function muscleOf(ex) {
+ if (!ex || ex.type !== 'weights' || ex.category === 'cardio') return null;
+ const known = GymCatalog.MUSCLE_BY_ID[ex.id];
+ if (known && !ex.isCustom) return known;
+ if (ex.category === 'legs') return 'legs';
+ if (ex.category === 'abs') return 'abs';
+ const n = String(ex.name || '').toLowerCase();
+ if (/(ترايسيبس|تراي|بايسبس|بايسيبس|باي |مرجحة|هامر|مطرقة|tricep|bicep|curl|pushdown|kickback|skull)/i.test(n)) return 'arms';
+ if (/(أكتاف|اكتاف|كتف|رفرفة|shoulder|lateral|delt|overhead|arnold|face ?pull|military)/i.test(n)) return 'shoulders';
+ if (/(صدر|بنش|متوازي|bench|chest|fly|flye|pec|dip|crossover)/i.test(n)) return 'chest';
+ if (/(ظهر|سحب|عقلة|عقله|ترابيس|row|pull|lat|shrug|deadlift)/i.test(n)) return 'back';
+ return ex.category === 'push' ? 'chest' : ex.category === 'pull' ? 'back' : null;
+}
+
+const recordKey = l => l.exerciseId + '|' + (l.loadMode || 'external');
+/** أعلى حمل وأعلى 1RM لكل تمرين وطريقة حمل (بدون التسخين). للتمارين الزمنية: أطول مدة. */
+function personalRecords(logs) {
+ const out = new Map();
+ const sorted = logs.filter(l => l.type === 'weights' && l.setType !== 'warmup').slice().sort((a, b) => (a.timestamp || Date.parse(a.date) || 0) - (b.timestamp || Date.parse(b.date) || 0));
+ for (const l of sorted) {
+  const k = recordKey(l), mode = l.loadMode || 'external';
+  let r = out.get(k);
+  if (!r) { r = { exerciseId: l.exerciseId, exerciseName: l.exerciseName, mode, top: null, best1rm: null, count: 0 }; out.set(k, r); }
+  r.count++;
+  r.exerciseName = l.exerciseName || r.exerciseName;
+  if (mode === 'timed') {
+   const sec = Number(l.durationSeconds) || 0;
+   if (!r.top || sec > r.top.value) r.top = { value: sec, reps: 1, date: l.date, logId: l.id };
+   continue;
+  }
+  const w = progressWeightKg(l), reps = Number(l.reps) || 1;
+  if (!Number.isFinite(w)) continue;
+  if (!r.top || w > r.top.value + 1e-9 || (Math.abs(w - r.top.value) < 1e-9 && reps > r.top.reps)) r.top = { value: w, reps, date: l.date, logId: l.id };
+  const rm = GymData.oneRepMax(w, reps);
+  if (Number.isFinite(rm) && (!r.best1rm || rm > r.best1rm.value + 1e-9)) r.best1rm = { value: rm, date: l.date, logId: l.id };
+ }
+ return out;
+}
+/** هل الجولة الجديدة كسرت رقم قياسي؟ يقارن بالسجل قبلها فقط. أول جولة للتمرين ما تنحسب رقم قياسي. */
+function newRecord(logsBefore, log) {
+ if (!log || log.type !== 'weights' || log.setType === 'warmup') return null;
+ const prev = personalRecords(logsBefore.filter(l => recordKey(l) === recordKey(log))).get(recordKey(log));
+ if (!prev || !prev.top) return null;
+ const mode = log.loadMode || 'external';
+ if (mode === 'timed') { const sec = Number(log.durationSeconds) || 0; return sec > prev.top.value ? { kind: 'time', value: sec, previous: prev.top.value } : null; }
+ const w = progressWeightKg(log), reps = Number(log.reps) || 1, rm = GymData.oneRepMax(w, reps);
+ const load = w > prev.top.value + 1e-9;
+ const strength = Number.isFinite(rm) && prev.best1rm && rm > prev.best1rm.value + 1e-9;
+ if (!load && !strength) return null;
+ return { kind: load && strength ? 'both' : load ? 'load' : '1rm', value: load ? w : rm, previous: load ? prev.top.value : prev.best1rm.value, oneRm: rm, previous1rm: prev.best1rm ? prev.best1rm.value : null };
+}
+
+const isoDate = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+/** بداية الأسبوع (الأحد) لتاريخ YYYY-MM-DD. */
+function weekStart(dateStr) { const d = new Date(dateStr + 'T12:00:00'); d.setDate(d.getDate() - d.getDay()); return isoDate(d); }
+/** أيام التمرين والأسابيع المتتالية. الأسبوع الحالي ما يكسر السلسلة لو ما تمرنت فيه لسه. */
+function consistency(logs, today) {
+ const days = new Set(logs.map(l => l.date).filter(Boolean));
+ const weeks = new Set([...days].map(weekStart));
+ let streak = 0;
+ const cur = new Date(weekStart(today) + 'T12:00:00');
+ if (!weeks.has(isoDate(cur))) cur.setDate(cur.getDate() - 7);
+ while (weeks.has(isoDate(cur))) { streak++; cur.setDate(cur.getDate() - 7); }
+ return { days, streak, thisWeekDays: [...days].filter(d => weekStart(d) === weekStart(today)).length };
+}
+/** جولات العمل لكل عضلة في أسبوع يبدأ من startDate (الأحد). */
+function weeklyMuscleSets(logs, exercises, startDate) {
+ const end = new Date(startDate + 'T12:00:00'); end.setDate(end.getDate() + 7);
+ const endStr = isoDate(end);
+ const byId = new Map(exercises.map(e => [e.id, e]));
+ const out = { chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, abs: 0 };
+ for (const l of logs) {
+  if (l.type !== 'weights' || l.setType === 'warmup' || !l.date || l.date < startDate || l.date >= endStr) continue;
+  const m = muscleOf(byId.get(l.exerciseId) || { id: l.exerciseId, name: l.exerciseName, category: l.category, type: 'weights' });
+  if (m) out[m]++;
+ }
+ return out;
+}
+
+window.GymCalc = { LBS_PER_KG, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();

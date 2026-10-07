@@ -205,3 +205,36 @@ test('suggestion rounds converted weights to 0.1', () => {
     { id: 'b', exerciseId: 'ex_1', type: 'weights', date: '2026-10-01', timestamp: 2, sessionId: 's', unit: 'kg', displayWeight: 60, weight: 60, reps: 10, rir: null, loadMode: 'external', setType: 'normal' }], 'ex_1');
   assert.equal(r.unit, 'kg'); assert.equal(r.weight, 61.2); assert.equal(r.reps, 6);
 });
+
+test('v10.8: muscles, records, streaks, weekly sets', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  // every default weight exercise has a muscle; cardio has none
+  for (const e of ex) assert.equal(GymCalc.muscleOf(e) === null, e.type !== 'weights', e.id);
+  assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_1')), 'chest');
+  assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_20')), 'arms');
+  assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_36')), 'shoulders');
+  assert.equal(GymCalc.muscleOf({ id: 'c1', isCustom: true, type: 'weights', category: 'pull', name: 'Preacher curl' }), 'arms');
+  assert.equal(GymCalc.muscleOf({ id: 'c2', isCustom: true, type: 'weights', category: 'push', name: 'شي غريب' }), 'chest');
+  assert.equal(GymCalc.muscleOf({ id: 'c3', isCustom: true, type: 'weights', category: 'legs', name: 'leg curl' }), 'legs');
+  // records
+  const L = (o) => ({ id: 'l' + Math.random(), exerciseId: 'ex_1', exerciseName: 'بنش', type: 'weights', loadMode: 'external', setType: 'normal', unit: 'kg', ...o });
+  const logs = [L({ weight: 60, reps: 10, date: '2026-09-01', timestamp: 1 }), L({ weight: 70, reps: 3, date: '2026-09-08', timestamp: 2 }), L({ weight: 100, reps: 5, setType: 'warmup', date: '2026-09-08', timestamp: 3 })];
+  const r = GymCalc.personalRecords(logs).get('ex_1|external');
+  assert.equal(r.top.value, 70); assert.equal(r.top.date, '2026-09-08'); assert.equal(r.count, 2);
+  assert.equal(r.best1rm.value, 80); // 60×10 → 80, 70×3 → 77
+  assert.equal(GymCalc.newRecord(logs, L({ weight: 60, reps: 9 })), null); // 60×9 → 78 < 80, 60 < 70: no record
+  const nr = GymCalc.newRecord(logs, L({ weight: 65, reps: 9 }));
+  assert.equal(nr.kind, '1rm'); assert.equal(nr.previous, 80);
+  assert.equal(GymCalc.newRecord(logs, L({ weight: 72.5, reps: 1 })).kind, 'load');
+  assert.equal(GymCalc.newRecord(logs, L({ weight: 72.5, reps: 8 })).kind, 'both');
+  assert.equal(GymCalc.newRecord([], L({ weight: 50, reps: 5 })), null); // first ever set is not a record
+  assert.equal(GymCalc.newRecord(logs, L({ weight: 200, reps: 5, setType: 'warmup' })), null);
+  // streak: weeks start Sunday; current empty week doesn't break it
+  assert.equal(GymCalc.weekStart('2026-10-07'), '2026-10-04');
+  const c = GymCalc.consistency([{ date: '2026-09-21' }, { date: '2026-09-29' }, { date: '2026-10-01' }], '2026-10-07');
+  assert.equal(c.streak, 2); assert.equal(c.thisWeekDays, 0); assert.equal(c.days.size, 3);
+  assert.equal(GymCalc.consistency([{ date: '2026-09-21' }, { date: '2026-10-05' }], '2026-10-07').streak, 1);
+  // weekly sets
+  const w = GymCalc.weeklyMuscleSets([L({ date: '2026-10-04' }), L({ date: '2026-10-10' }), L({ date: '2026-10-11' }), L({ date: '2026-10-05', setType: 'warmup' }), L({ date: '2026-10-05', exerciseId: 'ex_44' })], ex, '2026-10-04');
+  assert.equal(w.chest, 2); assert.equal(w.legs, 1); assert.equal(w.back, 0);
+});

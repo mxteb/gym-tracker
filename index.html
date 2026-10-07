@@ -523,6 +523,47 @@
                 </h3>
                 <div id="exercise-volume-breakdown-list" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
             </div>
+
+            <nav id="progress-jump" class="progress-jump" data-added aria-label="أقسام التطور">
+                <button type="button" data-jump="records-card">الأرقام القياسية</button>
+                <button type="button" data-jump="calendar-card">الالتزام</button>
+                <button type="button" data-jump="muscles-card">العضلات هالأسبوع</button>
+                <button type="button" data-jump="sessions-card">سجل الجلسات</button>
+            </nav>
+
+            <section id="records-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="records-title">
+                <h3 id="records-title" class="sec-title">أرقامك القياسية</h3>
+                <p class="field-hint">أعلى حمل وأعلى 1RM تقديري لكل تمرين (بدون التسخين). اضغط على تمرين عشان تشوف رسمه.</p>
+                <div class="record-row record-headrow" aria-hidden="true"><span>التمرين</span><span>أعلى حمل</span><span>1RM تقديري</span></div>
+                <div id="records-list" class="records-list"></div>
+            </section>
+
+            <section id="calendar-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="cal-title">
+                <div class="cal-head">
+                    <button type="button" id="cal-prev" aria-label="الشهر السابق"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+                    <h3 id="cal-title" class="sec-title"></h3>
+                    <button type="button" id="cal-next" aria-label="الشهر الجاي"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+                </div>
+                <div class="cal-stats">
+                    <div><span>أسابيع متتالية</span><b id="cal-streak" class="num-led">0</b></div>
+                    <div><span>أيام هالأسبوع</span><b id="cal-week" class="num-led">0</b></div>
+                    <div><span>أيام هالشهر</span><b id="cal-month" class="num-led">0</b></div>
+                </div>
+                <div id="cal-grid" class="cal-grid" role="grid"></div>
+                <p class="field-hint">الأسبوع يبدأ الأحد. الأسبوع الحالي ما يكسر السلسلة لو ما تمرنت فيه لسه. اضغط على يوم تمرنت فيه عشان تشوف جولاته.</p>
+            </section>
+
+            <section id="muscles-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="muscles-title">
+                <h3 id="muscles-title" class="sec-title">الجولات هالأسبوع لكل عضلة</h3>
+                <div id="muscle-bars" class="muscle-bars"></div>
+                <p class="field-hint">جولات العمل بدون التسخين. التمرين المركب ينحسب لعضلته الأساسية بس (البنش للصدر). الخط الرمادي = الأسبوع الماضي.</p>
+            </section>
+
+            <section id="sessions-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="sessions-title">
+                <h3 id="sessions-title" class="sec-title">سجل الجلسات</h3>
+                <div id="sessions-list" class="sessions-list"></div>
+                <button type="button" id="btn-more-sessions" class="hidden w-full py-2 rounded-xl text-xs font-bold border">عرض جلسات أقدم</button>
+            </section>
         </section>
 
         <!-- BENTO ANALYTICS TAB -->
@@ -646,6 +687,12 @@
                 <h3 class="font-bold text-xs text-slate-300">سجل تغيرات الوزن والقياسات</h3>
                 <div id="profile-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
             </div>
+
+            <section id="body-chart-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="body-chart-title">
+                <h3 id="body-chart-title" class="font-bold text-xs text-slate-300">وزنك وخصرك مع الوقت</h3>
+                <div id="body-chart" class="body-chart"></div>
+                <p class="field-hint">من سجل القياسات اللي تحفظه هنا (قياس واحد لكل يوم).</p>
+            </section>
 
             <div class="glass-card p-4 space-y-3">
                 <h3 class="font-bold text-xs text-slate-300">إدارة البيانات وقواعد البيانات IndexedDB</h3>

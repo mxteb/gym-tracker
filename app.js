@@ -800,6 +800,7 @@
             };
 
             Object.assign(logEntry,GymData.validateLog(logEntry));
+            const record = GymCalc.newRecord(state.logs, logEntry);
             state.logs.push(logEntry);
             await dbSaveAll('logs', state.logs);
 
@@ -811,6 +812,13 @@
             document.getElementById('logs-date-filter').value = getLocalDateString();
             renderTodayLogs();
             haptic('confirm');
+            if (record) {
+                const u = modeUnit(logEntry.loadMode);
+                const what = record.kind === 'time' ? `${record.value} ثانية (السابق ${record.previous})`
+                    : record.kind === '1rm' ? `1RM ${fmt1(record.value)} ${u} (السابق ${fmt1(record.previous)})`
+                    : `${fmt1(record.value)} ${u} (السابق ${fmt1(record.previous)})`;
+                setTimeout(() => { showToast(`رقم قياسي جديد في ${shortName(ex.name)}: ${what}`); haptic('long'); }, 600);
+            }
             const customRestSecs = Number(document.getElementById('rest-timer-duration').value);
             if(customRestSecs>0)startRestTimer(customRestSecs, ex.name);else stopRestTimer();
         }
@@ -1243,6 +1251,7 @@
             updateGlobalStats();
             renderExerciseVolumeBreakdown();
             updateProgressChart();
+            renderRecords(); renderCalendar(); renderMuscles(); renderSessions();
         }
 
         function updateGlobalStats() {
@@ -1475,7 +1484,7 @@
             // Validate before replacing the live profile; preserve all historical entries.
             GymData.validate({profile:next});
             state.profile=next;await dbSaveAll();
-            renderBentoGridAnalysis();renderProfileHistoryList();updateTopHeaderStats();
+            renderBentoGridAnalysis();renderProfileHistoryList();updateTopHeaderStats();renderBodyChart();
             showToast('تم حفظ القياسات والبروفايل بنجاح');
         }
 
@@ -1494,6 +1503,7 @@
             renderBentoGridAnalysis();
             renderProfileHistoryList();
             renderSettings();
+            renderBodyChart();
         }
 
         function renderProfileHistoryList() {
@@ -1769,6 +1779,12 @@
             document.getElementById('btn-plan-confirm')?.addEventListener('click', () => runMutation(confirmPlan));
             document.getElementById('plan-search')?.addEventListener('input', renderPlanList);
             document.getElementById('plan-list')?.addEventListener('change', e => { const b = e.target.closest('input[type=checkbox]'); if (!b) return; if (b.checked) planDraft.add(b.value); else planDraft.delete(b.value); document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`; });
+            document.getElementById('progress-jump')?.addEventListener('click', e => { const b = e.target.closest('[data-jump]'); if (b) document.getElementById(b.dataset.jump)?.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
+            document.getElementById('records-list')?.addEventListener('click', e => { const b = e.target.closest('.record-row'); if (b) openRecord(b.dataset.ex, b.dataset.mode); });
+            document.getElementById('cal-prev')?.addEventListener('click', () => { calOffset--; renderCalendar(); });
+            document.getElementById('cal-next')?.addEventListener('click', () => { if (calOffset < 0) { calOffset++; renderCalendar(); } });
+            document.getElementById('cal-grid')?.addEventListener('click', e => { const b = e.target.closest('.cal-day.on'); if (b) openDay(b.dataset.date); });
+            document.getElementById('btn-more-sessions')?.addEventListener('click', () => { sessionsLimit += 10; renderSessions(); });
             document.getElementById('set-keep-awake')?.addEventListener('change', e => runMutation(() => saveSetting('keepAwake', e.target.checked)));
             document.getElementById('set-haptics')?.addEventListener('change', e => runMutation(() => saveSetting('haptics', e.target.checked)));
             document.querySelectorAll('.rir-btn,.set-type-btn').forEach(b => b.addEventListener('click', () => haptic('tap')));
@@ -2036,7 +2052,180 @@
             box.replaceChildren(head, row);
         }
 
-        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '10.7' });
+
+        /* ---------- v10.8: التطور والتحليل ---------- */
+        const AR_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+        const AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+        const fmt1 = n => String(Math.round(Number(n) * 10) / 10);
+        const modeUnit = mode => mode === 'timed' ? 'ثانية' : mode === 'per_hand' ? 'كجم لكل يد' : 'كجم';
+        const MODE_NOTE = { per_hand: 'لكل يد', bodyweight: 'وزن الجسم', added: 'وزن جسم + إضافي', assisted: 'بمساعدة', timed: 'بالوقت' };
+        function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+        function prettyDate(d) { const x = new Date(d + 'T12:00:00'); return Number.isFinite(x.getTime()) ? `${AR_DAYS[x.getDay()]} ${x.getDate()} ${AR_MONTHS[x.getMonth()]}` : d; }
+
+        function renderRecords() {
+            const box = document.getElementById('records-list');
+            if (!box) return;
+            const recs = [...GymCalc.personalRecords(state.logs).values()].filter(r => r.top);
+            box.replaceChildren();
+            if (!recs.length) { box.appendChild(el('p', 'field-hint', 'سجّل جولات وبتطلع أرقامك هنا.')); return; }
+            const latest = r => [r.top?.date, r.best1rm?.date].filter(Boolean).sort().pop() || '';
+            recs.sort((a, b) => latest(b).localeCompare(latest(a)));
+            for (const r of recs) {
+                const ex = state.exercises.find(e => e.id === r.exerciseId);
+                const row = el('button', 'record-row'); row.type = 'button'; row.dataset.ex = r.exerciseId; row.dataset.mode = r.mode;
+                const name = el('span', 'record-name', shortName(ex?.name || r.exerciseName || ''));
+                if (MODE_NOTE[r.mode]) name.appendChild(el('small', 'record-mode', ' · ' + MODE_NOTE[r.mode]));
+                const top = el('span', 'record-cell');
+                top.append(el('b', 'num-led', r.mode === 'timed' ? fmt1(r.top.value) + 'ث' : `${fmt1(r.top.value)}×${r.top.reps}`), el('small', '', r.top.date));
+                const rm = el('span', 'record-cell');
+                if (r.best1rm) rm.append(el('b', 'num-led led-red', fmt1(r.best1rm.value)), el('small', '', r.best1rm.date));
+                else rm.append(el('b', 'num-led', '—'), el('small', '', r.mode === 'timed' ? 'ما ينطبق' : '1RM حتى 15 عدة'));
+                row.append(name, top, rm);
+                box.appendChild(row);
+            }
+        }
+        function openRecord(exId, mode) {
+            const select = document.getElementById('chart-exercise-select');
+            if (![...select.options].some(o => o.value === exId)) return;
+            select.value = exId;
+            document.getElementById('progress-load-mode').value = mode;
+            updateProgressChart();
+            document.getElementById('progressChart').scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+
+        let calOffset = 0;
+        function renderCalendar() {
+            const grid = document.getElementById('cal-grid');
+            if (!grid) return;
+            const today = getLocalDateString();
+            const c = GymCalc.consistency(state.logs, today);
+            const base = new Date(); base.setDate(1); base.setMonth(base.getMonth() + calOffset);
+            const y = base.getFullYear(), m = base.getMonth();
+            document.getElementById('cal-title').textContent = `${AR_MONTHS[m]} ${y}`;
+            document.getElementById('cal-next').disabled = calOffset >= 0;
+            const prefix = `${y}-${String(m + 1).padStart(2, '0')}-`;
+            document.getElementById('cal-streak').textContent = c.streak;
+            document.getElementById('cal-week').textContent = c.thisWeekDays;
+            document.getElementById('cal-month').textContent = [...c.days].filter(d => d.startsWith(prefix)).length;
+            grid.replaceChildren();
+            for (const d of ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']) grid.appendChild(el('span', 'cal-dow', d));
+            const first = new Date(y, m, 1).getDay(), count = new Date(y, m + 1, 0).getDate();
+            for (let i = 0; i < first; i++) grid.appendChild(el('span', 'cal-pad'));
+            for (let day = 1; day <= count; day++) {
+                const date = prefix + String(day).padStart(2, '0');
+                const trained = c.days.has(date);
+                const cell = el(trained ? 'button' : 'span', 'cal-day' + (trained ? ' on' : '') + (date === today ? ' today' : '') + (date > today ? ' future' : ''), String(day));
+                if (trained) { cell.type = 'button'; cell.dataset.date = date; cell.setAttribute('aria-label', 'تمرنت يوم ' + prettyDate(date)); }
+                grid.appendChild(cell);
+            }
+        }
+        function openDay(date) {
+            const f = document.getElementById('logs-date-filter');
+            f.value = date; logsRenderLimit = 15; renderTodayLogs();
+            switchTab('workout');
+            document.getElementById('today-logs-container').scrollIntoView({ block: 'start' });
+            showToast('جولات ' + prettyDate(date));
+        }
+
+        function renderMuscles() {
+            const box = document.getElementById('muscle-bars');
+            if (!box) return;
+            const start = GymCalc.weekStart(getLocalDateString());
+            const prev = new Date(start + 'T12:00:00'); prev.setDate(prev.getDate() - 7);
+            const now = GymCalc.weeklyMuscleSets(state.logs, state.exercises, start);
+            const last = GymCalc.weeklyMuscleSets(state.logs, state.exercises, getLocalDateString(prev));
+            const max = Math.max(10, ...Object.values(now), ...Object.values(last));
+            box.replaceChildren();
+            for (const [k, label] of Object.entries(GymCatalog.MUSCLE_NAMES)) {
+                const row = el('div', 'muscle-row' + (now[k] ? '' : ' zero'));
+                const bar = el('div', 'muscle-bar');
+                const fill = el('i'); fill.style.width = (now[k] / max * 100) + '%';
+                const ghost = el('s'); ghost.style.right = (last[k] / max * 100) + '%'; ghost.title = 'الأسبوع الماضي: ' + last[k];
+                bar.append(fill, ghost);
+                row.append(el('span', 'muscle-name', label), bar, el('b', 'num-led', now[k] ? String(now[k]) : '0'));
+                row.setAttribute('aria-label', `${label}: ${now[k]} جولة هالأسبوع، ${last[k]} الأسبوع الماضي`);
+                box.appendChild(row);
+            }
+        }
+
+        let sessionsLimit = 10;
+        function renderSessions() {
+            const box = document.getElementById('sessions-list');
+            if (!box) return;
+            const items = state.sessions.filter(x => x.status === 'completed').map(x => ({ key: x.id, date: x.date, name: x.name, session: x, logs: state.logs.filter(l => l.sessionId === x.id), time: x.startedAt }));
+            const loose = new Map();
+            for (const l of state.logs) if (!l.sessionId) { if (!loose.has(l.date)) loose.set(l.date, []); loose.get(l.date).push(l); }
+            for (const [date, logs] of loose) items.push({ key: 'day-' + date, date, name: 'تمرين بدون جلسة', session: null, logs, time: Date.parse(date + 'T12:00:00') });
+            items.sort((a, b) => (b.time || 0) - (a.time || 0));
+            box.replaceChildren();
+            if (!items.length) { box.appendChild(el('p', 'field-hint', 'لما تنهي أول جلسة بتطلع هنا.')); }
+            for (const it of items.slice(0, sessionsLimit)) {
+                const working = it.logs.filter(l => l.type === 'weights' && l.setType !== 'warmup');
+                const s = it.session;
+                const mins = s && s.endedAt ? Math.max(1, Math.round((s.endedAt - s.startedAt) / 60000)) : null;
+                const tons = s?.totalVolumeKg != null ? s.totalVolumeKg / 1000 : working.reduce((n, l) => n + getVolumeLoadKg(l) * (Number(l.reps) || 1), 0) / 1000;
+                const d = el('details', 'session-item');
+                const sum = el('summary');
+                const head = el('span', 'session-head');
+                head.append(el('b', '', it.name), el('small', '', prettyDate(it.date) + ' · ' + it.date));
+                const stats = el('span', 'session-stats');
+                if (mins) stats.append(el('span', '', mins + ' د'));
+                stats.append(el('span', '', working.length + ' جولة'), el('span', '', tons.toFixed(2) + ' طن'));
+                if (s?.totalEstimatedCalories) stats.append(el('span', '', Math.round(s.totalEstimatedCalories) + ' سعرة'));
+                sum.append(head, stats);
+                d.appendChild(sum);
+                const body = el('div', 'session-body');
+                const byEx = new Map();
+                for (const l of it.logs.slice().sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))) { if (!byEx.has(l.exerciseId)) byEx.set(l.exerciseId, []); byEx.get(l.exerciseId).push(l); }
+                for (const [, logs] of byEx) {
+                    const line = el('div', 'session-ex');
+                    line.appendChild(el('span', 'session-ex-name', shortName(logs[0].exerciseName)));
+                    line.appendChild(el('span', 'session-sets num-led', logs.map(l => l.type !== 'weights' ? `${l.duration} د` : (l.setType === 'warmup' ? '(' : '') + setLabel(l).replace(' كجم', '').replace(' باوند', 'lb').replace('وزن الجسم', 'BW').replace(' ثانية', 'ث') + (l.setType === 'warmup' ? ')' : '')).join('  ·  ')));
+                    body.appendChild(line);
+                }
+                d.appendChild(body);
+                box.appendChild(d);
+            }
+            document.getElementById('btn-more-sessions').classList.toggle('hidden', items.length <= sessionsLimit);
+        }
+
+        function lineChart(points, { unit, label }) {
+            const NS = 'http://www.w3.org/2000/svg';
+            const W = 600, H = 200, L = 46, R = 16, T = 16, B = 34;
+            const vals = points.map(p => p.v), lo = Math.min(...vals), hi = Math.max(...vals);
+            const pad = Math.max(1, (hi - lo) * 0.25);
+            const min = Math.floor(lo - pad), max = Math.ceil(hi + pad);
+            const x = i => L + (W - L - R) * (points.length === 1 ? 0.5 : i / (points.length - 1));
+            const y = v => H - B - (H - T - B) * (v - min) / (max - min);
+            const svg = document.createElementNS(NS, 'svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', label);
+            const add = (n, a, t) => { const e = document.createElementNS(NS, n); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); if (t !== undefined) e.textContent = t; svg.appendChild(e); return e; };
+            for (let i = 0; i <= 3; i++) { const v = min + (max - min) * i / 3; add('line', { x1: L, x2: W - R, y1: y(v), y2: y(v), class: 'grid' }); add('text', { x: L - 8, y: y(v) + 5, 'text-anchor': 'end', class: 'tick' }, fmt1(v)); }
+            add('polyline', { points: points.map((p, i) => `${x(i)},${y(p.v)}`).join(' '), class: 'line' });
+            points.forEach((p, i) => { const c = add('circle', { cx: x(i), cy: y(p.v), r: i === points.length - 1 ? 5 : 3, class: i === points.length - 1 ? 'dot last' : 'dot' }); const t = document.createElementNS(NS, 'title'); t.textContent = `${p.d}: ${fmt1(p.v)} ${unit}`; c.appendChild(t); });
+            add('text', { x: L, y: H - 10, class: 'tick' }, points[0].d);
+            if (points.length > 1) add('text', { x: W - R, y: H - 10, 'text-anchor': 'end', class: 'tick' }, points[points.length - 1].d);
+            return svg;
+        }
+        function renderBodyChart() {
+            const box = document.getElementById('body-chart');
+            if (!box) return;
+            const h = (state.profile.history || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
+            box.replaceChildren();
+            const series = [['weight', 'الوزن', 'كجم'], ['waist', 'محيط الخصر', 'سم']];
+            let drawn = 0;
+            for (const [k, label, unit] of series) {
+                const pts = h.filter(x => Number(x[k]) > 0).map(x => ({ d: x.date, v: Number(x[k]) }));
+                if (!pts.length) continue;
+                drawn++;
+                const first = pts[0].v, last = pts[pts.length - 1].v, diff = Math.round((last - first) * 10) / 10;
+                const head = el('div', 'body-head');
+                head.append(el('span', '', label), el('b', 'num-led', `${fmt1(last)} ${unit}`), el('small', diff === 0 ? '' : diff > 0 ? 'up' : 'down', pts.length > 1 ? `${diff > 0 ? '+' : ''}${diff} من ${pts[0].d}` : 'قياس واحد'));
+                box.append(head, lineChart(pts, { unit, label }));
+            }
+            if (!drawn) box.appendChild(el('p', 'field-hint', 'احفظ وزنك (ومحيط خصرك لو تبي) من فوق، وكل يوم تحفظ فيه يصير نقطة في الرسم.'));
+        }
+
+        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '10.8' });
 
         window.addEventListener('DOMContentLoaded', async () => {
             registerServiceWorker();

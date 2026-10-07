@@ -293,3 +293,77 @@ header h1{border:0!important;background:none!important;padding:0}
 #timer-preset-desc{display:block;max-width:100%}
 #timer-display{flex:none;min-width:4.2rem;text-align:center}
 #toast-container > *{pointer-events:none!important}
+
+/* ---------- v10.8: التطور والتحليل ---------- */
+#screen-progress > :nth-child(n+6){order:6}
+.sec-title{font-size:1rem;font-weight:800;color:var(--ink)}
+.progress-jump{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;order:0!important}
+.progress-jump::-webkit-scrollbar{display:none}
+.progress-jump button{flex:none;min-height:40px;padding:0 .8rem;border:1px solid var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink-2);font-size:.8rem;font-weight:600;white-space:nowrap}
+#screen-progress > #progress-jump{order:0!important}
+/* أرقام قياسية */
+.records-list{display:flex;flex-direction:column}
+.record-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,.8fr);gap:.6rem;align-items:center;min-height:56px;padding:.45rem 0;border:0;border-bottom:1px solid var(--line-soft);background:transparent;color:var(--ink);text-align:right;width:100%}
+.record-name{font-size:.85rem;font-weight:700;line-height:1.5;min-width:0}
+.record-mode{color:var(--mute);font-weight:400}
+.record-cell{display:flex;flex-direction:column;gap:1px;min-width:0}
+.record-cell b{font-size:1.4rem;line-height:1;direction:ltr;text-align:right}
+.record-cell small{font-size:.68rem;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.led-red{color:var(--led)}
+/* التقويم */
+.cal-head{display:flex;align-items:center;justify-content:space-between}
+.cal-head button{width:44px;height:44px;border:1px solid var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink);font-size:1.4rem}
+.cal-head button:disabled{opacity:.3}
+.cal-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);background:#000;border-radius:var(--r-sm)}
+.cal-stats > div{display:flex;flex-direction:column;align-items:center;padding:.5rem .25rem;border-left:1px solid var(--line-soft)}
+.cal-stats > div:last-child{border-left:0}
+.cal-stats span{font-size:.7rem;color:var(--mute)}
+.cal-stats b{font-size:2rem;line-height:1;color:var(--ink)}
+#cal-streak{color:var(--yellow)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.cal-dow{text-align:center;font-size:.7rem;color:var(--mute);padding-bottom:2px}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:var(--r-sm);font-family:var(--ledf);font-size:1.05rem;color:var(--dim);background:var(--bg-deep);border:1px solid transparent;min-height:0}
+button.cal-day{min-height:0;padding:0}
+.cal-day.on{background:var(--red);color:#fff;font-weight:800}
+.cal-day.today{border-color:var(--ink);color:var(--ink)}
+.cal-day.future{opacity:.35}
+/* العضلات */
+.muscle-bars{display:flex;flex-direction:column;gap:.45rem}
+.muscle-row{display:grid;grid-template-columns:3.2rem 1fr 2rem;gap:.6rem;align-items:center}
+.muscle-name{font-size:.82rem;color:var(--ink)}
+.muscle-row.zero .muscle-name{color:var(--mute)}
+.muscle-bar{position:relative;height:16px;background:repeating-linear-gradient(90deg,#1E1E1D 0 6px,transparent 6px 8px);direction:rtl}
+.muscle-bar i{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(270deg,var(--ink) 0 6px,transparent 6px 8px)}
+.muscle-bar s{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--mute);text-decoration:none}
+.muscle-row b{font-size:1.3rem;text-align:left;color:var(--ink)}
+.muscle-row.zero b{color:var(--led)}
+/* سجل الجلسات */
+.sessions-list{display:flex;flex-direction:column}
+.session-item{border-bottom:1px solid var(--line-soft)}
+.session-item summary{display:flex;flex-direction:column;gap:.25rem;padding:.65rem 0;list-style:none;color:var(--ink)}
+.session-item summary::-webkit-details-marker{display:none}
+.session-head{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem}
+.session-head b{font-size:.9rem}
+.session-head small{font-size:.72rem;color:var(--mute);font-weight:400}
+.session-stats{display:flex;flex-wrap:wrap;gap:.35rem .9rem;font-family:var(--ledf);font-size:1rem;color:var(--ink-2);font-weight:600}
+.session-item[open] summary{color:var(--yellow)}
+.session-body{padding:0 0 .7rem;display:flex;flex-direction:column;gap:.45rem}
+.session-ex{display:flex;flex-direction:column;gap:2px;padding-right:.6rem;border-right:2px solid var(--line)}
+.session-ex-name{font-size:.8rem;color:var(--ink-2)}
+.session-sets{font-size:1rem;color:var(--ink);direction:ltr;text-align:right}
+#btn-more-sessions{background:transparent;border-color:var(--line);color:var(--ink)}
+/* وزن الجسم والخصر */
+.body-chart{display:flex;flex-direction:column;gap:.4rem}
+.body-head{display:flex;align-items:baseline;gap:.6rem;flex-wrap:wrap;margin-top:.4rem}
+.body-head span{font-size:.8rem;color:var(--mute)}
+.body-head b{font-size:1.8rem;line-height:1;color:var(--ink)}
+.body-head small{font-size:.75rem;color:var(--mute)}
+.body-chart svg{width:100%;height:auto;background:#000;border:1px solid var(--line-soft)}
+.body-chart .grid{stroke:var(--line-soft)}
+.body-chart .tick{fill:var(--mute);font-family:var(--ledf);font-size:15px}
+.body-chart .line{fill:none;stroke:var(--ink);stroke-width:2.5}
+.body-chart .dot{fill:var(--ink)}
+.body-chart .dot.last{fill:var(--red)}
+.record-headrow{min-height:0;padding:0 0 .3rem;font-size:.7rem;color:var(--mute);border-bottom:1px solid var(--line)}
+.body-chart svg,#progressChart svg{direction:ltr}
+.cal-head button{display:flex;align-items:center;justify-content:center}
