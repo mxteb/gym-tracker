@@ -54,6 +54,10 @@
             <span class="font-bold text-cyan-200 block">مؤقت الراحة</span>
             <span class="text-[9px] text-slate-400" id="timer-preset-desc">جولة تمرين</span>
         </div>
+        <div class="rest-adjust" data-added>
+            <button type="button" id="btn-rest-minus" aria-label="نقص 15 ثانية من الراحة">−15</button>
+            <button type="button" id="btn-rest-plus" aria-label="زد 15 ثانية على الراحة">+15</button>
+        </div>
         <button id="btn-stop-timer" aria-label="إلغاء المؤقت" class="timer-stop"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
 
@@ -82,6 +86,8 @@
                     <button id="btn-copy-session" class="py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-bold">استخدام السابقة كخطة</button>
                     <button id="btn-finish-session" disabled class="py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold">إنهاء وملخص</button>
                 </div>
+                <button type="button" id="btn-plan-session" class="w-full py-2 rounded-xl text-[11px] font-bold border" data-added>خطّط الجلسة: اختر تمارينك</button>
+                <div id="session-plan" class="session-plan hidden" data-added aria-label="خطة الجلسة"></div>
                 <div id="copied-session-plan" class="hidden text-[10px] text-slate-300 bg-slate-900/70 rounded-xl p-2 border border-slate-800"></div>
             </div>
 
@@ -159,6 +165,12 @@
                         <i class="fa-solid fa-copy"></i>
                         <span>تعبئة الجولة</span>
                     </button>
+                </div>
+
+                <div id="next-suggestion" class="next-suggestion hidden" data-added aria-live="polite">
+                    <div class="sugg-head"><span class="sugg-label">اقتراح اليوم</span><span id="sugg-value" class="sugg-value num-led"></span></div>
+                    <p id="sugg-reason" class="sugg-reason"></p>
+                    <button type="button" id="btn-apply-suggestion" class="sugg-apply">عبّي الاقتراح</button>
                 </div>
 
                 <label id="previous-set-picker" class="hidden field-hint">الجولة السابقة المراد تعبئتها:
@@ -288,6 +300,7 @@
                             <p class="field-hint">RIR 0 يعني أنك وصلت للفشل. نوع الجولة وRIR يظهران في السجل.</p>
                         </div>
 
+                        <button type="button" id="btn-repeat-set" class="repeat-set hidden" data-added>كرر الجولة السابقة</button>
                         <button id="btn-save-weights" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
                             <i class="fa-solid fa-floppy-disk text-sm"></i>
                             <span>حفظ الجولة</span>
@@ -551,6 +564,12 @@
 
         <!-- PROFILE SCREEN -->
         <section id="screen-profile" class="screen-content space-y-5 hidden animate-fade-in">
+            <div id="app-settings" class="glass-card p-4 space-y-2" data-added>
+                <h3 class="font-bold text-xs text-slate-300">أثناء الجلسة</h3>
+                <label class="setting-row"><span><strong>خلّ الشاشة شغالة</strong><small>ما تنطفي بين الجولات، وترجع طبيعية لما تنهي الجلسة</small></span><input type="checkbox" id="set-keep-awake" role="switch"></label>
+                <label class="setting-row"><span><strong>اهتزاز خفيف مع الأزرار</strong><small>لما تحفظ جولة أو تضغط + و −، ولما تخلص الراحة</small></span><input type="checkbox" id="set-haptics" role="switch"></label>
+            </div>
+
             <button id="gender-toggle-btn" class="w-full p-3.5 rounded-2xl glass-card border border-cyan-500/40 text-center transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
                 <span class="text-lg" id="gender-icon"></span>
                 <span class="font-bold text-sm text-cyan-300" id="gender-text">هل أنت رجل؟</span>
@@ -741,6 +760,22 @@
             <div class="edit-actions flex justify-end gap-2">
                 <button id="btn-cancel-edit-log" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">إلغاء</button>
                 <button id="btn-confirm-edit-log" class="px-4 py-2 rounded-xl bg-cyan-600 text-white text-xs font-bold">حفظ التعديل</button>
+            </div>
+        </div>
+    </div>
+    <div id="plan-modal" role="dialog" aria-modal="true" aria-labelledby="plan-title" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4" data-added>
+        <div class="glass-card edit-dialog plan-dialog p-5 space-y-3">
+            <h3 id="plan-title" class="font-black text-base">خطة الجلسة</h3>
+            <p class="field-hint">اختر التمارين اللي ناوي عليها اليوم. تقدر تضيف غيرها أثناء الجلسة عادي.</p>
+            <div id="plan-quick" class="plan-quick"></div>
+            <input type="search" id="plan-search" maxlength="50" placeholder="بحث عن تمرين…" class="w-full glass-input px-3 py-2 rounded-xl" aria-label="بحث في التمارين">
+            <div id="plan-list" class="plan-list"></div>
+            <div class="edit-actions flex justify-between items-center gap-2">
+                <span id="plan-count" class="field-hint">0 تمارين</span>
+                <span class="flex gap-2">
+                    <button type="button" id="btn-plan-cancel" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">إلغاء</button>
+                    <button type="button" id="btn-plan-confirm" class="px-4 py-2 rounded-xl text-white text-xs font-bold">ابدأ بهذي الخطة</button>
+                </span>
             </div>
         </div>
     </div>

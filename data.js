@@ -43,6 +43,7 @@ function profile(x) {
   if(x[key]!==undefined)out[key]=x[key]===''?'':num(x[key],key,min,max);
  }
  if(x.isMan!==undefined){if(typeof x.isMan!=='boolean')fail('الجنس');out.isMan=x.isMan;}
+ for(const key of ['keepAwake','haptics'])if(x[key]!==undefined){if(typeof x[key]!=='boolean')fail('الإعدادات');out[key]=x[key];}
  if(x.updatedAt!==undefined)out.updatedAt=num(x.updatedAt,'وقت البروفايل');
  out.history=array(x.history||[],10000,'القياسات').map(h=>{object(h,'قياس');return {date:date(h.date),weight:num(h.weight,'الوزن',20,350),waist:h.waist?num(h.waist,'الخصر',30,250):''};});
  return out;
@@ -79,6 +80,8 @@ function session(x){
  for(const key of ['estimatedCalories','cardioCalories','totalEstimatedCalories','totalVolumeKg','workingSets','editedAt'])Object.assign(out,optionalNumber(x,key,0,1e15));
  if(x.bodyWeightKgAtStart!=null)out.bodyWeightKgAtStart=num(x.bodyWeightKgAtStart,'وزن الجلسة',20,350);
  if(x.exerciseIds)out.exerciseIds=array(x.exerciseIds,10000,'تمارين الجلسة').map(id);
+ if(x.planIds)out.planIds=array(x.planIds,500,'خطة الجلسة').map(id);
+ if(x.copiedFromSessionId)out.copiedFromSessionId=id(x.copiedFromSessionId);
  return out;
 }
 function recalculateWeightLog(x) {

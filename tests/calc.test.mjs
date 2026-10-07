@@ -154,3 +154,47 @@ test('machine weight (v10.6): optional, external only, old logs unchanged', () =
   assert.equal(v.exercises[0].machineKg, 40); assert.equal(v.exercises[0].rig, 'plates'); assert.equal(v.exercises[1].barKg, 15);
   assert.throws(() => GymData.validate({ exercises: [{ id: 'ex_1', name: 'x', category: 'legs', type: 'weights', rig: 'rocket' }] }));
 });
+
+test('next-set suggestion (v10.7): RIR rules, units, modes, reasons', () => {
+  const L = (o) => ({ id: 'x' + Math.random(), exerciseId: 'ex_1', type: 'weights', date: '2026-10-01', timestamp: 1, sessionId: 's1', unit: 'kg', loadMode: 'external', setType: 'normal', ...o });
+  const S = (logs, opts) => GymCalc.suggestNext(logs, 'ex_1', opts);
+  assert.equal(S([]), null);
+  // RIR 3+ → +2.5, same reps
+  let r = S([L({ displayWeight: 60, weight: 60, reps: 10, rir: 3 })]);
+  assert.equal(r.kind, 'add-weight'); assert.equal(r.weight, 62.5); assert.equal(r.reps, 10); assert.match(r.reason, /3 عدات أو أكثر/); assert.match(r.reason, /2026-10-01/);
+  // RIR 2, reps < 12 → +1 rep
+  r = S([L({ displayWeight: 60, weight: 60, reps: 10, rir: 2 })]);
+  assert.equal(r.kind, 'add-rep'); assert.equal(r.weight, 60); assert.equal(r.reps, 11);
+  // RIR 1 at 12 reps → +2.5 and back to 8
+  r = S([L({ displayWeight: 60, weight: 60, reps: 12, rir: 1 })]);
+  assert.equal(r.kind, 'add-weight'); assert.equal(r.weight, 62.5); assert.equal(r.reps, 8);
+  // RIR 0 → hold
+  r = S([L({ displayWeight: 60, weight: 60, reps: 8, rir: 0 })]);
+  assert.equal(r.kind, 'hold'); assert.equal(r.weight, 60); assert.equal(r.reps, 8);
+  // no RIR → reps
+  r = S([L({ displayWeight: 60, weight: 60, reps: 9, rir: null })]);
+  assert.equal(r.kind, 'add-rep'); assert.equal(r.reps, 10); assert.match(r.reason, /ما سجلت RIR/);
+  // top set of the latest session wins; older session and warmups and current session ignored
+  r = S([L({ displayWeight: 80, weight: 80, reps: 5, rir: 3, sessionId: 'old', timestamp: 0, date: '2026-09-01' }),
+         L({ displayWeight: 40, weight: 40, reps: 10, rir: 4, setType: 'warmup', timestamp: 2 }),
+         L({ displayWeight: 60, weight: 60, reps: 8, rir: 2, timestamp: 3 }), L({ displayWeight: 60, weight: 60, reps: 10, rir: 2, timestamp: 4 }),
+         L({ displayWeight: 100, weight: 100, reps: 10, rir: 4, sessionId: 'now', timestamp: 9, date: '2026-10-07' })], { excludeSessionId: 'now' });
+  assert.equal(r.weight, 60); assert.equal(r.reps, 11);
+  // pounds step 5
+  r = S([L({ unit: 'lbs', displayWeight: 135, weight: 135 / 2.20462, reps: 8, rir: 3 })]);
+  assert.equal(r.unit, 'lbs'); assert.equal(r.weight, 140);
+  // per hand mentions per hand
+  r = S([L({ loadMode: 'per_hand', displayWeight: 20, weight: 20, reps: 10, rir: 3 })]);
+  assert.equal(r.weight, 22.5); assert.match(r.reason, /لكل يد/);
+  // assisted: less assistance is progress
+  r = S([L({ loadMode: 'assisted', displayWeight: 20, weight: 20, reps: 8, rir: 2 })]);
+  assert.equal(r.kind, 'less-assist'); assert.equal(r.weight, 17.5);
+  // timed: seconds
+  r = S([L({ loadMode: 'timed', durationSeconds: 60, reps: 1, rir: 3 })]);
+  assert.equal(r.kind, 'add-time'); assert.equal(r.seconds, 70);
+  // bodyweight: reps only
+  r = S([L({ loadMode: 'bodyweight', displayWeight: 0, weight: 0, reps: 8, rir: 2 })]);
+  assert.equal(r.kind, 'add-rep'); assert.equal(r.reps, 9);
+  // mode filter: asking for a mode with no history returns null
+  assert.equal(S([L({ displayWeight: 60, weight: 60, reps: 10, rir: 2 })], { mode: 'timed' }), null);
+});

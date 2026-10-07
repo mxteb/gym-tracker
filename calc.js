@@ -175,5 +175,62 @@ function classifyExercise(cleanName) {
  return { cat, equip };
 }
 
-window.GymCalc = { LBS_PER_KG, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise };
+/** v10.7 — اقتراح الجولة الجاية من آخر جلسة لنفس التمرين وبنفس طريقة الحمل، مع السبب.
+ * القاعدة: تقدّم مزدوج (عدات ثم وزن) ويحكمه RIR:
+ *  RIR 3+  → الوزن خفيف: زد الوزن خطوة وخلّ العدات.
+ *  RIR 1–2 → زد عدة، ولو وصلت 12 عدة زد الوزن وارجع 8.
+ *  RIR 0   → وصلت للفشل: ثبّت نفس الوزن والعدات.
+ *  بدون RIR → على العدات بس: زد عدة، ولو وصلت 12 زد الوزن وارجع 8.
+ * المساعدة (assisted): التقدم = مساعدة أقل. التمرين الزمني: ثواني أكثر. وزن الجسم فقط: عدات أكثر.
+ * ما يرجع شي إذا ما فيه جلسة سابقة. excludeSessionId = الجلسة الحالية (ما نقترح من جولاتها).
+ */
+const REP_TOP = 12, REP_RESET = 8;
+function suggestNext(logs, exerciseId, opts = {}) {
+ const pool = logs.filter(l => l.exerciseId === exerciseId && l.type === 'weights' && l.setType !== 'warmup' && (!opts.excludeSessionId || l.sessionId !== opts.excludeSessionId));
+ if (!pool.length) return null;
+ const time = l => Number.isFinite(l.timestamp) ? l.timestamp : (Date.parse(l.date) || 0);
+ const mode = opts.mode || (pool.slice().sort((a, b) => time(b) - time(a))[0].loadMode || 'external');
+ const same = pool.filter(l => (l.loadMode || 'external') === mode);
+ if (!same.length) return null;
+ const latest = same.reduce((a, b) => time(b) > time(a) ? b : a);
+ const key = latest.sessionId || latest.date;
+ const group = same.filter(l => (l.sessionId || l.date) === key);
+ const rirOf = l => (l.rir === null || l.rir === undefined || l.rir === '' || !Number.isFinite(Number(l.rir))) ? null : Number(l.rir);
+ if (mode === 'timed') {
+  const top = group.reduce((a, b) => (Number(b.durationSeconds) || 0) > (Number(a.durationSeconds) || 0) ? b : a);
+  const sec = Number(top.durationSeconds) || 0, rir = rirOf(top);
+  const add = rir !== null && rir >= 3 ? 10 : 5;
+  return { mode, kind: 'add-time', seconds: sec + add, date: top.date, basedOn: { seconds: sec, rir },
+   reason: `آخر مرة ${sec} ثانية${rir === null ? '' : ' وRIR ' + (rir === 4 ? '4+' : rir)}. ${add === 10 ? 'كان باقي فيك كثير، زد 10 ثواني.' : 'زد 5 ثواني.'}` };
+ }
+ const unit = latest.unit === 'lbs' ? 'lbs' : 'kg';
+ const shown = l => (l.unit === unit ? Number(l.displayWeight ?? canonicalWeightKg(l)) : (unit === 'lbs' ? canonicalWeightKg(l) * LBS_PER_KG : canonicalWeightKg(l)));
+ const better = mode === 'assisted'
+  ? (a, b) => (shown(b) < shown(a) || (shown(b) === shown(a) && Number(b.reps) > Number(a.reps))) ? b : a
+  : (a, b) => (shown(b) > shown(a) || (shown(b) === shown(a) && Number(b.reps) > Number(a.reps))) ? b : a;
+ const top = group.reduce(better);
+ const w = Math.round(shown(top) * 100) / 100, reps = Number(top.reps) || 1, rir = rirOf(top);
+ const step = unit === 'lbs' ? 5 : 2.5;
+ const u = unit === 'lbs' ? 'باوند' : 'كجم';
+ const was = `آخر جلسة (${top.date}): ${mode === 'bodyweight' ? 'وزن الجسم' : w + ' ' + u} × ${reps}${rir === null ? ' بدون RIR' : ' وRIR ' + (rir === 4 ? '4+' : rir)}.`;
+ const out = (kind, weight, r, why) => ({ mode, unit, kind, weight, reps: r, date: top.date, basedOn: { weight: w, reps, rir }, reason: was + ' ' + why });
+ if (mode === 'bodyweight') {
+  if (rir === 0) return out('hold', 0, reps, 'وصلت للفشل، ثبّت نفس العدات لين تسويها وفيك عدة باقية.');
+  return out('add-rep', 0, reps + 1, rir === null ? 'زد عدة وحدة.' : 'كان فيك عدات باقية، زد عدة.');
+ }
+ if (mode === 'assisted') {
+  const less = Math.max(0, Math.round((w - step) * 100) / 100);
+  if (rir === 0) return out('hold', w, reps, 'وصلت للفشل، ثبّت نفس المساعدة والعدات.');
+  if ((rir !== null && rir >= 2) || reps >= REP_TOP) return out('less-assist', less, rir !== null && rir >= 2 && reps < REP_TOP ? reps : Math.min(reps, REP_RESET), `خفف المساعدة ${step} ${u} — المساعدة الأقل يعني حمل أكبر عليك.`);
+  return out('add-rep', w, reps + 1, 'ثبّت المساعدة وزد عدة.');
+ }
+ const up = Math.round((w + step) * 100) / 100;
+ const unitStep = `${step} ${u}${mode === 'per_hand' ? ' لكل يد' : ''}`;
+ if (rir === 0) return out('hold', w, reps, 'وصلت للفشل، فثبّت نفس الوزن والعدات لين تسويها وفيك عدة باقية.');
+ if (rir !== null && rir >= 3) return out('add-weight', up, reps, `كان باقي فيك 3 عدات أو أكثر، يعني الوزن صار خفيف عليك. زد ${unitStep} وخلك على ${reps} عدات.`);
+ if (reps >= REP_TOP) return out('add-weight', up, REP_RESET, `وصلت ${reps} عدة${rir === null ? '' : ' وفيك عدات باقية'}. زد ${unitStep} وارجع ${REP_RESET} عدات وابنِ عليها.`);
+ return out('add-rep', w, reps + 1, rir === null ? 'ما سجلت RIR، فالاقتراح على العدات: نفس الوزن وعدة زيادة.' : `باقي فيك ${rir === 1 ? 'عدة' : 'عدتين'}: ثبّت الوزن وزد عدة.`);
+}
+
+window.GymCalc = { LBS_PER_KG, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();
