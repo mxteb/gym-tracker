@@ -445,3 +445,127 @@ button.cal-day{min-height:0;padding:0}
 #today-logs-container{overflow:hidden;padding:2px 0}
 
 :root[data-theme="clock"] header h1{font-size:.95rem!important}:root[data-theme="clock"] #db-status-badge{font-size:.65rem!important}:root[data-theme="clock"] #top-quick-stats{padding:.25rem .5rem}
+
+/* ===================== v11: اختيار الثيم ===================== */
+.theme-picker{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.theme-opt{display:flex;flex-direction:column;align-items:flex-start;gap:.3rem;padding:.7rem;border:1px solid var(--line);border-radius:var(--r);background:var(--bg-deep);color:var(--ink);text-align:right;min-height:118px}
+.theme-opt strong{font-size:.95rem}
+.theme-opt small{font-size:.72rem;color:var(--mute);line-height:1.55}
+.theme-opt.on{border:2px solid var(--primary);padding:calc(.7rem - 1px)}
+.sw{display:flex;gap:3px;height:22px;width:100%;margin-bottom:.15rem}
+.sw b{flex:1;border-radius:2px}
+.sw-plates b:nth-child(1){background:#121212;border:1px solid #333}.sw-plates b:nth-child(2){background:#C8322A}.sw-plates b:nth-child(3){background:#EDEBE6}
+.sw-logbook b:nth-child(1){background:#F2F3EF;border:1px solid #D6D8D0}.sw-logbook b:nth-child(2){background:#15171A}.sw-logbook b:nth-child(3){background:#C2410C}
+.sw-clock b:nth-child(1){background:#000;border:1px solid #333}.sw-clock b:nth-child(2){background:#FF3B1F}.sw-clock b:nth-child(3){background:#FFB000}
+.sw-auto b:nth-child(1){background:linear-gradient(90deg,#F2F3EF 50%,#121212 50%);border:1px solid #888}.sw-auto b:nth-child(2){background:linear-gradient(90deg,#C2410C 50%,#C8322A 50%)}
+
+/* العناصر الخاصة بثيم معيّن مخفية في الباقي */
+.clock-bar,.led-columns{display:none}
+.lb-group{display:none}
+
+/* ===================== الدفتر ===================== */
+:root[data-theme="logbook"] body{background:var(--bg) repeating-linear-gradient(180deg,transparent 0 31px,#E3E6EC 31px 32px)}
+:root[data-theme="logbook"] .glass-card,:root[data-theme="logbook"] #workout-session-card,:root[data-theme="logbook"] .equip-visual,:root[data-theme="logbook"] #last-performance-container,:root[data-theme="logbook"] .next-suggestion,:root[data-theme="logbook"] .equip-settings{background:transparent;border:0;border-top:2px solid var(--ink);border-radius:0;box-shadow:none}
+:root[data-theme="logbook"] main{gap:0}
+:root[data-theme="logbook"] .next-suggestion{border-top:0;border-right:3px solid var(--primary);background:#FFF4EC}
+:root[data-theme="logbook"] .equip-visual{border-top:1px dashed var(--line);padding:.5rem 0}
+:root[data-theme="logbook"] .glass-input{background:#FFFFFF;border-color:var(--line)}
+:root[data-theme="logbook"] .floating-dock .dock-icon{display:none}
+:root[data-theme="logbook"] .dock-item span{font-size:.82rem!important}
+:root[data-theme="logbook"] .dock-item.active::before{left:0;right:0;height:3px;background:var(--primary)}
+/* الوزن والعدات: سطر واحد مثل الدفتر — − الرقم + */
+:root[data-theme="logbook"] #form-weights .flex.items-center.justify-between.gap-1\.5,:root[data-theme="logbook"] #form-treadmill .flex.items-center.justify-between.gap-1\.5,:root[data-theme="logbook"] #form-bike-elliptical .flex.items-center.justify-between.gap-1\.5{display:flex;gap:.4rem}
+:root[data-theme="logbook"] #form-weights .justify-between.gap-1\.5 > input,:root[data-theme="logbook"] #form-treadmill .justify-between.gap-1\.5 > input,:root[data-theme="logbook"] #form-bike-elliptical .justify-between.gap-1\.5 > input{order:0;flex:1 1 0;width:0!important}
+:root[data-theme="logbook"] #form-weights .justify-between.gap-1\.5 > div{display:flex;gap:.35rem}
+:root[data-theme="logbook"] #form-weights .justify-between.gap-1\.5 .stepper-btn,:root[data-theme="logbook"] #form-treadmill .stepper-btn,:root[data-theme="logbook"] #form-bike-elliptical .stepper-btn{width:2.9rem!important;height:2.9rem!important;font-size:.95rem;border-radius:var(--r)}
+:root[data-theme="logbook"] #input-weight{font-size:2.6rem!important;height:3.4rem}
+:root[data-theme="logbook"] #input-reps{font-size:2.4rem!important;height:3.2rem}
+:root[data-theme="logbook"] #btn-save-weights,:root[data-theme="logbook"] #btn-save-treadmill,:root[data-theme="logbook"] #btn-save-bike{min-height:54px;font-size:1.05rem}
+/* سجل الجولات: جدول صف تحت صف */
+:root[data-theme="logbook"] .lb-group{display:block;margin:0 0 1rem}
+:root[data-theme="logbook"] #today-logs-container{overflow:visible}
+:root[data-theme="logbook"] #today-logs-container > div.text-center{background:transparent;border:0;border-top:1px dashed var(--line)}
+.lb-title{display:flex;justify-content:space-between;align-items:baseline;margin:0;padding:.45rem 0 .2rem;font-size:.95rem;font-weight:700;color:var(--ink);border-bottom:2px solid var(--ink)}
+.lb-title small{font-size:.72rem;color:var(--mute);font-weight:400}
+.lb-row{display:grid;grid-template-columns:1.6rem minmax(0,1.2fr) minmax(0,.9fr) 2.4rem 3.2rem 5.6rem;align-items:center;gap:0 .5rem;min-height:44px;border-bottom:1px solid var(--line);font-family:var(--ledf);font-size:1.05rem;color:var(--ink);background:transparent!important;border-radius:0!important}
+.lb-row.lb-head{min-height:30px;font-family:var(--font);font-size:.72rem;color:var(--mute);border-bottom:1px solid var(--ink)}
+.lb-row.warm{color:var(--mute)}
+.lb-n{color:var(--mute);font-size:.85rem}
+.lb-t{font-family:var(--font);font-size:.75rem;color:var(--mute)}
+.lb-act{display:flex;gap:4px;justify-content:flex-end}
+:root[data-theme="logbook"] #today-logs-container .lb-act button[data-action]{width:40px;height:40px;border:0;color:var(--mute)}
+:root[data-theme="logbook"] .log-row.swipe-delete{background:var(--bad-bg)!important}
+/* التطور: رسم هادي فوق، وتحته جدول الجلسات */
+:root[data-theme="logbook"] #progressChart{background:transparent;border:0;border-bottom:1px solid var(--ink)}
+:root[data-theme="logbook"] #progressChart polyline{stroke:var(--ink);stroke-width:1.5}
+:root[data-theme="logbook"] #progressChart circle{fill:var(--bg);stroke:var(--ink);stroke-width:1.5}
+:root[data-theme="logbook"] #progressChart line{stroke:#E4E6DF}
+:root[data-theme="logbook"] .progress-hero{background:transparent;border:0;border-top:2px solid var(--ink);border-bottom:1px solid var(--line);border-radius:0}
+:root[data-theme="logbook"] .hero-val{font-size:2.6rem}
+:root[data-theme="logbook"] .hero-cell + .hero-cell{border-right:1px solid var(--line)}
+:root[data-theme="logbook"] .pbar{display:none}
+:root[data-theme="logbook"] .progress-row{grid-template-columns:6.2rem minmax(0,1fr) auto;padding:.5rem 0;border-bottom:1px solid var(--line)}
+:root[data-theme="logbook"] .progress-row > strong{grid-column:2;font-size:1.05rem;text-align:right}
+:root[data-theme="logbook"] .progress-row > .text-slate-400{grid-column:1;font-family:var(--ledf);font-size:.85rem}
+:root[data-theme="logbook"] .progress-row > .text-cyan-300{grid-column:3;grid-row:1;font-family:var(--ledf)}
+:root[data-theme="logbook"] .progress-row > small{grid-column:1 / -1;text-align:right}
+:root[data-theme="logbook"] .progress-row.is-record > strong{color:var(--primary)}
+:root[data-theme="logbook"] .record-row,:root[data-theme="logbook"] .session-item{border-bottom-color:var(--line)}
+:root[data-theme="logbook"] .record-cell b,:root[data-theme="logbook"] .muscle-row b{font-weight:600}
+:root[data-theme="logbook"] .cal-day{background:transparent;border:1px solid var(--line-soft);color:var(--mute)}
+:root[data-theme="logbook"] .cal-day.on{background:var(--primary);border-color:var(--primary);color:#fff}
+:root[data-theme="logbook"] .muscle-bar{background:repeating-linear-gradient(90deg,#E4E6DF 0 6px,transparent 6px 8px)}
+:root[data-theme="logbook"] #rest-timer-widget{background:#fff;border:2px solid var(--ink);box-shadow:0 6px 20px #0002}
+
+/* ===================== الساعة ===================== */
+:root[data-theme="clock"] .clock-bar{display:grid;grid-template-columns:1fr 1fr;position:sticky;top:0;z-index:45;background:#000;border-bottom:1px solid var(--line-soft);padding-top:env(safe-area-inset-top)}
+:root[data-theme="clock"] header.glass{position:static;padding-top:.6rem}
+:root[data-theme="clock"] #rest-timer-widget{display:none!important}
+:root[data-theme="clock"] #active-session-timer{display:none}
+.cb-cell{display:flex;flex-direction:column;gap:2px;padding:.7rem 1rem .6rem;min-width:0}
+.cb-cell + .cb-cell{border-right:1px solid var(--line-soft)}
+.cb-label{font-size:.72rem;color:var(--mute)}
+.cb-led{font-family:var(--ledf);font-weight:800;font-size:3.6rem;line-height:.9;direction:ltr;text-align:right}
+.cb-red{color:var(--led)}.cb-amber{color:var(--led-amber)}
+.cb-led.off{color:#2A2A2A}
+.cb-btns{display:flex;gap:6px;margin-top:.35rem}
+.cb-btns button{flex:1;min-height:48px;border:1px solid var(--line);background:transparent;color:var(--ink);font-family:var(--ledf);font-size:1.35rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.cb-btns button:disabled{opacity:.35}
+.cb-btns button:active{background:#1A1A1A}
+/* أزرار ضخمة: الرقم بالوسط والأزرار على الجنبين، تقدر تضغطها بإبهام وحدة */
+:root[data-theme="clock"] #form-weights .flex.items-center.justify-between.gap-1\.5,:root[data-theme="clock"] #form-treadmill .flex.items-center.justify-between.gap-1\.5,:root[data-theme="clock"] #form-bike-elliptical .flex.items-center.justify-between.gap-1\.5{display:grid;grid-template-columns:5.6rem minmax(0,1fr) 5.6rem;gap:.5rem;align-items:stretch}
+:root[data-theme="clock"] #form-weights .justify-between.gap-1\.5 > input,:root[data-theme="clock"] #form-treadmill .justify-between.gap-1\.5 > input,:root[data-theme="clock"] #form-bike-elliptical .justify-between.gap-1\.5 > input{grid-column:2;order:0;width:100%!important;height:auto;border-bottom:0}
+:root[data-theme="clock"] #form-weights .justify-between.gap-1\.5 > div{display:flex;flex-direction:column;gap:.5rem}
+:root[data-theme="clock"] #form-weights .justify-between.gap-1\.5 > div > .stepper-btn{width:100%!important;height:auto!important;min-height:3.4rem;flex:1}
+:root[data-theme="clock"] #form-weights .justify-between.gap-1\.5 > div > .stepper-btn:nth-child(2),:root[data-theme="clock"] #form-weights .justify-between.gap-1\.5 > div:last-child > .stepper-btn:first-child{min-height:5.6rem;font-size:2rem}
+:root[data-theme="clock"] #form-treadmill .stepper-btn,:root[data-theme="clock"] #form-bike-elliptical .stepper-btn{height:5rem!important;width:100%!important;font-size:1.8rem}
+:root[data-theme="clock"] #input-weight{font-size:7rem!important;height:auto;line-height:.9}
+:root[data-theme="clock"] #input-reps{font-size:5.4rem!important;height:auto;line-height:.9}
+:root[data-theme="clock"] .rir-btn,:root[data-theme="clock"] .set-type-btn{min-height:60px;font-size:1.05rem}
+:root[data-theme="clock"] #rir-container .rir-btn{font-family:var(--ledf);font-size:1.5rem}
+:root[data-theme="clock"] .glass-card{border-color:#1E1E1E}
+:root[data-theme="clock"] .repeat-set{min-height:60px}
+/* التطور: أعمدة LED */
+:root[data-theme="clock"] .led-columns{display:flex;gap:6px;align-items:flex-end;overflow-x:auto;padding:.6rem .5rem .4rem;background:#000;border:1px solid var(--line-soft);direction:ltr;scrollbar-width:none;min-height:230px}
+:root[data-theme="clock"] #progressChart{display:none}
+:root[data-theme="clock"] #progressChart + .led-columns{display:flex}
+:root[data-theme="clock"] .w-full.h-64.relative{height:auto}
+.led-col{flex:1 0 2.6rem;max-width:3.6rem;display:flex;flex-direction:column;align-items:stretch;gap:4px}
+.led-col b{font-family:var(--ledf);font-size:1.1rem;font-weight:800;color:var(--ink);text-align:center;line-height:1}
+.led-col small{font-family:var(--ledf);font-size:.85rem;color:var(--mute);text-align:center}
+.led-stack{display:flex;flex-direction:column-reverse;gap:3px}
+.led-stack i{display:block;height:7px;background:#161616}
+.led-stack i.lit{background:var(--led-amber);box-shadow:0 0 6px #FFB00055}
+.led-col.best .led-stack i.lit{background:var(--led);box-shadow:0 0 6px #FF3B1F55}
+.led-col.best b{color:var(--led)}
+:root[data-theme="clock"] .pbar{height:14px}
+:root[data-theme="logbook"] .progress-row{border-top:0!important;grid-template-columns:5.8rem minmax(0,1fr) auto}
+:root[data-theme="logbook"] .progress-row > strong{white-space:nowrap;font-size:.98rem}
+:root[data-theme="logbook"] .progress-row > .text-cyan-300{font-size:.72rem}
+:root[data-theme="logbook"] .progress-row > small{grid-column:2 / -1}
+:root[data-theme="clock"] #form-weights .justify-between.gap-1\.5 > div:first-child > .stepper-btn:nth-child(2){order:-1}
+.cb-led.long{font-size:2.5rem;line-height:1.2}
+:root[data-theme="logbook"] .progress-row{grid-template-columns:5.8rem minmax(0,1fr)}
+:root[data-theme="logbook"] .progress-row > .text-cyan-300{grid-column:1;grid-row:2}
+:root[data-theme="logbook"] .progress-row > small{grid-column:2;grid-row:2;text-align:left}
+:root[data-theme="logbook"] .progress-row > strong{text-align:left}

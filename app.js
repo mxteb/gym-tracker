@@ -1022,6 +1022,12 @@
                 return;
             }
 
+            if (currentTheme() === 'logbook') {
+                loadMoreWrapper.classList.add('hidden');
+                renderLogbook(container, todayLogs);
+                renderRepeatButton(); renderSessionPlan();
+                return;
+            }
             const visibleLogs = todayLogs.slice(0, logsRenderLimit);
             loadMoreWrapper.classList.toggle('hidden', todayLogs.length <= logsRenderLimit);
 
@@ -1071,6 +1077,7 @@
             restDeadline = {endsAt: Date.now() + seconds * 1000, name: exName};
             try { localStorage.setItem('gym_rest_deadline', JSON.stringify(restDeadline)); } catch { showToast('المؤقت يعمل؛ تعذر حفظه لإعادة فتح الصفحة'); }
             restoreRestTimer();
+            tickClockBar();
         }
         let restDeadline = null;
         function restoreRestTimer() {
@@ -1358,6 +1365,7 @@
             const target=document.getElementById('progressChart');
             const unit=mode==='timed'?'ثانية':mode==='per_hand'?'كجم لكل يد':'كجم';
             const label=mode==='timed'?'أطول مدة':chartMetricMode==='1rm'?'أعلى 1RM تقديري':'أعلى حمل مسجل';
+            renderLedColumns(points, unit);
             if(!points.length){target.textContent='لا توجد بيانات مناسبة للرسم';return;}
             const max=Math.max(1,...points.map(p=>p.value))*1.15;
             const width=600,height=260,left=55,right=25,top=25,bottom=55;
@@ -1505,6 +1513,7 @@
             renderProfileHistoryList();
             renderSettings();
             renderBodyChart();
+            renderThemePicker();
         }
 
         function renderProfileHistoryList() {
@@ -1781,6 +1790,10 @@
             document.getElementById('plan-search')?.addEventListener('input', renderPlanList);
             document.getElementById('plan-list')?.addEventListener('change', e => { const b = e.target.closest('input[type=checkbox]'); if (!b) return; if (b.checked) planDraft.add(b.value); else planDraft.delete(b.value); document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`; });
             initSwipe();
+            document.getElementById('theme-picker')?.addEventListener('click', e => { const b = e.target.closest('[data-theme-pick]'); if (b) runMutation(() => saveTheme(b.dataset.themePick)); });
+            document.getElementById('cb-minus')?.addEventListener('click', () => { adjustRest(-15); tickClockBar(); });
+            document.getElementById('cb-plus')?.addEventListener('click', () => { adjustRest(15); tickClockBar(); });
+            document.getElementById('cb-stop')?.addEventListener('click', () => { stopRestTimer(); tickClockBar(); });
             document.getElementById('btn-undo')?.addEventListener('click', undoDelete);
             document.addEventListener('visibilitychange', () => { if (document.hidden) flushPendingDeletes(); });
             window.addEventListener('pagehide', flushPendingDeletes);
@@ -2330,7 +2343,125 @@
             list.addEventListener('click', e => { if (e.target.closest('.log-row.swiping')) { e.stopPropagation(); e.preventDefault(); } }, true);
         }
 
-        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '10.9' });
+
+        /* ---------- v11: الثيمات (الأقراص · الدفتر · الساعة) ----------
+         * الثيم يغيّر الشكل وترتيب العرض بس. البيانات والحسابات نفسها في كل الثيمات.
+         */
+        const THEMES = ['plates', 'logbook', 'clock'];
+        const lightQuery = window.matchMedia ? matchMedia('(prefers-color-scheme: light)') : null;
+        function currentTheme() {
+            const t = state.profile.theme || 'plates';
+            if (t === 'auto') return lightQuery && lightQuery.matches ? 'logbook' : 'plates';
+            return THEMES.includes(t) ? t : 'plates';
+        }
+        function applyTheme() {
+            const t = currentTheme(), root = document.documentElement;
+            if (t === 'plates') delete root.dataset.theme; else root.dataset.theme = t;
+            try { localStorage.setItem('gym_theme', t); } catch {}
+            const bg = getComputedStyle(root).getPropertyValue('--bg').trim() || '#121212';
+            document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg);
+            try { nativeHooks().setBars?.(bg, t === 'logbook')?.catch?.(() => {}); } catch {}
+            renderThemePicker();
+            renderTodayLogs();
+            if (!document.getElementById('screen-progress').classList.contains('hidden')) initProgressScreen();
+            renderEquipVisual();
+            tickClockBar();
+        }
+        function renderThemePicker() {
+            const pick = state.profile.theme || 'plates';
+            document.querySelectorAll('[data-theme-pick]').forEach(b => { const on = b.dataset.themePick === pick; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
+        }
+        async function saveTheme(t) {
+            state.profile = { ...state.profile, theme: t };
+            await GymStorage.save(state);
+            applyTheme();
+            haptic('confirm');
+        }
+        lightQuery?.addEventListener?.('change', () => { if (state.profile.theme === 'auto') applyTheme(); });
+
+        // الساعة: شريط المؤقتات فوق
+        let clockTimer = null;
+        function tickClockBar() {
+            const on = currentTheme() === 'clock';
+            clearInterval(clockTimer);
+            if (!on) return;
+            const draw = () => {
+                const s = getActiveSession();
+                const sec = s ? Math.max(0, Math.floor((Date.now() - s.startedAt) / 1000)) : 0;
+                const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), ss = sec % 60;
+                document.getElementById('cb-session').textContent = s ? (h ? `${h}:${String(m).padStart(2, '0')}:${String(ss).padStart(2, '0')}` : `${m}:${String(ss).padStart(2, '0')}`) : '0:00';
+                document.getElementById('cb-session').classList.toggle('off', !s);
+                document.getElementById('cb-session').classList.toggle('long', h > 0);
+                const left = restDeadline ? Math.max(0, Math.ceil((restDeadline.endsAt - Date.now()) / 1000)) : 0;
+                document.getElementById('cb-rest').textContent = left ? formatRest(left) : '0:00';
+                document.getElementById('cb-rest').classList.toggle('off', !left);
+                ['cb-minus', 'cb-plus', 'cb-stop'].forEach(id => { document.getElementById(id).disabled = !left; });
+            };
+            draw();
+            clockTimer = setInterval(draw, 500);
+        }
+
+        // الدفتر: الجولات صف تحت صف لكل تمرين
+        function logbookCell(log) {
+            if (log.type !== 'weights') return { w: `${log.duration}د`, r: log.type === 'treadmill' ? `${log.speed}كم` : ({ light: 'خفيفة', moderate: 'متوسطة', vigorous: 'عالية' }[log.intensity] || '—'), rir: '—' };
+            const u = log.unit === 'lbs' ? 'lb' : '';
+            const w = log.displayWeight ?? getCanonicalWeightKg(log);
+            const weight = log.loadMode === 'timed' ? `${Number(log.durationSeconds) || 0}ث`
+                : log.loadMode === 'bodyweight' ? 'BW'
+                : log.loadMode === 'added' ? `BW+${w}${u}`
+                : log.loadMode === 'assisted' ? `BW−${w}${u}`
+                : log.loadMode === 'per_hand' ? `${w}${u}×2`
+                : `${w}${u}`;
+            return { w: weight, r: log.loadMode === 'timed' ? '—' : String(log.reps), rir: log.rir == null ? '—' : log.rir === 4 ? '4+' : String(log.rir) };
+        }
+        function renderLogbook(container, logs) {
+            const groups = new Map();
+            for (const l of logs.slice().sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))) { if (!groups.has(l.exerciseId)) groups.set(l.exerciseId, []); groups.get(l.exerciseId).push(l); }
+            const frag = document.createDocumentFragment();
+            for (const [, list] of groups) {
+                const sec = document.createElement('section'); sec.className = 'lb-group';
+                const h = document.createElement('h4'); h.className = 'lb-title'; h.textContent = shortName(list[0].exerciseName);
+                const n = document.createElement('small'); n.textContent = list.length === 1 ? 'جولة واحدة' : `${list.length} جولات`; h.appendChild(n);
+                const head = document.createElement('div'); head.className = 'lb-row lb-head'; head.setAttribute('aria-hidden', 'true');
+                head.innerHTML = list[0].type === 'weights' ? '<span>#</span><span>الوزن</span><span>العدات</span><span>RIR</span><span>النوع</span><span></span>' : '<span>#</span><span>المدة</span><span>السرعة/الشدة</span><span></span><span></span><span></span>';
+                sec.append(h, head);
+                list.forEach((log, i) => {
+                    const c = logbookCell(log);
+                    const row = document.createElement('div');
+                    row.className = 'lb-row log-row' + (log.setType === 'warmup' ? ' warm' : '');
+                    row.dataset.logId = log.id;
+                    const type = log.type === 'weights' ? (SET_LABELS[log.setType] || SET_LABELS.normal) : '';
+                    row.innerHTML = `<span class="lb-n">${i + 1}</span><span class="lb-w">${escapeHTML(c.w)}</span><span class="lb-r">${escapeHTML(c.r)}</span><span class="lb-rir">${escapeHTML(c.rir)}</span><span class="lb-t">${escapeHTML(type)}</span><span class="lb-act"><button data-action="edit-log" data-id="${escapeHTML(log.id)}" aria-label="تعديل التسجيل"><i class="fa-solid fa-pen"></i></button><button data-action="delete-log" data-id="${escapeHTML(log.id)}" aria-label="حذف التسجيل"><i class="fa-solid fa-trash-can"></i></button></span>`;
+                    sec.appendChild(row);
+                });
+                frag.appendChild(sec);
+            }
+            container.replaceChildren(frag);
+        }
+
+        // الساعة: أعمدة LED للتطور
+        function renderLedColumns(points, unit) {
+            const box = document.getElementById('led-columns');
+            if (!box) return;
+            box.replaceChildren();
+            if (currentTheme() !== 'clock' || !points.length) return;
+            const max = Math.max(...points.map(p => p.value)) || 1;
+            const SEG = 16;
+            const last = points.slice(-10);
+            for (const p of last) {
+                const col = document.createElement('div'); col.className = 'led-col' + (p.value === max ? ' best' : '');
+                const v = document.createElement('b'); v.textContent = fmt1(p.value);
+                const stack = document.createElement('div'); stack.className = 'led-stack';
+                const lit = Math.max(1, Math.round(p.value / max * SEG));
+                for (let i = 0; i < SEG; i++) { const seg = document.createElement('i'); if (i < lit) seg.className = 'lit'; stack.appendChild(seg); }
+                const d = document.createElement('small'); d.textContent = p.label.slice(5).replace('-', '/');
+                col.append(v, stack, d);
+                col.title = `${p.label}: ${fmt1(p.value)} ${unit}`;
+                box.appendChild(col);
+            }
+        }
+
+        window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '11.0' });
 
         window.addEventListener('DOMContentLoaded', async () => {
             registerServiceWorker();
@@ -2350,6 +2481,7 @@
             update1RMLiveDisplay();
             updateSessionUI();
             restoreRestTimer();
+            applyTheme();
             document.dispatchEvent(new CustomEvent('gym:ready'));
         });
 

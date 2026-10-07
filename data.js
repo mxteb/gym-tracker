@@ -43,6 +43,7 @@ function profile(x) {
   if(x[key]!==undefined)out[key]=x[key]===''?'':num(x[key],key,min,max);
  }
  if(x.isMan!==undefined){if(typeof x.isMan!=='boolean')fail('الجنس');out.isMan=x.isMan;}
+ if(x.theme!==undefined)out.theme=choice(x.theme,['plates','logbook','clock','auto'],'الثيم');
  for(const key of ['keepAwake','haptics'])if(x[key]!==undefined){if(typeof x[key]!=='boolean')fail('الإعدادات');out[key]=x[key];}
  if(x.updatedAt!==undefined)out.updatedAt=num(x.updatedAt,'وقت البروفايل');
  out.history=array(x.history||[],10000,'القياسات').map(h=>{object(h,'قياس');return {date:date(h.date),weight:num(h.weight,'الوزن',20,350),waist:h.waist?num(h.waist,'الخصر',30,250):''};});

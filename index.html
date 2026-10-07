@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>متتبع التمارين - Gym Tracker v10.9</title>
+    <title>متتبع التمارين - Gym Tracker v11.0</title>
 
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -27,6 +27,7 @@
     
 
     <link rel="preload" href="./assets/fonts/alexandria.woff" as="font" type="font/woff" crossorigin>
+    <script>try{var t=localStorage.getItem('gym_theme');if(t&&t!=='plates')document.documentElement.dataset.theme=t;}catch(e){}</script>
     <link rel="stylesheet" href="./styles.css">
     <link rel="stylesheet" href="./theme.css">
 </head>
@@ -47,6 +48,13 @@
             </span>
         </div>
     </header>
+
+    <section id="clock-bar" class="clock-bar" data-added aria-label="المؤقتات">
+        <div class="cb-cell"><span class="cb-label">الجلسة</span><b id="cb-session" class="cb-led cb-red">0:00</b></div>
+        <div class="cb-cell cb-rest"><span class="cb-label">الراحة</span><b id="cb-rest" class="cb-led cb-amber">—</b>
+            <span class="cb-btns"><button type="button" id="cb-minus" aria-label="نقص 15 ثانية">−15</button><button type="button" id="cb-plus" aria-label="زد 15 ثانية">+15</button><button type="button" id="cb-stop" aria-label="إيقاف الراحة"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="14" height="14"/></svg></button></span>
+        </div>
+    </section>
 
     <div id="rest-timer-widget" class="hidden fixed top-16 left-1/2 -translate-x-1/2 z-50 glass-card px-4 py-2 border border-cyan-500/60 shadow-2xl neon-glow-cyan animate-fade-in flex items-center gap-3 rounded-full">
         <div class="w-9 h-9 rounded-full bg-cyan-950 border border-cyan-400 flex items-center justify-center text-cyan-300 font-black text-xs" id="timer-display">90s</div>
@@ -499,6 +507,7 @@
 
                 <div class="w-full h-64 relative">
                     <div id="progressChart" class="w-full h-full"></div>
+                    <div id="led-columns" class="led-columns" data-added aria-label="أعمدة التطور"></div>
                 </div>
             </div>
 
@@ -606,6 +615,16 @@
 
         <!-- PROFILE SCREEN -->
         <section id="screen-profile" class="screen-content space-y-5 hidden animate-fade-in">
+            <section id="theme-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="theme-title">
+                <h3 id="theme-title" class="font-bold text-xs text-slate-300">شكل التطبيق</h3>
+                <div id="theme-picker" class="theme-picker" role="radiogroup" aria-labelledby="theme-title">
+                    <button type="button" role="radio" data-theme-pick="plates" class="theme-opt"><i class="sw sw-plates" aria-hidden="true"><b></b><b></b><b></b></i><strong>الأقراص</strong><small>أسود وأحمر، أرقام كبيرة ورسمة الأقراص</small></button>
+                    <button type="button" role="radio" data-theme-pick="logbook" class="theme-opt"><i class="sw sw-logbook" aria-hidden="true"><b></b><b></b><b></b></i><strong>الدفتر</strong><small>فاتح ومرتب، جولاتك صفوف مثل الدفتر الورقي</small></button>
+                    <button type="button" role="radio" data-theme-pick="clock" class="theme-opt"><i class="sw sw-clock" aria-hidden="true"><b></b><b></b><b></b></i><strong>الساعة</strong><small>أسود مثل ساعة الجيم، مؤقتات LED وأزرار ضخمة</small></button>
+                    <button type="button" role="radio" data-theme-pick="auto" class="theme-opt"><i class="sw sw-auto" aria-hidden="true"><b></b><b></b></i><strong>تلقائي</strong><small>الدفتر لما يكون جوالك فاتح، والأقراص لما يكون غامق</small></button>
+                </div>
+            </section>
+
             <div id="app-settings" class="glass-card p-4 space-y-2" data-added>
                 <h3 class="font-bold text-xs text-slate-300">أثناء الجلسة</h3>
                 <label class="setting-row"><span><strong>خلّ الشاشة شغالة</strong><small>ما تنطفي بين الجولات، وترجع طبيعية لما تنهي الجلسة</small></span><input type="checkbox" id="set-keep-awake" role="switch"></label>
@@ -735,7 +754,7 @@
     <details class="app-help max-w-xl mx-auto">
         <summary>عن الأرقام التقديرية وحفظ البيانات</summary>
         <p>السعرات و1RM ومؤشرات الجسم تقديرات إرشادية. 1RM يظهر حتى 15 عدة فقط. البيانات محفوظة على هذا الجهاز؛ صدّر نسخة JSON للاحتفاظ بها خارج المتصفح.</p>
-        <p class="field-hint">الإصدار 10.9</p>
+        <p class="field-hint">الإصدار 11.0</p>
     </details>
 
     <nav id="floating-dock" class="floating-dock px-2 py-2">
