@@ -43,7 +43,7 @@ function drawPlateSide(s, plates, xStart, dir, cy, maxH) {
  let x = xStart;
  for (const [, color, hk, w] of plates) {
   const h = maxH * hk;
-  el('rect', { x: dir > 0 ? x : x - w, y: cy - h / 2, width: w, height: h, rx: 2, fill: color }, s);
+  el('rect', { x: dir > 0 ? x : x - w, y: cy - h / 2, width: w, height: h, rx: 2, fill: color, style: 'stroke:var(--plate-edge,transparent);stroke-width:1.5' }, s);
   x += dir * (w + 2);
  }
  return x;
@@ -98,7 +98,7 @@ function pin(spec) {
  for (let i = 0; i < count; i++) {
   const y = 10 + i * slabH;
   const lifted = i < pinAt;
-  el('rect', { x, y, width: w, height: slabH - 2, fill: lifted ? C.white : '#3A3A38' }, s);
+  el('rect', { x, y, width: w, height: slabH - 2, style: lifted ? 'fill:var(--ink,#EDEBE6)' : 'fill:var(--track-2,#3A3A38)' }, s);
  }
  const py = 10 + (pinAt - 1) * slabH + (slabH - 2) / 2;
  el('rect', { x: x + w - 6, y: py - 4, width: 36, height: 8, rx: 4, fill: C.red }, s);
@@ -110,8 +110,8 @@ function pin(spec) {
 function dumbbell(spec) {
  const s = svg(360, 100, 'رسمة دمبلين');
  const one = (cx) => {
-  el('rect', { x: cx - 48, y: 30, width: 18, height: 40, rx: 3, fill: C.white }, s);
-  el('rect', { x: cx + 30, y: 30, width: 18, height: 40, rx: 3, fill: C.white }, s);
+  el('rect', { x: cx - 48, y: 30, width: 18, height: 40, rx: 3, fill: C.white, style: 'stroke:var(--plate-edge,transparent);stroke-width:1.5' }, s);
+  el('rect', { x: cx + 30, y: 30, width: 18, height: 40, rx: 3, fill: C.white, style: 'stroke:var(--plate-edge,transparent);stroke-width:1.5' }, s);
   el('rect', { x: cx - 30, y: 46, width: 60, height: 8, fill: C.steel }, s);
  };
  one(110); one(250);
@@ -121,13 +121,13 @@ function dumbbell(spec) {
 function body(spec) {
  const s = svg(360, 110, 'رسمة وزن الجسم');
  const fx = spec.mode === 'bodyweight' ? 180 : 214;
- el('circle', { cx: fx, cy: 22, r: 10, fill: 'none', stroke: C.white, 'stroke-width': 3 }, s);
- el('path', { d: `M${fx} 32 V66 M${fx - 18} 46 H${fx + 18} M${fx} 66 L${fx - 14} 94 M${fx} 66 L${fx + 14} 94`, stroke: C.white, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round' }, s);
+ el('circle', { cx: fx, cy: 22, r: 10, fill: 'none', 'stroke-width': 3, style: 'stroke:var(--ink,#EDEBE6)' }, s);
+ el('path', { d: `M${fx} 32 V66 M${fx - 18} 46 H${fx + 18} M${fx} 66 L${fx - 14} 94 M${fx} 66 L${fx + 14} 94`, 'stroke-width': 3, fill: 'none', 'stroke-linecap': 'round', style: 'stroke:var(--ink,#EDEBE6)' }, s);
  if (spec.mode !== 'bodyweight') {
-  const color = spec.mode === 'assisted' ? '#3A3A38' : C.green;
-  el('rect', { x: 120, y: 30, width: 40, height: 50, rx: 3, fill: color, stroke: spec.mode === 'assisted' ? C.mute : 'none', 'stroke-dasharray': spec.mode === 'assisted' ? '4 3' : '' }, s);
-  el('text', { x: 140, y: 61, 'text-anchor': 'middle', fill: C.ink, 'font-size': 16, class: 'num-led' }, s, fmt(spec.extra));
-  el('text', { x: 178, y: 61, 'text-anchor': 'middle', fill: C.mute, 'font-size': 22 }, s, spec.mode === 'assisted' ? '−' : '+');
+  const color = spec.mode === 'assisted' ? 'var(--track-2,#3A3A38)' : C.green;
+  el('rect', { x: 120, y: 30, width: 40, height: 50, rx: 3, style: 'fill:' + color, stroke: spec.mode === 'assisted' ? C.mute : 'none', 'stroke-dasharray': spec.mode === 'assisted' ? '4 3' : '' }, s);
+  el('text', { x: 140, y: 61, 'text-anchor': 'middle', 'font-size': 16, class: 'num-led', style: spec.mode === 'assisted' ? 'fill:var(--ink,#EDEBE6)' : 'fill:#fff' }, s, fmt(spec.extra));
+  el('text', { x: 178, y: 61, 'text-anchor': 'middle', 'font-size': 22, style: 'fill:var(--mute,#9A978F)' }, s, spec.mode === 'assisted' ? '−' : '+');
  }
  const bw = fmt(spec.bodyKg || 0);
  const caption = !spec.bodyKg ? 'أدخل وزن جسمك في البروفايل'
@@ -144,7 +144,7 @@ function led(cells, label) {
  for (const c of cells) {
   const cell = document.createElement('div'); cell.className = 'led-cell';
   const t = document.createElement('span'); t.className = 'led-label'; t.textContent = c.label;
-  const v = document.createElement('span'); v.className = 'led-value num-led'; v.style.color = c.color || C.ink; v.textContent = c.value; if (!/^[\d:.\-—]+$/.test(String(c.value))) v.classList.add('led-text');
+  const v = document.createElement('span'); v.className = 'led-value num-led'; v.style.color = c.color || 'var(--led-ink,#EDEBE6)'; v.textContent = c.value; if (!/^[\d:.\-—]+$/.test(String(c.value))) v.classList.add('led-text');
   cell.append(t, v); wrap.appendChild(cell);
  }
  return wrap;
@@ -155,9 +155,9 @@ function render(host, spec) {
  if (!host) return;
  if (!spec) { host.replaceChildren(); host.hidden = true; return; }
  let out;
- if (spec.kind === 'timed') out = { node: led([{ label: 'المدة', value: mmss(spec.seconds), color: C.led }], 'المدة'), caption: 'بدل الوزن: المدة بالثواني' };
- else if (spec.kind === 'treadmill') out = { node: led([{ label: 'السرعة كم/س', value: fmt(spec.speed), color: C.led }, { label: 'الميل %', value: Number(spec.incline || 0).toFixed(1), color: C.yellow }, { label: 'المدة', value: mmss((spec.minutes || 0) * 60) }], 'شاشة جهاز المشي'), caption: 'نفس شاشة الجهاز' };
- else if (spec.kind === 'cardio') out = { node: led([{ label: 'الشدة', value: spec.intensityLabel || '—', color: C.yellow }, { label: 'الواط', value: spec.watts ? fmt(spec.watts) : '—', color: C.led }, { label: 'المدة', value: mmss((spec.minutes || 0) * 60) }], 'شاشة جهاز الكارديو'), caption: '' };
+ if (spec.kind === 'timed') out = { node: led([{ label: 'المدة', value: mmss(spec.seconds), color: 'var(--led,#FF3B1F)' }], 'المدة'), caption: 'بدل الوزن: المدة بالثواني' };
+ else if (spec.kind === 'treadmill') out = { node: led([{ label: 'السرعة كم/س', value: fmt(spec.speed), color: 'var(--led,#FF3B1F)' }, { label: 'الميل %', value: Number(spec.incline || 0).toFixed(1), color: 'var(--led-amber,#E3B21B)' }, { label: 'المدة', value: mmss((spec.minutes || 0) * 60) }], 'شاشة جهاز المشي'), caption: 'نفس شاشة الجهاز' };
+ else if (spec.kind === 'cardio') out = { node: led([{ label: 'الشدة', value: spec.intensityLabel || '—', color: 'var(--led-amber,#E3B21B)' }, { label: 'الواط', value: spec.watts ? fmt(spec.watts) : '—', color: 'var(--led,#FF3B1F)' }, { label: 'المدة', value: mmss((spec.minutes || 0) * 60) }], 'شاشة جهاز الكارديو'), caption: '' };
  else {
   const fn = { bar, plates, pin, dumbbell, body }[spec.kind];
   if (!fn || !Number.isFinite(spec.total) && spec.kind !== 'body') { host.replaceChildren(); host.hidden = true; return; }
