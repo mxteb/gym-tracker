@@ -569,3 +569,6 @@ button.cal-day{min-height:0;padding:0}
 :root[data-theme="logbook"] .progress-row > .text-cyan-300{grid-column:1;grid-row:2}
 :root[data-theme="logbook"] .progress-row > small{grid-column:2;grid-row:2;text-align:left}
 :root[data-theme="logbook"] .progress-row > strong{text-align:left}
+:root[data-theme="logbook"] #last-performance-text{font-family:var(--font);font-size:1rem}
+:root[data-theme="clock"] #exercise-volume-breakdown-list strong{white-space:nowrap;font-size:1rem}
+:root[data-theme="clock"] #exercise-volume-breakdown-list small{display:block}
