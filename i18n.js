@@ -12,6 +12,9 @@
  *  5) نص مركب بفواصل ( · | — : ، ) ← يترجم كل جزء لحاله.
  * أي نص عربي ما لقى له ترجمة ينحفظ في GymI18n.misses عشان الاختبار يطلعه.
  */
+// the saved theme before the page paints (was an inline script; the page now runs only its own files)
+try { var gtTheme = localStorage.getItem('gym_theme'); if (gtTheme && gtTheme !== 'plates') document.documentElement.dataset.theme = gtTheme; } catch (e) {}
+
 (function () {
   'use strict';
   var KEY = 'gym_lang';

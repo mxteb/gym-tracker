@@ -2,6 +2,8 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <!-- M2: only the app's own files can run. Any text that sneaks in (a name in a backup file, say) can never run as code. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' blob: https://api.github.com; worker-src 'self'; manifest-src 'self'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
     <script src="./i18n.js"></script>
     <script src="./en.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -29,7 +31,6 @@
     
 
     <link rel="preload" href="./assets/fonts/alexandria.woff" as="font" type="font/woff" crossorigin>
-    <script>try{var t=localStorage.getItem('gym_theme');if(t&&t!=='plates')document.documentElement.dataset.theme=t;}catch(e){}</script>
     <link rel="stylesheet" href="./styles.css">
     <link rel="stylesheet" href="./theme.css">
 </head>
@@ -765,6 +766,7 @@
         <summary>عن الأرقام التقديرية وحفظ البيانات</summary>
         <p>السعرات و1RM ومؤشرات الجسم تقديرات إرشادية. 1RM يظهر حتى 15 عدة فقط. البيانات محفوظة على هذا الجهاز؛ صدّر نسخة JSON للاحتفاظ بها خارج المتصفح.</p>
         <p class="field-hint">الإصدار 11.0</p>
+        <p class="field-hint" data-added><a id="privacy-link" href="./privacy.html">سياسة الخصوصية</a></p>
     </details>
 
     <nav id="floating-dock" class="floating-dock px-2 py-2">

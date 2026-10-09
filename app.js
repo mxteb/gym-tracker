@@ -2385,6 +2385,7 @@
          * الترجمة نفسها في i18n.js و en.js. هنا بس الاختيار: ينحفظ في البروفايل (عشان ينتقل مع النسخة الاحتياطية)
          * وفي الجهاز، وبعدها تنفتح الصفحة من جديد باللغة الجديدة واتجاهها. */
         function renderLangPicker() {
+            const pl = document.getElementById('privacy-link'); if (pl) pl.href = './privacy.html#' + GymI18n.lang;
             document.querySelectorAll('[data-lang-pick]').forEach(b => { const on = b.dataset.langPick === GymI18n.lang; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
         }
         async function saveLang(lang) {

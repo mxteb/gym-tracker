@@ -512,6 +512,7 @@
 
     /* ===== profile ===== */
     'شكل التطبيق': 'App look',
+    'سياسة الخصوصية': 'Privacy policy',
     'الأقراص': 'Plates',
     'أسود وأحمر، أرقام كبيرة ورسمة الأقراص': 'Black and red, big numbers and the plate drawing',
     'الدفتر': 'Logbook',
