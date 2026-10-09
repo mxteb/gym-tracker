@@ -151,6 +151,7 @@
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center justify-between">
                         <label for="exercise-dropdown" class="text-xs font-bold text-cyan-300">اختر التمرين:</label>
+                        <button type="button" id="btn-busy" class="busy-btn hidden" data-added>الجهاز مشغول؟</button>
                         <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">أوزان حرة (بار)</span>
                     </div>
 
@@ -178,10 +179,19 @@
                     </button>
                 </div>
 
+                <div id="ex-note" class="ex-note hidden" data-added>
+                    <button type="button" id="ex-note-show" class="ex-note-show"></button>
+                    <div id="ex-note-edit" class="ex-note-edit hidden">
+                        <input type="text" id="ex-note-input" maxlength="120" class="glass-input" placeholder="مثال: الكرسي على 4، قبضة واسعة" aria-label="ملاحظة التمرين">
+                        <button type="button" id="ex-note-save" class="ex-note-save">حفظ</button>
+                    </div>
+                </div>
+
                 <div id="next-suggestion" class="next-suggestion hidden" data-added aria-live="polite">
                     <div class="sugg-head"><span class="sugg-label">اقتراح اليوم</span><span id="sugg-value" class="sugg-value num-led"></span></div>
                     <p id="sugg-reason" class="sugg-reason"></p>
                     <button type="button" id="btn-apply-suggestion" class="sugg-apply">عبّي الاقتراح</button>
+                    <div id="sugg-warmup" class="sugg-warmup hidden"><span class="sugg-wlabel">تسخين:</span><span id="sugg-warmup-sets" class="sugg-wsets"></span></div>
                 </div>
 
                 <label id="previous-set-picker" class="hidden field-hint">الجولة السابقة المراد تعبئتها:
@@ -277,7 +287,13 @@
                         </div>
 
                         <div class="space-y-1.5 pt-1">
-                            <label class="block text-xs font-medium text-slate-300">مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):</label>
+                            <label id="rir-label" class="block text-xs font-medium text-slate-300">مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):</label>
+                            <p id="feel-label" class="block text-xs font-medium text-slate-300 hidden" data-added>كيف كانت الجولة؟</p>
+                            <div id="feel-container" class="feel-grid hidden" data-added>
+                                <button type="button" data-feel-rir="3" aria-pressed="false" class="feel-btn"><strong>سهل</strong><small>كان فيني 3 عدات أو أكثر</small></button>
+                                <button type="button" data-feel-rir="2" aria-pressed="false" class="feel-btn"><strong>مناسب</strong><small>باقي فيني عدة أو عدتين</small></button>
+                                <button type="button" data-feel-rir="0" aria-pressed="false" class="feel-btn"><strong>صعب</strong><small>وصلت للحد</small></button>
+                            </div>
                             <div id="rir-container" class="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-xs font-bold">
                                 <button type="button" data-rir="" aria-pressed="true" class="rir-btn active py-2 rounded-xl border text-center">غير محدد</button>
                                 <button type="button" data-rir="0" aria-pressed="false" class="rir-btn py-2 rounded-xl border text-center">0 (فشل)</button>
@@ -297,6 +313,7 @@
                                 <option value="120">120 ثانية (2 دقيقة - تمارين مركبة)</option>
                                 <option value="180">180 ثانية (3 دقائق - سكوات / ديدليفت / بنش)</option>
                             </select>
+                            <p class="field-hint" data-added>يتذكر الراحة اللي تختارها لكل تمرين.</p>
                         </div>
 
                         <div class="space-y-1.5 pt-1">
@@ -639,6 +656,7 @@
             <div id="app-settings" class="glass-card p-4 space-y-2" data-added>
                 <h3 class="font-bold text-xs text-slate-300">أثناء الجلسة</h3>
                 <label class="setting-row"><span><strong>خلّ الشاشة شغالة</strong><small>ما تنطفي بين الجولات، وترجع طبيعية لما تنهي الجلسة</small></span><input type="checkbox" id="set-keep-awake" role="switch"></label>
+                <label class="setting-row"><span><strong>قيّم الجولة بسهل / مناسب / صعب</strong><small>ثلاث أزرار بدل أرقام RIR، والتطبيق يحوّلها لـ RIR من ورا</small></span><input type="checkbox" id="set-feel" role="switch"></label>
                 <label class="setting-row"><span><strong>اهتزاز خفيف مع الأزرار</strong><small>لما تحفظ جولة أو تضغط + و −، ولما تخلص الراحة</small></span><input type="checkbox" id="set-haptics" role="switch"></label>
             </div>
 
@@ -729,6 +747,9 @@
                 <h3 class="font-bold text-xs text-slate-300">إدارة البيانات وقواعد البيانات IndexedDB</h3>
                 
                 <div class="grid grid-cols-2 gap-3">
+                    <button type="button" id="btn-export-csv" class="col-span-2 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-2" data-added>
+                        <span>تصدير Excel (CSV)</span>
+                    </button>
                     <button id="btn-export-json" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-download text-cyan-400"></i>
                         <span>تصدير JSON</span>
@@ -797,6 +818,7 @@
     <div id="custom-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-slate-700 shadow-2xl animate-fade-in">
             <h3 id="modal-title" class="font-black text-base text-slate-100 flex items-center gap-2"></h3>
+            <div id="modal-insights" class="modal-insights hidden" data-added></div>
             <p id="modal-message" class="text-xs text-slate-300 leading-relaxed"></p>
             <div class="flex justify-end gap-2 pt-2">
                 <button id="modal-cancel-btn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-bold border border-slate-700">إلغاء</button>
@@ -842,6 +864,17 @@
             </div>
         </div>
     </div>
+    <div id="busy-modal" role="dialog" aria-modal="true" aria-labelledby="busy-title" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4" data-added>
+        <div class="glass-card edit-dialog p-5 space-y-3">
+            <h3 id="busy-title" class="font-black text-base">بديل لنفس العضلة</h3>
+            <p id="busy-hint" class="field-hint"></p>
+            <div id="busy-list" class="busy-list"></div>
+            <div class="edit-actions flex justify-end gap-2">
+                <button type="button" id="btn-busy-cancel" class="px-4 py-2 rounded-xl bg-slate-800 text-xs font-bold">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
     <div id="plan-modal" role="dialog" aria-modal="true" aria-labelledby="plan-title" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4" data-added>
         <div class="glass-card edit-dialog plan-dialog p-5 space-y-3">
             <h3 id="plan-title" class="font-black text-base">خطة الجلسة</h3>

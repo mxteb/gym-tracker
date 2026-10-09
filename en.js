@@ -687,4 +687,43 @@
     [/^(.+?) · البار (.+)$/, function (a, b) { return t(a) + ' · bar ' + b; }],
   ]);
 
+  /* ---------- v11.3 (batch 1) ---------- */
+  GymI18n.add({
+    'الجهاز مشغول؟': 'Machine taken?',
+    'مثال: الكرسي على 4، قبضة واسعة': 'e.g. seat on 4, wide grip',
+    'ملاحظة التمرين': 'Exercise note',
+    'حفظ': 'Save',
+    'تسخين:': 'Warm-up:',
+    'كيف كانت الجولة؟': 'How did the set feel?',
+    'سهل': 'Easy', 'مناسب': 'Right', 'صعب': 'Hard',
+    'كان فيني {0} عدات أو أكثر': '{0}+ reps left',
+    'باقي فيني عدة أو عدتين': '1 or 2 reps left',
+    'وصلت للحد': 'Hit my limit',
+    'يتذكر الراحة اللي تختارها لكل تمرين.': 'Remembers the rest you pick for each exercise.',
+    'قيّم الجولة بسهل / مناسب / صعب': 'Rate sets as Easy / Right / Hard',
+    'ثلاث أزرار بدل أرقام RIR، والتطبيق يحوّلها لـ RIR من ورا': 'Three buttons instead of RIR numbers; the app turns them into RIR for you',
+    'تصدير Excel (CSV)': 'Export for Excel (CSV)',
+    'بديل لنفس العضلة': 'Swap for the same muscle',
+    'ملاحظتك:': 'Your note:',
+    '+ أضف ملاحظة لهالتمرين': '+ Add a note for this exercise',
+    'انحفظت الملاحظة': 'Note saved',
+    'انمسحت الملاحظة': 'Note removed',
+    'تعبّت جولة التسخين. احفظها بعد ما تسويها': 'Warm-up set filled in. Save it after you do it',
+    'آخر مرة': 'Last time',
+    'ما سجلته قبل': 'Not logged yet',
+    'التمرين غير موجود': 'Exercise not found',
+    'ما فيه جولات تتصدّر للحين': 'No sets to export yet',
+    'تم تجهيز ملف Excel ({0} صف)': function (x) { return 'Excel file ready (' + x + (n(x) === 1 ? ' row)' : ' rows)'); },
+    'صرت تقيّم الجولة بسهل / مناسب / صعب': 'Sets are now rated Easy / Right / Hard',
+    'رجعت أرقام RIR': 'Back to RIR numbers',
+    'طريقة تقييم الجولة': 'Set rating mode'
+  }, [
+    [/^بدائل (.+) لنفس العضلة\. اللي سويتها قبل فوق\.$/, function (a) { return 'Alternatives to ' + t(a) + ' for the same muscle. The ones you have done come first.'; }],
+    [/^بدّلت (.+) بـ (.+) لهالجلسة$/, function (a, b) { return 'Swapped ' + t(a) + ' for ' + t(b) + ' in this session'; }],
+    [/^انتقلت لـ (.+)$/, function (a) { return 'Switched to ' + t(a); }],
+    [/^كسرت رقمك في (.+) و([\d]+) غيرها\.$/, function (a, k) { return 'New records in ' + a.split('، ').map(t).join(', ') + ' and ' + k + ' more.'; }],
+    [/^كسرت رقمك في (.+)\.$/, function (a) { var p = a.split('، '); return (p.length > 1 ? 'New records in ' : 'New record in ') + p.map(t).join(', ') + '.'; }],
+    [/^متأخر في (.+?): ([\d.,]+) جولات هالأسبوع، و([\d.,]+) الأسبوع الماضي\.$/, function (m, a, b) { return 'Behind on ' + t(m).toLowerCase() + ': ' + a + ' sets this week, ' + b + ' last week.'; }]
+  ]);
+
 })();

@@ -581,6 +581,58 @@ button.cal-day{min-height:0;padding:0}
 :root[data-theme="clock"] #exercise-volume-breakdown-list strong{white-space:nowrap;font-size:1rem}
 :root[data-theme="clock"] #exercise-volume-breakdown-list small{display:block}
 
+/* ---------- v11.3 (الدفعة 1): ملاحظة التمرين، التسخين، سهل/مناسب/صعب، الجهاز مشغول، خلاصة الجلسة ----------
+ * خصائص منطقية (inline-start) عشان العربي والإنجليزي يمشون بدون قواعد مقلوبة. */
+.busy-btn{min-height:36px;padding:0 .7rem;border:1px dashed var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink-2);font-size:.75rem;font-weight:700;margin-inline-start:auto;margin-inline-end:.5rem}
+.busy-btn.hidden{display:none}
+.busy-btn:active{background:var(--press)}
+.ex-note.hidden,.ex-note-edit.hidden,.ex-note-show.hidden{display:none}
+.ex-note-show{display:flex;gap:.4rem;align-items:baseline;width:100%;min-height:44px;padding:.45rem .7rem;border:0;border-inline-start:2px solid var(--line);background:transparent;color:var(--ink-2);font-size:.82rem;text-align:start;line-height:1.6}
+.ex-note-show[data-empty="1"]{color:var(--mute);font-size:.78rem}
+.ex-note-show[data-empty="0"]{border-inline-start-color:var(--accent-ink);background:var(--bg-deep)}
+.ex-note-label{flex:none;color:var(--mute);font-size:.72rem;font-weight:700}
+.ex-note-text{color:var(--ink);font-weight:600;min-width:0;overflow-wrap:anywhere}
+.ex-note-edit{display:flex;gap:.5rem}
+.ex-note-edit input{flex:1;min-width:0;min-height:44px;padding:0 .7rem;font-size:.85rem}
+.ex-note-save{flex:none;min-height:44px;padding:0 1rem;border:0;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);font-weight:800;font-size:.85rem}
+.sugg-warmup{grid-column:1 / -1;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;padding-top:.45rem;border-top:1px dashed var(--line)}
+.sugg-warmup.hidden{display:none}
+.sugg-wlabel{font-size:.72rem;color:var(--mute);font-weight:700}
+.sugg-wsets{display:flex;gap:.35rem;flex-wrap:wrap}
+.sugg-wchip{min-height:36px;padding:0 .6rem;border:1px solid var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink-2);font-family:var(--ledf);font-size:.95rem;font-weight:700;white-space:nowrap}
+.sugg-wchip:active{background:var(--press)}
+.feel-grid{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.feel-grid.hidden{display:none}
+.feel-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:64px;padding:.4rem .3rem;border:0;border-inline-end:1px solid var(--line);background:transparent;color:var(--ink-2);text-align:center}
+.feel-btn:last-child{border-inline-end:0}
+.feel-btn strong{font-size:.95rem;font-weight:800;color:var(--ink)}
+.feel-btn small{font-size:.66rem;color:var(--mute);line-height:1.4}
+.feel-btn.active{background:var(--accent);color:var(--on-accent)}
+.feel-btn.active strong,.feel-btn.active small{color:var(--on-accent)}
+.busy-list{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.busy-row{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:60px;padding:.55rem .8rem;border:0;border-bottom:1px solid var(--line-soft);background:transparent;color:var(--ink);text-align:start}
+.busy-row:last-child{border-bottom:0}
+.busy-row:active{background:var(--press)}
+.busy-row strong{font-size:.92rem;font-weight:700}
+.busy-row small{font-size:.74rem;color:var(--mute)}
+.modal-insights{display:flex;flex-direction:column;gap:.4rem}
+.modal-insights.hidden{display:none}
+.insight{margin:0;padding:.5rem .7rem;border-inline-start:3px solid var(--line);background:var(--bg-deep);font-size:.85rem;font-weight:600;color:var(--ink);line-height:1.6}
+.insight-record{border-inline-start-color:var(--ok)}
+.insight-behind{border-inline-start-color:var(--accent-ink)}
+:root[data-theme="logbook"] .ex-note-show[data-empty="0"]{background:#FFF4EC}
+:root[data-theme="logbook"] .feel-btn{min-height:58px}
+:root[data-theme="logbook"] .feel-btn.active{background:var(--ink);color:var(--on-ink)}
+:root[data-theme="logbook"] .feel-btn.active strong,:root[data-theme="logbook"] .feel-btn.active small{color:var(--on-ink)}
+:root[data-theme="logbook"] .sugg-wchip{font-family:var(--stencil);font-size:.82rem}
+:root[data-theme="logbook"] .insight{background:transparent;border-bottom:1px solid var(--line-soft)}
+:root[data-theme="clock"] .feel-btn{min-height:76px}
+:root[data-theme="clock"] .feel-btn strong{font-size:1.15rem}
+:root[data-theme="clock"] .feel-btn.active{background:var(--led);color:#000}
+:root[data-theme="clock"] .feel-btn.active strong,:root[data-theme="clock"] .feel-btn.active small{color:#000}
+:root[data-theme="clock"] .sugg-wchip{font-size:1.2rem;color:var(--led-amber);border-color:var(--led-line);min-height:44px}
+:root[data-theme="clock"] .busy-btn{border-style:solid;color:var(--led-amber)}
+
 /* ===================== v11.1: English (من اليسار لليمين) =====================
  * العربي ما يتأثر: كل القواعد هنا على :root[dir="ltr"] بس.
  * مولّدة بقلب left/right للقواعد اللي فوق (styles.css ثم theme.css بنفس الترتيب)،

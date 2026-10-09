@@ -238,3 +238,36 @@ test('v10.8: muscles, records, streaks, weekly sets', () => {
   const w = GymCalc.weeklyMuscleSets([L({ date: '2026-10-04' }), L({ date: '2026-10-10' }), L({ date: '2026-10-11' }), L({ date: '2026-10-05', setType: 'warmup' }), L({ date: '2026-10-05', exerciseId: 'ex_44' })], ex, '2026-10-04');
   assert.equal(w.chest, 2); assert.equal(w.legs, 1); assert.equal(w.back, 0);
 });
+
+// ---------- v11.3 (الدفعة 1) ----------
+test('A4 warm-up sets: bar first, rounded to loadable plates, all below the working weight', () => {
+  assert.deepEqual(plain(GymCalc.warmupSets(60, { barbell: true })), [{ weight: 20, reps: 10 }, { weight: 30, reps: 5 }, { weight: 42.5, reps: 3 }, { weight: 50, reps: 2 }]);
+  assert.deepEqual(plain(GymCalc.warmupSets(100, { barbell: true, barKg: 15 })).map(x => x.weight), [15, 50, 70, 85]);
+  assert.deepEqual(plain(GymCalc.warmupSets(24, { mode: 'per_hand' })), [{ weight: 12, reps: 8 }, { weight: 18, reps: 4 }]);
+  assert.deepEqual(plain(GymCalc.warmupSets(80, {})), [{ weight: 40, reps: 8 }, { weight: 60, reps: 4 }]);
+  assert.deepEqual(plain(GymCalc.warmupSets(25, { barbell: true })), []);
+  assert.deepEqual(plain(GymCalc.warmupSets(60, { mode: 'bodyweight' })), []);
+  assert.deepEqual(plain(GymCalc.warmupSets(135, { barbell: true, unit: 'lbs' })).map(x => x.weight), [45, 70, 95, 115]);
+});
+test('B1 alternatives: same main muscle, ones you have done first, never the exercise itself', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const alts = GymCalc.alternatives(ex, [{ type: 'weights', exerciseId: 'ex_3' }, { type: 'weights', exerciseId: 'ex_3' }], 'ex_7');
+  assert.equal(alts.length, 3);
+  assert.equal(alts[0].id, 'ex_3');
+  for (const a of alts) { assert.notEqual(a.id, 'ex_7'); assert.equal(GymCalc.muscleOf(a), GymCalc.muscleOf(ex.find(e => e.id === 'ex_7'))); }
+  assert.deepEqual(plain(GymCalc.alternatives(ex, [], 'nope')), []);
+});
+test('C3 session insights: records broken in the session and the muscle furthest behind last week', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const L = (id, date, sid, w, reps, t) => ({ id, type: 'weights', exerciseId: 'ex_1', exerciseName: 'Bench', date, sessionId: sid, weight: w, reps, loadMode: 'external', setType: 'normal', timestamp: t });
+  const back = (id, date) => ({ id, type: 'weights', exerciseId: 'ex_24', exerciseName: 'Row', date, weight: 50, reps: 10, loadMode: 'external', setType: 'normal', timestamp: 1 });
+  const logs = [L('a', '2026-10-01', 's1', 60, 8, 1), L('b', '2026-10-08', 's2', 65, 8, 2), L('c', '2026-10-08', 's2', 62.5, 8, 3),
+    back('r1', '2026-10-01'), back('r2', '2026-10-01'), back('r3', '2026-10-01'), back('r4', '2026-10-01')];
+  const out = plain(GymCalc.sessionInsights(logs, ex, 's2', '2026-10-08'));
+  assert.deepEqual(out.records, ['Bench']);
+  assert.equal(out.behind.muscle, 'back'); assert.equal(out.behind.last, 4); assert.equal(out.behind.now, 0);
+  assert.equal(GymCalc.sessionInsights(logs, ex, 's2', '2026-10-05').behind, null); // Monday: too early in the week
+});
+test('E1 CSV: commas, quotes, line breaks and formula starts are escaped', () => {
+  assert.equal(GymCalc.toCSV([['a', 'b,c', 'say "hi"'], [1, null, '=SUM(A1)']]), 'a,"b,c","say ""hi"""\r\n1,,"\'=SUM(A1)"');
+});

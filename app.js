@@ -316,11 +316,13 @@
             const bestLog=workingLogs.filter(l=>l.loadMode!=='timed').sort((a,b)=>(calculate1RM(getProgressWeightKg(b),b.reps)||0)-(calculate1RM(getProgressWeightKg(a),a.reps)||0))[0];
             const bestOneRm = validOneRms.length ? Math.max(...validOneRms) + ' كجم — '+bestLog.exerciseName+(bestLog.loadMode==='per_hand'?' (لكل يد)':'') : 'غير متاح';
             document.getElementById('finish-session-modal').classList.add('hidden');
+            let insights = [];
+            try { insights = sessionInsightLines(session.id); } catch (e) { console.warn('insights', e); }
             document.dispatchEvent(new CustomEvent('gym:session-finished', { detail: { sessionId: session.id } }));
             showModal({
                 title: `ملخص ${session.name}`,
                 message: `المدة: ${durationLabel} دقيقة | الجولات الفعلية: ${workingLogs.length} | الحجم الفعلي: ${(session.totalVolumeKg / 1000).toFixed(2)} طن | متوسط RIR: ${avgRir} | أعلى 1RM مسجل بين التمارين: ${bestOneRm} | السعرات التقديرية للحديد والكارديو: ${session.totalEstimatedCalories}`,
-                confirmText: 'تم', cancelText: 'إغلاق'
+                confirmText: 'تم', cancelText: 'إغلاق', insights
             });
         }
 
@@ -558,7 +560,7 @@
 
             if (!ex) {
                 equipBadge.textContent = 'غير محدد';
-                renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion();
+                renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton();
                 return;
             }
 
@@ -578,7 +580,8 @@
             if (ex.type === 'weights') formWeights.classList.remove('hidden');
             else if (ex.type === 'treadmill') formTm.classList.remove('hidden');
             else if (ex.type === 'bike_elliptical') formBe.classList.remove('hidden');
-            renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion();
+            applyExerciseRest(ex);
+            renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton();
         }
 
         function update1RMLiveDisplay() {
@@ -684,6 +687,7 @@
             });
             if (btnEl) btnEl.className = "rir-btn active py-2 rounded-xl border text-center";
             document.querySelectorAll('.rir-btn').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.rir===String(activeRIR??''))));
+            renderFeel();
         }
 
         function setWeightUnit(unit) {
@@ -1018,14 +1022,14 @@
             if (todayLogs.length === 0) {
                 container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs glass-card border border-slate-800">لا توجد جولات مسجلة في هذا التاريخ.</div>`;
                 loadMoreWrapper.classList.add('hidden');
-                renderRepeatButton(); renderSessionPlan();
+                renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion);
                 return;
             }
 
             if (currentTheme() === 'logbook') {
                 loadMoreWrapper.classList.add('hidden');
                 renderLogbook(container, todayLogs);
-                renderRepeatButton(); renderSessionPlan();
+                renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion);
                 return;
             }
             const visibleLogs = todayLogs.slice(0, logsRenderLimit);
@@ -1069,7 +1073,7 @@
 
             container.innerHTML = '';
             container.appendChild(fragment);
-            renderRepeatButton(); renderSessionPlan();
+            renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion);
         }
 
         function startRestTimer(seconds, exName = '') {
@@ -1664,9 +1668,15 @@
             document.getElementById('header-today-cals').textContent = Math.round(totalCals * 10) / 10;
         }
 
-        function showModal({ title, message, confirmText, cancelText, onConfirm }) {
+        function showModal({ title, message, confirmText, cancelText, onConfirm, insights }) {
             const modal = document.getElementById('custom-modal');
             document.getElementById('modal-title').textContent = title;
+            const insightBox = document.getElementById('modal-insights');
+            if (insightBox) {
+                insightBox.replaceChildren();
+                for (const line of insights || []) { const p = document.createElement('p'); p.className = 'insight insight-' + line.kind; p.textContent = line.text; insightBox.appendChild(p); }
+                insightBox.classList.toggle('hidden', !insightBox.children.length);
+            }
             document.getElementById('modal-message').textContent = message;
             
             const confirmBtn = document.getElementById('modal-confirm-btn');
@@ -1712,7 +1722,7 @@
             document.addEventListener('keydown', event => {
                 const modal=document.querySelector('.modal-overlay:not(.hidden)');if(!modal)return;
                 const buttons=[...modal.querySelectorAll('button,input:not([type=hidden]),select')].filter(e=>!e.disabled&&e.getClientRects().length);
-                if(event.key==='Escape'){if(saving)return;event.preventDefault();if(modal.id==='edit-log-modal')closeEditLog();else if(modal.id==='finish-session-modal')closeFinishSession();else if(modal.id==='plan-modal')closePlan();else document.getElementById('modal-cancel-btn').click();return;}
+                if(event.key==='Escape'){if(saving)return;event.preventDefault();if(modal.id==='edit-log-modal')closeEditLog();else if(modal.id==='finish-session-modal')closeFinishSession();else if(modal.id==='plan-modal')closePlan();else if(modal.id==='busy-modal')closeBusy();else document.getElementById('modal-cancel-btn').click();return;}
                 if(event.key==='Tab'&&buttons.length){const first=buttons[0],last=buttons[buttons.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
             });
             document.getElementById('logs-date-filter').addEventListener('change', () => {logsRenderLimit=15;renderTodayLogs();});
@@ -1786,6 +1796,14 @@
             document.getElementById('btn-repeat-set')?.addEventListener('click', () => runMutation(repeatLastSet));
             document.getElementById('btn-apply-suggestion')?.addEventListener('click', applySuggestion);
             document.getElementById('btn-plan-session')?.addEventListener('click', openPlan);
+            document.getElementById('ex-note-show')?.addEventListener('click', openExNoteEdit);
+            document.getElementById('ex-note-save')?.addEventListener('click', () => runMutation(saveExNote));
+            document.getElementById('ex-note-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runMutation(saveExNote); } else if (e.key === 'Escape') { e.preventDefault(); renderExNote(); document.getElementById('ex-note-show').focus(); } });
+            document.getElementById('rest-timer-duration')?.addEventListener('change', () => runMutation(saveExerciseRest));
+            document.getElementById('feel-container')?.addEventListener('click', e => { const b = e.target.closest('.feel-btn'); if (b) setFeel(b.dataset.feelRir); });
+            document.getElementById('btn-busy')?.addEventListener('click', openBusy);
+            document.getElementById('btn-busy-cancel')?.addEventListener('click', closeBusy);
+            document.getElementById('btn-export-csv')?.addEventListener('click', exportCSV);
             document.getElementById('btn-plan-cancel')?.addEventListener('click', closePlan);
             document.getElementById('btn-plan-confirm')?.addEventListener('click', () => runMutation(confirmPlan));
             document.getElementById('plan-search')?.addEventListener('input', renderPlanList);
@@ -1807,6 +1825,7 @@
             document.getElementById('btn-more-sessions')?.addEventListener('click', () => { sessionsLimit += 10; renderSessions(); });
             document.getElementById('set-keep-awake')?.addEventListener('change', e => runMutation(() => saveSetting('keepAwake', e.target.checked)));
             document.getElementById('set-haptics')?.addEventListener('change', e => runMutation(() => saveSetting('haptics', e.target.checked)));
+            document.getElementById('set-feel')?.addEventListener('change', e => runMutation(() => saveSetting('effortMode', e.target.checked ? 'feel' : 'rir')));
             document.querySelectorAll('.rir-btn,.set-type-btn').forEach(b => b.addEventListener('click', () => haptic('tap')));
             document.getElementById('btn-start-session').addEventListener('click', () => runMutation(() => startWorkoutSession()));
             document.getElementById('btn-copy-session').addEventListener('click', () => runMutation(copyPreviousSession));
@@ -1884,6 +1903,9 @@
             const awake = document.getElementById('set-keep-awake'), buzz = document.getElementById('set-haptics');
             if (awake) awake.checked = state.profile.keepAwake !== false;
             if (buzz) buzz.checked = state.profile.haptics !== false;
+            const feel = document.getElementById('set-feel');
+            if (feel) feel.checked = state.profile.effortMode === 'feel';
+            renderFeel();
         }
         async function saveSetting(key, value) {
             state.profile = { ...state.profile, [key]: value };
@@ -1891,7 +1913,9 @@
             renderSettings();
             if (key === 'keepAwake') await applyKeepAwake();
             if (key === 'haptics' && value) haptic('confirm');
-            showToast(key === 'keepAwake' ? (value ? 'الشاشة بتبقى شغالة أثناء الجلسة' : 'الشاشة تنطفي عادي') : (value ? 'الاهتزاز شغال' : 'الاهتزاز مطفي'));
+            showToast(key === 'keepAwake' ? (value ? 'الشاشة بتبقى شغالة أثناء الجلسة' : 'الشاشة تنطفي عادي')
+                : key === 'effortMode' ? (value === 'feel' ? 'صرت تقيّم الجولة بسهل / مناسب / صعب' : 'رجعت أرقام RIR')
+                : (value ? 'الاهتزاز شغال' : 'الاهتزاز مطفي'));
         }
 
         // مؤقت الراحة: ±15 ثانية
@@ -1953,6 +1977,7 @@
             const ex = currentExercise();
             currentSuggestion = ex && ex.type === 'weights' ? GymCalc.suggestNext(state.logs, ex.id, { excludeSessionId: activeSessionId, mode: activeLoadMode }) : null;
             box.classList.toggle('hidden', !currentSuggestion);
+            renderWarmup(ex, currentSuggestion);
             if (!currentSuggestion) return;
             const sg = currentSuggestion, u = sg.unit === 'lbs' ? 'باوند' : 'كجم';
             document.getElementById('sugg-value').textContent = sg.mode === 'timed' ? `${sg.seconds} ثانية`
@@ -1972,9 +1997,205 @@
                 document.getElementById('input-reps').value = sg.reps;
                 document.getElementById('val-reps-display').textContent = sg.reps;
             }
+            if (activeSetType === 'warmup') setSetType('normal', document.querySelector('[data-settype="normal"]'));
             updateWeightConvertedDisplay(); update1RMLiveDisplay(); renderEquipVisual();
             haptic('tap');
             showToast('تعبّى الاقتراح. عدّله لو تبي، وبعدها احفظ الجولة');
+        }
+
+
+        /* ---------- v11.3 (الدفعة 1) ---------- */
+        // B2: ملاحظة ثابتة لكل تمرين (وضع الكرسي، القبضة…) تطلع كل ما اخترته
+        function renderExNote() {
+            const box = document.getElementById('ex-note');
+            if (!box) return;
+            const ex = currentExercise();
+            box.classList.toggle('hidden', !ex);
+            if (!ex) return;
+            document.getElementById('ex-note-edit').classList.add('hidden');
+            const show = document.getElementById('ex-note-show');
+            show.classList.remove('hidden');
+            show.replaceChildren();
+            if (ex.note) {
+                const label = document.createElement('span'); label.className = 'ex-note-label'; label.textContent = 'ملاحظتك:';
+                const text = document.createElement('span'); text.className = 'ex-note-text'; text.setAttribute('translate', 'no'); text.dir = 'auto'; text.textContent = ex.note;
+                show.append(label, text);
+                show.dataset.empty = '0';
+            } else {
+                show.textContent = '+ أضف ملاحظة لهالتمرين';
+                show.dataset.empty = '1';
+            }
+        }
+        function openExNoteEdit() {
+            const ex = currentExercise();
+            if (!ex) return;
+            document.getElementById('ex-note-show').classList.add('hidden');
+            document.getElementById('ex-note-edit').classList.remove('hidden');
+            const input = document.getElementById('ex-note-input');
+            input.value = ex.note || '';
+            input.focus();
+        }
+        async function saveExNote() {
+            const ex = currentExercise();
+            if (!ex) return;
+            const value = document.getElementById('ex-note-input').value.replace(/\s+/g, ' ').trim().slice(0, 120);
+            if (value === (ex.note || '')) { renderExNote(); return; }
+            await saveExerciseSetting({ note: value || null });
+            renderExNote();
+            document.getElementById('ex-note-show').focus();
+            showToast(value ? 'انحفظت الملاحظة' : 'انمسحت الملاحظة');
+        }
+
+        // B3: الراحة تنحفظ لكل تمرين (السكوات 3 دقايق، الباي دقيقة)
+        function applyExerciseRest(ex) {
+            const select = document.getElementById('rest-timer-duration');
+            if (!select || !ex || ex.restSec == null) return;
+            const v = String(ex.restSec);
+            if ([...select.options].some(o => o.value === v)) select.value = v;
+        }
+        async function saveExerciseRest() {
+            const ex = currentExercise();
+            if (!ex || ex.type !== 'weights') return;
+            const v = Number(document.getElementById('rest-timer-duration').value);
+            if (!Number.isInteger(v) || v < 0 || v > 600 || ex.restSec === v) return;
+            await saveExerciseSetting({ restSec: v });
+        }
+
+        // A4: جولات التسخين تحت الاقتراح، تختفي أول ما تسجل جولة عمل للتمرين
+        function hasWorkingSetNow(exerciseId) {
+            const today = getLocalDateString();
+            return state.logs.some(l => l.exerciseId === exerciseId && l.type === 'weights' && l.setType !== 'warmup' && (activeSessionId ? l.sessionId === activeSessionId : l.date === today));
+        }
+        function renderWarmup(ex, sg) {
+            const box = document.getElementById('sugg-warmup');
+            if (!box) return;
+            const sets = ex && sg && !hasWorkingSetNow(ex.id) ? GymCalc.warmupSets(sg.weight, { unit: sg.unit, mode: sg.mode, barbell: ex.equip === 'barbell', barKg: ex.barKg }) : [];
+            box.classList.toggle('hidden', !sets.length);
+            const wrap = document.getElementById('sugg-warmup-sets');
+            wrap.replaceChildren();
+            const u = sg?.unit === 'lbs' ? 'باوند' : 'كجم';
+            for (const w of sets) {
+                const b = document.createElement('button');
+                b.type = 'button'; b.className = 'sugg-wchip';
+                b.textContent = `${w.weight} ${u} × ${w.reps}`;
+                b.addEventListener('click', () => fillWarmup(w, sg.unit));
+                wrap.appendChild(b);
+            }
+        }
+        function fillWarmup(w, unit) {
+            if (unit && unit !== activeWeightUnit) setWeightUnit(unit);
+            document.getElementById('input-weight').value = w.weight;
+            document.getElementById('input-reps').value = w.reps;
+            document.getElementById('val-reps-display').textContent = w.reps;
+            setSetType('warmup', document.querySelector('[data-settype="warmup"]'));
+            setRIR('', document.querySelector('.rir-btn[data-rir=""]'));
+            updateWeightConvertedDisplay(); update1RMLiveDisplay();
+            haptic('tap');
+            showToast('تعبّت جولة التسخين. احفظها بعد ما تسويها');
+        }
+
+        // A6: سهل / مناسب / صعب بدل أرقام RIR (يتحوّل لـ RIR 3 / 2 / 0)
+        function feelOf(rir) { return rir == null ? null : rir >= 3 ? '3' : rir >= 1 ? '2' : '0'; }
+        function renderFeel() {
+            const feel = state.profile.effortMode === 'feel';
+            document.getElementById('feel-container')?.classList.toggle('hidden', !feel);
+            document.getElementById('feel-label')?.classList.toggle('hidden', !feel);
+            document.getElementById('rir-container')?.classList.toggle('hidden', feel);
+            document.getElementById('rir-label')?.classList.toggle('hidden', feel);
+            const cur = feelOf(activeRIR);
+            document.querySelectorAll('.feel-btn').forEach(b => { const on = b.dataset.feelRir === cur; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
+        }
+        function setFeel(v) {
+            const rir = feelOf(activeRIR) === v ? '' : v; // نفس الزر مرة ثانية = بدون تقييم
+            setRIR(rir, document.querySelector(`.rir-btn[data-rir="${rir}"]`));
+            haptic('tap');
+        }
+
+        // B1: الجهاز مشغول؟ بدائل لنفس العضلة، وتبديلها في خطة الجلسة
+        function busyAlternatives(ex) { return ex && ex.type === 'weights' ? GymCalc.alternatives(state.exercises, state.logs, ex.id, 3) : []; }
+        function renderBusyButton() {
+            const btn = document.getElementById('btn-busy');
+            if (btn) btn.classList.toggle('hidden', !busyAlternatives(currentExercise()).length);
+        }
+        function openBusy() {
+            const ex = currentExercise();
+            const alts = busyAlternatives(ex);
+            if (!alts.length) return;
+            document.getElementById('busy-hint').textContent = `بدائل ${shortName(ex.name)} لنفس العضلة. اللي سويتها قبل فوق.`;
+            const list = document.getElementById('busy-list');
+            list.replaceChildren();
+            for (const alt of alts) {
+                const last = state.logs.filter(l => l.exerciseId === alt.id && l.type === 'weights' && l.setType !== 'warmup').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
+                const row = document.createElement('button');
+                row.type = 'button'; row.className = 'busy-row';
+                const name = document.createElement('strong'); name.textContent = shortName(alt.name);
+                const equip = document.createElement('small'); equip.textContent = EQUIP_NAMES[alt.equip] || 'أوزان حرة';
+                const lastEl = document.createElement('small'); lastEl.textContent = last ? 'آخر مرة: ' + setLabel(last) : 'ما سجلته قبل';
+                row.append(name, equip, lastEl);
+                row.addEventListener('click', () => runMutation(() => swapExercise(ex.id, alt.id)));
+                list.appendChild(row);
+            }
+            document.getElementById('busy-modal').classList.remove('hidden');
+            list.querySelector('button')?.focus();
+        }
+        function closeBusy() { document.getElementById('busy-modal').classList.add('hidden'); document.getElementById('btn-busy')?.focus(); }
+        async function swapExercise(fromId, toId) {
+            const from = state.exercises.find(e => e.id === fromId), to = state.exercises.find(e => e.id === toId);
+            if (!from || !to) throw Error('التمرين غير موجود');
+            const session = getActiveSession();
+            let swapped = false;
+            if (session?.planIds?.includes(fromId) && !session.planIds.includes(toId)) {
+                session.planIds = session.planIds.map(id => id === fromId ? toId : id);
+                session.editedAt = Date.now();
+                await GymStorage.save(state);
+                swapped = true;
+            }
+            document.getElementById('busy-modal').classList.add('hidden');
+            selectExercise(toId);
+            renderSessionPlan();
+            haptic('tap');
+            showToast(swapped ? `بدّلت ${shortName(from.name)} بـ ${shortName(to.name)} لهالجلسة` : `انتقلت لـ ${shortName(to.name)}`);
+        }
+
+        // C3: سطرين يفهمونك بعد الجلسة: وش كسرت، ووش متأخر
+        function sessionInsightLines(sessionId) {
+            const ins = GymCalc.sessionInsights(state.logs, state.exercises, sessionId, getLocalDateString());
+            const lines = [];
+            if (ins.records.length) {
+                const names = ins.records.map(shortName), more = names.length - 3;
+                lines.push({ kind: 'record', text: more > 0 ? `كسرت رقمك في ${names.slice(0, 3).join('، ')} و${more} غيرها.` : `كسرت رقمك في ${names.join('، ')}.` });
+            }
+            if (ins.behind) lines.push({ kind: 'behind', text: `متأخر في ${GymCatalog.MUSCLE_NAMES[ins.behind.muscle] || ins.behind.muscle}: ${ins.behind.now} جولات هالأسبوع، و${ins.behind.last} الأسبوع الماضي.` });
+            return lines;
+        }
+
+        // E1: كل الجولات في ملف يفتحه Excel أو Google Sheets
+        function downloadFile(text, type, filename) {
+            const url = URL.createObjectURL(new Blob([text], { type }));
+            const a = document.createElement('a'); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+        }
+        function exportCSV() {
+            const en = window.GymI18n?.lang === 'en';
+            const tr = s => (en ? GymI18n.tq(s) : s);
+            const logs = state.logs.filter(l => l && l.date).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+            if (!logs.length) return showToast('ما فيه جولات تتصدّر للحين');
+            const head = en ? ['Date', 'Session', 'Exercise', 'Set type', 'Weight', 'Unit', 'Reps', 'Seconds', 'RIR', 'Estimated 1RM (kg)', 'Volume (kg)', 'Minutes', 'Calories']
+                : ['التاريخ', 'الجلسة', 'التمرين', 'نوع الجولة', 'الوزن', 'الوحدة', 'العدات', 'الثواني', 'RIR', '1RM التقديري (كجم)', 'الحجم (كجم)', 'الدقائق', 'السعرات'];
+            const sessions = new Map(state.sessions.map(s => [s.id, s.name]));
+            const rows = logs.map(l => {
+                const session = tr(sessions.get(l.sessionId) || '');
+                const ex = state.exercises.find(e => e.id === l.exerciseId);
+                const name = ex?.name || l.exerciseName || '';
+                if (l.type !== 'weights') return [l.date, session, tr(name), tr('كارديو'), '', '', '', '', '', '', '', Number(l.duration) || '', Number(l.calories) || ''];
+                const timed = l.loadMode === 'timed';
+                const w = timed || l.loadMode === 'bodyweight' ? '' : (l.displayWeight ?? getCanonicalWeightKg(l));
+                const orm = timed ? '' : calculate1RM(getProgressWeightKg(l), l.reps);
+                return [l.date, session, tr(name), tr(SET_LABELS[l.setType] || SET_LABELS.normal), w,
+                    w === '' ? '' : tr(l.unit === 'lbs' ? 'باوند' : 'كجم'), timed ? '' : l.reps, timed ? Number(l.durationSeconds) || '' : '',
+                    l.rir ?? '', Number.isFinite(orm) ? orm : '', Number(l.volumeLoadKg) || '', '', Number(l.calories) || ''];
+            });
+            downloadFile('﻿' + GymCalc.toCSV([head, ...rows]), 'text/csv;charset=utf-8', `gym_tracker_sets_${getLocalDateString()}.csv`);
+            showToast(`تم تجهيز ملف Excel (${rows.length} صف)`);
         }
 
         // خطة الجلسة

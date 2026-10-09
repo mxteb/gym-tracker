@@ -45,13 +45,14 @@ function profile(x) {
  if(x.isMan!==undefined){if(typeof x.isMan!=='boolean')fail('الجنس');out.isMan=x.isMan;}
  if(x.theme!==undefined)out.theme=choice(x.theme,['plates','logbook','clock','auto'],'الثيم');
  if(x.lang!==undefined)out.lang=choice(x.lang,['ar','en'],'اللغة');
+ if(x.effortMode!==undefined)out.effortMode=choice(x.effortMode,['rir','feel'],'طريقة تقييم الجولة');
  for(const key of ['keepAwake','haptics'])if(x[key]!==undefined){if(typeof x[key]!=='boolean')fail('الإعدادات');out[key]=x[key];}
  if(x.updatedAt!==undefined)out.updatedAt=num(x.updatedAt,'وقت البروفايل');
  out.history=array(x.history||[],10000,'القياسات').map(h=>{object(h,'قياس');return {date:date(h.date),weight:num(h.weight,'الوزن',20,350),waist:h.waist?num(h.waist,'الخصر',30,250):''};});
  return out;
 }
 function array(x,max,label){if(!Array.isArray(x)||x.length>max)fail(label);return x;}
-function exercise(x){object(x,'تمرين');return {id:id(x.id),name:str(x.name,'اسم التمرين'),category:choice(x.category,categories,'الفئة'),type:choice(x.type,types,'نوع التمرين'),equip:choice(x.equip||'machine',equipment,'الأداة'),...(x.machine?{machine:choice(x.machine,machines,'الجهاز')}:{}),...optionalNumber(x,'machineKg',0,500),...(x.rig?{rig:choice(x.rig,['pin','plates'],'نوع الجهاز')}:{}),...optionalNumber(x,'barKg',0,50),isCustom:!!x.isCustom,archived:!!x.archived,...optionalNumber(x,'editedAt',0,1e15)};}
+function exercise(x){object(x,'تمرين');return {id:id(x.id),name:str(x.name,'اسم التمرين'),category:choice(x.category,categories,'الفئة'),type:choice(x.type,types,'نوع التمرين'),equip:choice(x.equip||'machine',equipment,'الأداة'),...(x.machine?{machine:choice(x.machine,machines,'الجهاز')}:{}),...optionalNumber(x,'machineKg',0,500),...(x.rig?{rig:choice(x.rig,['pin','plates'],'نوع الجهاز')}:{}),...optionalNumber(x,'barKg',0,50),...(x.note?{note:str(x.note,'ملاحظة التمرين',200)}:{}),...optionalNumber(x,'restSec',0,600),isCustom:!!x.isCustom,archived:!!x.archived,...optionalNumber(x,'editedAt',0,1e15)};}
 function log(x, allowLegacyFractions=false){
  object(x,'جولة');const out={id:id(x.id),date:date(x.date),exerciseId:id(x.exerciseId),exerciseName:str(x.exerciseName,'اسم التمرين'),type:choice(x.type,types,'نوع الجولة'),category:choice(x.category,categories,'الفئة')};
  for(const key of ['timestamp','editedAt'])Object.assign(out,optionalNumber(x,key,0,1e15));

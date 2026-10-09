@@ -313,5 +313,60 @@ function weeklyMuscleSets(logs, exercises, startDate) {
  return out;
 }
 
-window.GymCalc = { LBS_PER_KG, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
+/* ---------- v11.3 (الدفعة 1) ---------- */
+/** A4: جولات تسخين قبل وزن العمل. تتقرّب لأوزان تقدر تركّبها، وما تطلع إلا إذا الوزن يستاهل تسخين. */
+function warmupSets(target, opts = {}) {
+ const unit = opts.unit === 'lbs' ? 'lbs' : 'kg', mode = opts.mode || 'external';
+ if (!(target > 0) || !['external', 'per_hand'].includes(mode)) return [];
+ const step = mode === 'per_hand' ? (unit === 'lbs' ? 5 : 2) : (unit === 'lbs' ? 5 : 2.5);
+ const bar = mode === 'external' && opts.barbell ? (Number(opts.barKg) > 0 ? Number(opts.barKg) : (unit === 'lbs' ? 45 : 20)) : 0;
+ if (bar ? target < bar * 1.5 : target < step * 4) return [];
+ const plan = bar ? [[0, 10], [0.5, 5], [0.7, 3], [0.85, 2]] : [[0.5, 8], [0.75, 4]];
+ const out = [];
+ for (const [f, reps] of plan) {
+  let w = f === 0 ? bar : Math.round(target * f / step) * step;
+  if (bar) w = Math.max(bar, w);
+  w = Number(w.toFixed(2));
+  if (w <= 0 || w >= target || (out.length && w <= out[out.length - 1].weight)) continue;
+  out.push({ weight: w, reps });
+ }
+ return out;
+}
+/** B1: بدائل لنفس العضلة الأساسية. اللي سويتها قبل أول، وبعدها اللي أداتها مختلفة (الجهاز مشغول = جرب دمبل). */
+function alternatives(exercises, logs, exId, limit = 3) {
+ const ex = exercises.find(e => e.id === exId), m = muscleOf(ex);
+ if (!m) return [];
+ const used = new Map();
+ for (const l of logs) if (l.type === 'weights') used.set(l.exerciseId, (used.get(l.exerciseId) || 0) + 1);
+ return exercises.filter(e => e.id !== exId && !e.archived && e.type === 'weights' && muscleOf(e) === m)
+  .map(e => ({ e, score: Math.min(used.get(e.id) || 0, 20) * 10 + (e.equip !== ex.equip ? 3 : 0) + (e.category === ex.category ? 1 : 0) }))
+  .sort((a, b) => b.score - a.score || String(a.e.id).localeCompare(String(b.e.id))).slice(0, limit).map(x => x.e);
+}
+/** C3: خلاصة الجلسة: الأرقام اللي انكسرت، وأكثر عضلة متأخرة عن الأسبوع الماضي (من الأربعاء وطالع، عشان بداية الأسبوع ما تبين كل شي متأخر). */
+function sessionInsights(logs, exercises, sessionId, today) {
+ const mine = logs.filter(l => l.sessionId === sessionId && l.type === 'weights').sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+ const acc = logs.filter(l => l.sessionId !== sessionId);
+ const records = [];
+ for (const l of mine) { if (newRecord(acc, l) && !records.includes(l.exerciseName)) records.push(l.exerciseName); acc.push(l); }
+ let behind = null;
+ const day = new Date(today + 'T12:00:00').getDay();
+ if (day >= 3) {
+  const ws = weekStart(today), prevStart = new Date(ws + 'T12:00:00'); prevStart.setDate(prevStart.getDate() - 7);
+  const now = weeklyMuscleSets(logs, exercises, ws), prev = weeklyMuscleSets(logs, exercises, isoDate(prevStart));
+  for (const k of Object.keys(now)) { const d = prev[k] - now[k]; if (d >= 3 && (!behind || d > behind.diff)) behind = { muscle: k, now: now[k], last: prev[k], diff: d }; }
+ }
+ return { records, behind };
+}
+/** E1: صفوف CSV (Excel يفتحها). القيم اللي فيها فاصلة أو علامة تنصيص تنحط بين علامتين. */
+function toCSV(rows) {
+ const cell = v => {
+  const s = v == null ? '' : String(v);
+  // a cell starting with = + - @ can run as a formula in Excel; plain numbers like -2.5 stay numbers
+  const risky = /^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s);
+  return risky || /[",\n\r]/.test(s) ? '"' + (risky ? "'" : '') + s.replace(/"/g, '""') + '"' : s;
+ };
+ return rows.map(r => r.map(cell).join(',')).join('\r\n');
+}
+
+window.GymCalc = { LBS_PER_KG, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();
