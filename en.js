@@ -726,4 +726,33 @@
     [/^متأخر في (.+?): ([\d.,]+) جولات هالأسبوع، و([\d.,]+) الأسبوع الماضي\.$/, function (m, a, b) { return 'Behind on ' + t(m).toLowerCase() + ': ' + a + ' sets this week, ' + b + ' last week.'; }]
   ]);
 
+  /* ---------- v11.4 (batch 2) ---------- */
+  GymI18n.add({
+    'تعبّت الجلسة الخفيفة. احفظ كل جولة بعد ما تسويها': 'Light session filled in. Save each set after you do it',
+    'مستوى قوتك مقابل وزنك': 'Your strength for your bodyweight',
+    'سكوات': 'Squat', 'بنش بريس': 'Bench press', 'ديدليفت': 'Deadlift', 'ضغط أكتاف واقف': 'Overhead press',
+    'بداية': 'Starting', 'مبتدئ': 'Beginner', 'متوسط': 'Intermediate', 'متقدم': 'Advanced', 'نخبة': 'Elite',
+    'أدخل وزنك في البروفايل عشان نقارن قوتك بوزنك.': 'Enter your weight in Profile to compare your strength with it.',
+    'سجّل سكوات أو بنش أو ديدليفت أو ضغط أكتاف بالبار، ويطلع مستواك هنا.': 'Log a barbell squat, bench, deadlift or overhead press and your level shows here.',
+    'تقريبي: معايير منتشرة لقوة الرجال والنساء حسب وزن الجسم. العمر والخبرة يفرقون.': 'Approximate: common strength standards for men and women by bodyweight. Age and training years matter too.',
+    'تقرير الشهر': 'Monthly report',
+    'اختر الشهر': 'Choose the month',
+    'ما فيه تمارين مسجلة في هالشهر للحين.': 'No workouts logged this month yet.',
+    'جلسات': 'Sessions', 'جولات فعلية': 'Working sets', 'الحجم (طن)': 'Volume (t)', 'أرقام قياسية': 'Records',
+    'نفس الشهر اللي قبله': 'Same as last month',
+    'شارك كصورة': 'Share as image',
+    'انحفظت صورة الجلسة': 'Session image saved',
+    'تعذر تجهيز الصورة': "Couldn't make the image",
+    'الجلسة غير موجودة': 'Session not found',
+    'كسرت رقمك في': 'New record in'
+  }, [
+    [/^قوتك ثابتة من ([\d.,]+) جلسات\. هذا طبيعي، والحل غالبًا جلسة أخف: نزّل 10% وسوّ نفس العدات، والجلسة اللي بعدها ارجع لوزنك\.$/, function (n) { return 'Your strength has stalled for ' + n + ' sessions. That is normal, and a lighter session usually fixes it: drop 10%, do the same reps, then go back to your weight next time.'; }],
+    [/^جلسة خفيفة: (.+)$/, function (a) { return 'Light session: ' + t(a); }],
+    [/^1RM ([\d.,]+) كجم = ([\d.,]+)× وزنك(?: · باقي ([\d.,]+) كجم لـ(.+))?$/, function (rm, r, kg, lvl) { return '1RM ' + rm + ' kg = ' + r + '× your weight' + (kg ? ' · ' + kg + ' kg to ' + t(lvl) : ''); }],
+    [/^([+−])([\d.,]+) عن الشهر اللي قبله$/, function (s, n) { return s + n + ' vs last month'; }],
+    [/^أكثر عضلة اشتغلت عليها: (.+) \(([\d.,]+) جولة\)$/, function (m, n) { return 'Most trained: ' + t(m).toLowerCase() + ' (' + n + (n === '1' ? ' set)' : ' sets)'); }],
+    [/^كارديو: ([\d.,]+) دقيقة$/, function (n) { return 'Cardio: ' + n + ' min'; }],
+    [/^أيام التمرين: ([\d.,]+)$/, function (n) { return 'Training days: ' + n; }]
+  ]);
+
 })();

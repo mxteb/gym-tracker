@@ -633,6 +633,45 @@ button.cal-day{min-height:0;padding:0}
 :root[data-theme="clock"] .sugg-wchip{font-size:1.2rem;color:var(--led-amber);border-color:var(--led-line);min-height:44px}
 :root[data-theme="clock"] .busy-btn{border-style:solid;color:var(--led-amber)}
 
+/* ---------- v11.4 (الدفعة 2): الثبات، مستوى القوة، تقرير الشهر، مشاركة الجلسة ---------- */
+.sugg-plateau{grid-column:1 / -1;display:flex;flex-direction:column;align-items:flex-start;gap:.45rem;padding-top:.45rem;border-top:1px dashed var(--line)}
+.sugg-plateau.hidden{display:none}
+#btn-deload{font-family:var(--font);font-size:.82rem}
+.sugg-plateau p{margin:0;font-size:.8rem;color:var(--ink-2);line-height:1.7}
+.strength-card{display:flex;flex-direction:column;gap:.9rem}
+.strength-row{display:flex;flex-direction:column;gap:.35rem}
+.strength-head{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem}
+.strength-head strong{font-size:.92rem;color:var(--ink)}
+.strength-level{font-size:.78rem;font-weight:800;color:var(--accent-ink)}
+.strength-level[data-level="0"]{color:var(--mute)}
+.strength-bar{position:relative;height:10px;background:var(--track);border-radius:var(--r-sm);overflow:hidden}
+.strength-bar b{position:absolute;inset-block:0;inset-inline-start:0;background:var(--primary);border-radius:inherit}
+.strength-bar i{position:absolute;inset-block:0;width:2px;background:var(--panel);z-index:1}
+.strength-row small{font-size:.74rem;color:var(--mute);line-height:1.6}
+.month-head{display:flex;justify-content:space-between;align-items:center;gap:.75rem}
+.month-select{min-height:40px;padding:0 .6rem;font-size:.8rem;max-width:60%}
+.month-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.month-cell{display:flex;flex-direction:column;gap:2px;padding:.7rem .8rem;background:var(--panel)}
+.month-cell b{font-size:2rem;line-height:1;color:var(--ink)}
+.month-cell span{font-size:.78rem;color:var(--ink-2);font-weight:600}
+.month-diff{font-size:.7rem;color:var(--mute)}
+.month-diff[data-dir="up"]{color:var(--ok)}
+.month-diff[data-dir="down"]{color:var(--bad)}
+.month-line{margin:.6rem 0 0;font-size:.82rem;color:var(--ink-2)}
+.modal-share{margin-inline-end:auto;min-height:40px;padding:0 .9rem;border:1px solid var(--accent);border-radius:var(--r-sm);background:transparent;color:var(--accent-ink);font-size:.78rem;font-weight:800}
+.modal-share.hidden{display:none}
+.modal-share:disabled{opacity:.5}
+:root[data-theme="logbook"] .month-grid{gap:0;background:transparent;border-width:2px 0 0;border-color:var(--ink);border-radius:0}
+:root[data-theme="logbook"] .month-cell{border-bottom:1px solid var(--line)}
+:root[data-theme="logbook"] .month-cell:nth-child(odd){border-inline-end:1px solid var(--line)}
+:root[data-theme="logbook"] .month-cell b{font-family:var(--stencil);font-size:1.6rem;font-weight:600}
+:root[data-theme="logbook"] .strength-bar{height:6px;border-radius:0}
+:root[data-theme="logbook"] .strength-bar b{background:var(--ink)}
+:root[data-theme="clock"] .month-cell b{font-size:2.6rem;color:var(--led)}
+:root[data-theme="clock"] .strength-bar{height:14px;border-radius:0}
+:root[data-theme="clock"] .strength-bar b{background:var(--led)}
+:root[data-theme="clock"] .strength-level{color:var(--led-amber)}
+
 /* ===================== v11.1: English (من اليسار لليمين) =====================
  * العربي ما يتأثر: كل القواعد هنا على :root[dir="ltr"] بس.
  * مولّدة بقلب left/right للقواعد اللي فوق (styles.css ثم theme.css بنفس الترتيب)،

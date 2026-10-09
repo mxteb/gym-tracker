@@ -190,6 +190,7 @@
                 <div id="next-suggestion" class="next-suggestion hidden" data-added aria-live="polite">
                     <div class="sugg-head"><span class="sugg-label">اقتراح اليوم</span><span id="sugg-value" class="sugg-value num-led"></span></div>
                     <p id="sugg-reason" class="sugg-reason"></p>
+                    <div id="sugg-plateau" class="sugg-plateau hidden"><p id="sugg-plateau-text"></p><button type="button" id="btn-deload" class="sugg-wchip"></button></div>
                     <button type="button" id="btn-apply-suggestion" class="sugg-apply">عبّي الاقتراح</button>
                     <div id="sugg-warmup" class="sugg-warmup hidden"><span class="sugg-wlabel">تسخين:</span><span id="sugg-warmup-sets" class="sugg-wsets"></span></div>
                 </div>
@@ -631,6 +632,19 @@
                 </h3>
                 <div id="bento-comp-container" class="grid grid-cols-2 gap-3"></div>
             </div>
+
+            <div class="space-y-2.5" data-added>
+                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1"><span>مستوى قوتك مقابل وزنك</span></h3>
+                <div id="bento-strength" class="glass-card p-4 strength-card"></div>
+            </div>
+
+            <div class="space-y-2.5" data-added>
+                <div class="month-head px-1">
+                    <h3 class="font-bold text-xs text-slate-300">تقرير الشهر</h3>
+                    <select id="month-select" class="glass-input month-select" aria-label="اختر الشهر"></select>
+                </div>
+                <div id="bento-month" class="glass-card p-4 month-card"></div>
+            </div>
         </section>
 
         <!-- PROFILE SCREEN -->
@@ -821,6 +835,7 @@
             <div id="modal-insights" class="modal-insights hidden" data-added></div>
             <p id="modal-message" class="text-xs text-slate-300 leading-relaxed"></p>
             <div class="flex justify-end gap-2 pt-2">
+                <button type="button" id="modal-share-btn" class="modal-share hidden" data-added>شارك كصورة</button>
                 <button id="modal-cancel-btn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-bold border border-slate-700">إلغاء</button>
                 <button id="modal-confirm-btn" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-xs text-white font-bold shadow-lg">تأكيد</button>
             </div>

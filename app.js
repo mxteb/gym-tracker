@@ -322,7 +322,8 @@
             showModal({
                 title: `ملخص ${session.name}`,
                 message: `المدة: ${durationLabel} دقيقة | الجولات الفعلية: ${workingLogs.length} | الحجم الفعلي: ${(session.totalVolumeKg / 1000).toFixed(2)} طن | متوسط RIR: ${avgRir} | أعلى 1RM مسجل بين التمارين: ${bestOneRm} | السعرات التقديرية للحديد والكارديو: ${session.totalEstimatedCalories}`,
-                confirmText: 'تم', cancelText: 'إغلاق', insights
+                confirmText: 'تم', cancelText: 'إغلاق', insights,
+                share: () => shareSessionImage(session.id)
             });
         }
 
@@ -1417,6 +1418,7 @@
         }
 
         function renderBentoGridAnalysis() {
+            renderStrength(); renderMonthReport();
             const calContainer = document.getElementById('bento-calories-container');
             const healthContainer = document.getElementById('bento-health-container');
             const compContainer = document.getElementById('bento-comp-container');
@@ -1668,7 +1670,7 @@
             document.getElementById('header-today-cals').textContent = Math.round(totalCals * 10) / 10;
         }
 
-        function showModal({ title, message, confirmText, cancelText, onConfirm, insights }) {
+        function showModal({ title, message, confirmText, cancelText, onConfirm, insights, share }) {
             const modal = document.getElementById('custom-modal');
             document.getElementById('modal-title').textContent = title;
             const insightBox = document.getElementById('modal-insights');
@@ -1689,6 +1691,15 @@
             const close = () => {modal.classList.add('hidden');previousFocus?.focus();};
             confirmBtn.onclick = () => { close(); if (onConfirm) runMutation(onConfirm); };
             cancelBtn.onclick = close;
+            const shareBtn = document.getElementById('modal-share-btn');
+            if (shareBtn) {
+                shareBtn.classList.toggle('hidden', !share);
+                shareBtn.onclick = share ? async () => {
+                    shareBtn.disabled = true;
+                    try { await share(); } catch (e) { console.warn('share', e); showToast(e?.message && /[\u0600-\u06FF]/.test(e.message) ? e.message : 'تعذر تجهيز الصورة'); }
+                    finally { shareBtn.disabled = false; }
+                } : null;
+            }
             modal.classList.remove('hidden');
             cancelBtn.focus();
         }
@@ -1804,6 +1815,8 @@
             document.getElementById('btn-busy')?.addEventListener('click', openBusy);
             document.getElementById('btn-busy-cancel')?.addEventListener('click', closeBusy);
             document.getElementById('btn-export-csv')?.addEventListener('click', exportCSV);
+            document.getElementById('btn-deload')?.addEventListener('click', fillDeload);
+            document.getElementById('month-select')?.addEventListener('change', renderMonthReport);
             document.getElementById('btn-plan-cancel')?.addEventListener('click', closePlan);
             document.getElementById('btn-plan-confirm')?.addEventListener('click', () => runMutation(confirmPlan));
             document.getElementById('plan-search')?.addEventListener('input', renderPlanList);
@@ -1978,6 +1991,7 @@
             currentSuggestion = ex && ex.type === 'weights' ? GymCalc.suggestNext(state.logs, ex.id, { excludeSessionId: activeSessionId, mode: activeLoadMode }) : null;
             box.classList.toggle('hidden', !currentSuggestion);
             renderWarmup(ex, currentSuggestion);
+            renderPlateau(ex, currentSuggestion);
             if (!currentSuggestion) return;
             const sg = currentSuggestion, u = sg.unit === 'lbs' ? 'باوند' : 'كجم';
             document.getElementById('sugg-value').textContent = sg.mode === 'timed' ? `${sg.seconds} ثانية`
@@ -2192,10 +2206,187 @@
                 const orm = timed ? '' : calculate1RM(getProgressWeightKg(l), l.reps);
                 return [l.date, session, tr(name), tr(SET_LABELS[l.setType] || SET_LABELS.normal), w,
                     w === '' ? '' : tr(l.unit === 'lbs' ? 'باوند' : 'كجم'), timed ? '' : l.reps, timed ? Number(l.durationSeconds) || '' : '',
-                    l.rir ?? '', Number.isFinite(orm) ? orm : '', Number(l.volumeLoadKg) || '', '', Number(l.calories) || ''];
+                    l.rir ?? '', Number.isFinite(orm) ? orm : '', timed ? '' : Math.round(GymCalc.volumeLoadKg(l) * (Number(l.reps) || 1) * 10) / 10, '', Number(l.calories) || ''];
             });
             downloadFile('﻿' + GymCalc.toCSV([head, ...rows]), 'text/csv;charset=utf-8', `gym_tracker_sets_${getLocalDateString()}.csv`);
             showToast(`تم تجهيز ملف Excel (${rows.length} صف)`);
+        }
+
+
+        /* ---------- v11.4 (الدفعة 2) ---------- */
+        // A2: ثابت من 3 جلسات؟ اقتراح أسبوع خفيف (‎-10%) بنفس العدات
+        function renderPlateau(ex, sg) {
+            const box = document.getElementById('sugg-plateau');
+            if (!box) return;
+            const p = ex && sg && sg.weight > 0 ? GymCalc.plateau(state.logs, ex.id, { mode: sg.mode, excludeSessionId: activeSessionId }) : null;
+            box.classList.toggle('hidden', !p);
+            if (!p) return;
+            const step = sg.mode === 'per_hand' ? (sg.unit === 'lbs' ? 5 : 2) : (sg.unit === 'lbs' ? 5 : 2.5);
+            const light = Math.max(step, Math.round(sg.weight * 0.9 / step) * step);
+            const reps = sg.basedOn?.reps || sg.reps;
+            const u = sg.unit === 'lbs' ? 'باوند' : 'كجم';
+            document.getElementById('sugg-plateau-text').textContent = `قوتك ثابتة من ${p.sessions} جلسات. هذا طبيعي، والحل غالبًا جلسة أخف: نزّل 10% وسوّ نفس العدات، والجلسة اللي بعدها ارجع لوزنك.`;
+            const btn = document.getElementById('btn-deload');
+            btn.textContent = `جلسة خفيفة: ${light} ${u} × ${reps}`;
+            btn.dataset.weight = light; btn.dataset.reps = reps; btn.dataset.unit = sg.unit;
+        }
+        function fillDeload() {
+            const b = document.getElementById('btn-deload');
+            if (b.dataset.unit && b.dataset.unit !== activeWeightUnit) setWeightUnit(b.dataset.unit);
+            document.getElementById('input-weight').value = b.dataset.weight;
+            document.getElementById('input-reps').value = b.dataset.reps;
+            document.getElementById('val-reps-display').textContent = b.dataset.reps;
+            if (activeSetType === 'warmup') setSetType('normal', document.querySelector('[data-settype="normal"]'));
+            updateWeightConvertedDisplay(); update1RMLiveDisplay();
+            haptic('tap');
+            showToast('تعبّت الجلسة الخفيفة. احفظ كل جولة بعد ما تسويها');
+        }
+
+        // C1: مستوى القوة مقابل وزن الجسم
+        const STRENGTH_NAMES = { squat: 'سكوات', bench: 'بنش بريس', deadlift: 'ديدليفت', ohp: 'ضغط أكتاف واقف' };
+        const LEVEL_NAMES = ['بداية', 'مبتدئ', 'متوسط', 'متقدم', 'نخبة'];
+        function renderStrength() {
+            const box = document.getElementById('bento-strength');
+            if (!box) return;
+            box.replaceChildren();
+            const note = (text) => { const p = document.createElement('p'); p.className = 'field-hint'; p.textContent = text; box.appendChild(p); };
+            if (!(Number(state.profile.weight) > 0)) { note('أدخل وزنك في البروفايل عشان نقارن قوتك بوزنك.'); return; }
+            const rows = GymCalc.strengthLevels(state.logs, state.exercises, state.profile);
+            if (!rows.length) { note('سجّل سكوات أو بنش أو ديدليفت أو ضغط أكتاف بالبار، ويطلع مستواك هنا.'); return; }
+            for (const r of rows) {
+                const row = document.createElement('div'); row.className = 'strength-row';
+                const head = document.createElement('div'); head.className = 'strength-head';
+                const name = document.createElement('strong'); name.textContent = STRENGTH_NAMES[r.key];
+                const level = document.createElement('span'); level.className = 'strength-level'; level.dataset.level = r.level; level.textContent = LEVEL_NAMES[r.level];
+                head.append(name, level);
+                const bar = document.createElement('div'); bar.className = 'strength-bar'; bar.setAttribute('aria-hidden', 'true');
+                for (let i = 1; i <= 4; i++) { const tick = document.createElement('i'); tick.style.insetInlineStart = (i * 20) + '%'; bar.appendChild(tick); }
+                const fill = document.createElement('b'); fill.style.width = Math.max(2, Math.round(r.pos * 100)) + '%'; bar.appendChild(fill);
+                const meta = document.createElement('small');
+                meta.textContent = `1RM ${fmt1(r.oneRm)} كجم = ${r.ratio}× وزنك` + (r.next ? ` · باقي ${fmt1(r.next.kg)} كجم لـ${LEVEL_NAMES[r.next.level]}` : '');
+                row.append(head, bar, meta);
+                box.appendChild(row);
+            }
+            note('تقريبي: معايير منتشرة لقوة الرجال والنساء حسب وزن الجسم. العمر والخبرة يفرقون.');
+        }
+
+        // C2: تقرير الشهر مقابل الشهر اللي قبله
+        function renderMonthReport() {
+            const select = document.getElementById('month-select'), box = document.getElementById('bento-month');
+            if (!select || !box) return;
+            const months = GymCalc.monthsWithLogs(state.logs);
+            const current = getLocalDateString().slice(0, 7);
+            if (!months.includes(current)) months.unshift(current);
+            const keep = months.includes(select.value) ? select.value : months[0];
+            const loc = window.GymI18n?.locale || 'ar-SA';
+            select.replaceChildren(...months.map(m => { const o = document.createElement('option'); o.value = m; o.textContent = new Date(m + '-15T12:00:00').toLocaleDateString(loc, { month: 'long', year: 'numeric', calendar: 'gregory', numberingSystem: 'latn' }); return o; }));
+            select.value = keep;
+            const cur = GymCalc.monthStats(state.logs, state.exercises, keep);
+            const prev = GymCalc.monthStats(state.logs, state.exercises, GymCalc.prevMonth(keep));
+            box.replaceChildren();
+            if (!cur.days) { const p = document.createElement('p'); p.className = 'field-hint'; p.textContent = 'ما فيه تمارين مسجلة في هالشهر للحين.'; box.appendChild(p); return; }
+            const grid = document.createElement('div'); grid.className = 'month-grid';
+            const cell = (label, value, diff) => {
+                const c = document.createElement('div'); c.className = 'month-cell';
+                const v = document.createElement('b'); v.className = 'num-led'; v.textContent = value;
+                const l = document.createElement('span'); l.textContent = label;
+                c.append(v, l);
+                if (diff != null && prev.days) {
+                    const d = document.createElement('small'); d.className = 'month-diff';
+                    d.dataset.dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'same';
+                    d.textContent = diff === 0 ? 'نفس الشهر اللي قبله' : `${diff > 0 ? '+' : '−'}${fmt1(Math.abs(diff))} عن الشهر اللي قبله`;
+                    c.appendChild(d);
+                }
+                grid.appendChild(c);
+            };
+            cell('جلسات', cur.sessions, cur.sessions - prev.sessions);
+            cell('جولات فعلية', cur.sets, cur.sets - prev.sets);
+            cell('الحجم (طن)', fmt1(cur.volumeKg / 1000), Math.round((cur.volumeKg - prev.volumeKg) / 100) / 10);
+            cell('أرقام قياسية', cur.records, null);
+            box.appendChild(grid);
+            const lines = [];
+            if (cur.topMuscle) lines.push(`أكثر عضلة اشتغلت عليها: ${GymCatalog.MUSCLE_NAMES[cur.topMuscle.muscle]} (${cur.topMuscle.sets} جولة)`);
+            if (cur.cardioMin) lines.push(`كارديو: ${cur.cardioMin} دقيقة`);
+            lines.push(`أيام التمرين: ${cur.days}`);
+            for (const t of lines) { const p = document.createElement('p'); p.className = 'month-line'; p.textContent = t; box.appendChild(p); }
+        }
+
+        // C5: ملخص الجلسة كصورة تشاركها
+        function cssVar(name, fallback) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback; }
+        async function sessionImage(sessionId) {
+            const session = state.sessions.find(s => s.id === sessionId);
+            if (!session) throw Error('الجلسة غير موجودة');
+            const T = s => (window.GymI18n ? GymI18n.t(s) : s);
+            const en = window.GymI18n?.lang === 'en';
+            const logs = state.logs.filter(l => l.sessionId === sessionId);
+            const working = logs.filter(l => l.type === 'weights' && l.setType !== 'warmup');
+            const minutes = Math.max(1, Math.round(((session.endedAt || Date.now()) - session.startedAt) / 60000));
+            const best = new Map();
+            for (const l of working) {
+                const v = l.loadMode === 'timed' ? Number(l.durationSeconds) || 0 : GymData.oneRepMax(getProgressWeightKg(l), l.reps) || 0;
+                const cur = best.get(l.exerciseId);
+                if (!cur || v > cur.v) best.set(l.exerciseId, { v, log: l });
+            }
+            const top = [...best.values()].slice(0, 6);
+            const records = GymCalc.sessionInsights(state.logs, state.exercises, sessionId, session.date || getLocalDateString()).records;
+            try { await document.fonts?.ready; } catch {}
+            const W = 1080, pad = 80;
+            // square for a short session, taller (Instagram 4:5) when there are more exercises
+            const H = Math.min(1350, Math.max(1080, 620 + (records.length ? 80 : 0) + top.length * 90 + 100));
+            const c = document.createElement('canvas'); c.width = W; c.height = H;
+            const x = c.getContext('2d');
+            const bg = cssVar('--panel', '#1B1B1A'), ink = cssVar('--ink', '#EDEBE6'), mute = cssVar('--mute', '#9A978F'), line = cssVar('--line', '#333331'), primary = cssVar('--primary', '#C8322A'), accent = cssVar('--accent-ink', '#E3B21B');
+            const font = cssVar('--font', 'Alexandria, sans-serif'), num = cssVar('--stencil', font);
+            x.fillStyle = bg; x.fillRect(0, 0, W, H);
+            x.fillStyle = primary; x.fillRect(0, 0, W, 18);
+            x.direction = en ? 'ltr' : 'rtl'; x.textBaseline = 'alphabetic';
+            const start = en ? pad : W - pad, end = en ? W - pad : pad;
+            const text = (s, px, y, color, weight = 700, family = font, align = 'start') => {
+                x.font = `${weight} ${px}px ${family}`; x.fillStyle = color; x.textAlign = align;
+                const max = W - pad * 2; let t = String(s);
+                while (t.length > 3 && x.measureText(t).width > max) t = t.slice(0, -2);
+                if (t !== String(s)) t = t.trimEnd() + '…';
+                x.fillText(t, align === 'start' ? start : end, y);
+            };
+            text('Gym Tracker', 34, 110, mute, 700, font, 'start');
+            text(session.date || '', 34, 110, mute, 600, font, 'end');
+            text(T(session.name || 'جلسة'), 76, 220, ink, 800);
+            // three big numbers
+            const stats = [[String(minutes), T('دقيقة')], [String(working.length), T('جولة')], [fmt1((session.totalVolumeKg || 0) / 1000), T('طن')]];
+            const colW = (W - pad * 2) / 3;
+            stats.forEach(([v, label], i) => {
+                const cx = en ? pad + colW * i : W - pad - colW * i;
+                x.textAlign = 'start'; x.direction = en ? 'ltr' : 'rtl';
+                x.font = `800 150px ${num}`; x.fillStyle = ink; x.fillText(v, cx, 420);
+                x.font = `600 34px ${font}`; x.fillStyle = mute; x.fillText(label, cx, 475);
+            });
+            x.fillStyle = line; x.fillRect(pad, 540, W - pad * 2, 3);
+            let y = 620;
+            if (records.length) {
+                text(T('كسرت رقمك في') + ' ' + records.slice(0, 3).map(n => T(shortName(n))).join(en ? ', ' : '، '), 38, y, accent, 700);
+                y += 80;
+            }
+            for (const b of top) {
+                const name = T(shortName(state.exercises.find(e => e.id === b.log.exerciseId)?.name || b.log.exerciseName || ''));
+                text(name, 40, y, ink, 700);
+                text(T(setLabel(b.log)), 40, y, mute, 600, font, 'end');
+                y += 30; x.fillStyle = line; x.fillRect(pad, y, W - pad * 2, 1); y += 60;
+                if (y > H - 140) break;
+            }
+            x.fillStyle = primary; x.fillRect(0, H - 18, W, 18);
+            return await new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(Error('تعذر تجهيز الصورة')), 'image/png'));
+        }
+        async function shareSessionImage(sessionId) {
+            const blob = await sessionImage(sessionId);
+            const name = `gym_tracker_session_${getLocalDateString()}.png`;
+            const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+            if (file && navigator.canShare && navigator.canShare({ files: [file] }) && !window.Capacitor) {
+                try { await navigator.share({ files: [file], title: 'Gym Tracker' }); return; }
+                catch (e) { if (e?.name === 'AbortError') return; }
+            }
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 30000);
+            if (!window.Capacitor) showToast('انحفظت صورة الجلسة');
         }
 
         // خطة الجلسة

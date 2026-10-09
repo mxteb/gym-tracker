@@ -368,5 +368,83 @@ function toCSV(rows) {
  return rows.map(r => r.map(cell).join(',')).join('\r\n');
 }
 
-window.GymCalc = { LBS_PER_KG, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
+/* ---------- v11.4 (الدفعة 2) ---------- */
+/** A2: ثبات القوة. لو أفضل 1RM تقديري ما تحسّن من 3 جلسات أو أكثر لنفس التمرين وطريقة الحمل = ثبات.
+ * يرجع { sessions, bestDate } أو null. يحتاج 4 جلسات على الأقل عشان ما يحكم بدري. */
+function plateau(logs, exerciseId, opts = {}) {
+ const mode = opts.mode || 'external';
+ if (!['external', 'per_hand', 'added'].includes(mode)) return null;
+ const pool = opts.excludeSessionId ? logs.filter(l => l.sessionId !== opts.excludeSessionId) : logs;
+ const groups = progressionGroups(pool, exerciseId, mode).filter(g => Number.isFinite(g.oneRm) && g.oneRm > 0);
+ if (groups.length < 4) return null;
+ let best = 0;
+ for (let i = 1; i < groups.length; i++) if (groups[i].oneRm > groups[best].oneRm * 1.005) best = i;
+ const sessions = groups.length - 1 - best;
+ return sessions >= 3 ? { sessions, bestDate: groups[best].date, best1rm: groups[best].oneRm } : null;
+}
+
+/** C1: مستوى القوة مقابل وزن الجسم (1RM ÷ وزنك). أرقام تقريبية منتشرة لمعايير القوة، مو حكم.
+ * كل رقم = بداية المستوى: مبتدئ، متوسط، متقدم، نخبة (وقبل الأول = بداية). */
+const STRENGTH_LIFTS = [
+ { key: 'squat', ids: ['ex_44'], men: [0.75, 1.25, 1.75, 2.5], women: [0.5, 1.0, 1.5, 1.9] },
+ { key: 'bench', ids: ['ex_1'], men: [0.5, 1.0, 1.5, 2.0], women: [0.25, 0.5, 0.75, 1.0] },
+ { key: 'deadlift', match: /(deadlift|ديدليفت|ديد ليفت)/i, not: /(rdl|روماني|romanian|stiff|ستيف)/i, men: [1.0, 1.5, 2.25, 3.0], women: [0.75, 1.25, 1.75, 2.5] },
+ { key: 'ohp', ids: ['ex_11'], men: [0.4, 0.65, 0.9, 1.2], women: [0.2, 0.4, 0.6, 0.8] }
+];
+function strengthLevels(logs, exercises, profile) {
+ const bw = Number(profile && profile.weight);
+ if (!(bw > 0)) return [];
+ const isMan = !profile || profile.isMan !== false;
+ const out = [];
+ for (const lift of STRENGTH_LIFTS) {
+  const ids = new Set(lift.ids || exercises.filter(e => e.type === 'weights' && e.equip === 'barbell' && lift.match.test(e.name) && !lift.not.test(e.name)).map(e => e.id));
+  let best = null;
+  for (const l of logs) {
+   if (!ids.has(l.exerciseId) || l.type !== 'weights' || l.setType === 'warmup' || (l.loadMode || 'external') !== 'external') continue;
+   const rm = GymData.oneRepMax(progressWeightKg(l), Number(l.reps) || 1);
+   if (Number.isFinite(rm) && rm > 0 && (!best || rm > best.oneRm)) best = { oneRm: rm, exerciseId: l.exerciseId, date: l.date };
+  }
+  if (!best) continue;
+  const t = isMan ? lift.men : lift.women;
+  const ratio = best.oneRm / bw;
+  let level = 0;
+  while (level < t.length && ratio >= t[level]) level++;
+  const next = level < t.length ? { level: level + 1, kg: Math.ceil((t[level] * bw - best.oneRm) * 2) / 2 } : null;
+  // where the bar sits on a 0..1 scale: each level gets an equal quarter, the last one ends at elite + 25%
+  const edges = [0, ...t, t[t.length - 1] * 1.25];
+  const seg = Math.min(level, edges.length - 2);
+  const pos = Math.min(1, (seg + Math.min(1, (ratio - edges[seg]) / (edges[seg + 1] - edges[seg]))) / (edges.length - 1));
+  out.push({ key: lift.key, exerciseId: best.exerciseId, oneRm: Math.round(best.oneRm * 10) / 10, ratio: Math.round(ratio * 100) / 100, level, next, pos, thresholds: t, date: best.date });
+ }
+ return out;
+}
+
+/** C2: أرقام شهر (YYYY-MM): الجلسات، أيام التمرين، الجولات الفعلية، الحجم، الأرقام القياسية، أكثر عضلة، الكارديو. */
+function monthStats(logs, exercises, month) {
+ const inMonth = l => typeof l.date === 'string' && l.date.slice(0, 7) === month;
+ const mine = logs.filter(inMonth);
+ const weights = mine.filter(l => l.type === 'weights' && l.setType !== 'warmup');
+ const byId = new Map(exercises.map(e => [e.id, e]));
+ const muscles = {};
+ for (const l of weights) { const m = muscleOf(byId.get(l.exerciseId)); if (m) muscles[m] = (muscles[m] || 0) + 1; }
+ const top = Object.entries(muscles).sort((a, b) => b[1] - a[1])[0];
+ const sorted = logs.filter(l => typeof l.date === 'string' && l.date.slice(0, 7) <= month).slice().sort((a, b) => (a.timestamp || Date.parse(a.date) || 0) - (b.timestamp || Date.parse(b.date) || 0));
+ const acc = [], recordEx = new Set();
+ for (const l of sorted) { if (inMonth(l) && newRecord(acc, l)) recordEx.add(l.exerciseId); acc.push(l); }
+ return {
+  month,
+  sessions: new Set(mine.map(l => l.sessionId || l.date)).size,
+  days: new Set(mine.map(l => l.date)).size,
+  sets: weights.length,
+  volumeKg: Math.round(weights.reduce((s, l) => s + (Number(volumeLoadKg(l)) || 0) * (Number(l.reps) || 1), 0)),
+  records: recordEx.size,
+  topMuscle: top ? { muscle: top[0], sets: top[1] } : null,
+  cardioMin: Math.round(mine.filter(l => l.type !== 'weights').reduce((s, l) => s + (Number(l.duration) || 0), 0))
+ };
+}
+/** الأشهر اللي فيها تسجيل، الأحدث أول. */
+function monthsWithLogs(logs) { return [...new Set(logs.map(l => typeof l.date === 'string' ? l.date.slice(0, 7) : null).filter(Boolean))].sort().reverse(); }
+function prevMonth(month) { const [y, m] = month.split('-').map(Number); return m === 1 ? (y - 1) + '-12' : y + '-' + String(m - 1).padStart(2, '0'); }
+
+window.GymCalc = { LBS_PER_KG, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();

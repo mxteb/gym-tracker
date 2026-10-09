@@ -16,6 +16,11 @@ function fixture(lang) {
   const shift = s => (s === 'TODAY' ? today : s);
   // bench press has no set today, so its warm-up chips show (every other exercise was already done today)
   raw.logs = raw.logs.filter(l => !(l.exerciseId === 'ex_1' && l.date === 'TODAY'));
+  // incline bench stuck at the same 1RM for 4 sessions → the plateau note (v11.4)
+  const dates = ['2026-08-25', '2026-09-01', '2026-09-08', '2026-09-15', '2026-09-22'];
+  dates.forEach((date, i) => raw.logs.push({ id: 'plateau_' + i, date, timestamp: Date.parse(date + 'T18:00:00'), sessionId: 'session_' + i, exerciseId: 'ex_2',
+    exerciseName: 'بنش بريس مائل بالبار (Incline Barbell Bench Press)', category: 'push', type: 'weights', unit: 'kg', loadMode: 'external', setType: 'normal',
+    rir: 0, bodyWeightKgAtLog: 80, calories: 0, calculationVersion: 'v10-session', displayWeight: i ? 60 : 50, weight: i ? 60 : 50, reps: 8 }));
   raw.logs.forEach(l => { l.date = shift(l.date); });
   raw.sessions.forEach(s => { s.date = shift(s.date); });
   raw.profile.history.forEach(h => { h.date = shift(h.date); });
@@ -23,29 +28,36 @@ function fixture(lang) {
   return raw;
 }
 
-async function open(lang, port) {
+async function open(lang) {
+  let port;
   const dir = fs.mkdtempSync('/tmp/gt-feat-');
-  const proc = spawn(chrome, ['--headless=new', '--no-sandbox', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, url], { stdio: 'ignore' });
+  // port 0 = Chrome picks a free port, so a browser left over from an earlier run can never answer instead
+  const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--remote-debugging-port=0', `--user-data-dir=${dir}`, url], { stdio: 'ignore' });
+  process.on('exit', () => { try { proc.kill(); } catch { } });
   let list;
-  for (let i = 0; i < 60; i++) { try { list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); if (list.some(t => t.type === 'page')) break; } catch { } await sleep(200); }
+  for (let i = 0; i < 60; i++) {
+    try { port = fs.readFileSync(path.join(dir, 'DevToolsActivePort'), 'utf8').split('\n')[0]; list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); if (list.some(t => t.type === 'page')) break; } catch { }
+    await sleep(200);
+  }
   const ws = new WebSocket(list.find(t => t.type === 'page').webSocketDebuggerUrl);
   await new Promise(r => ws.onopen = r);
   let id = 0; const pending = new Map(); const errors = [];
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
     if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
+    if (m.method === 'Page.frameNavigated' && !m.params.frame.parentId && process.env.DEBUG) console.log('  [nav]', new Date().toISOString().slice(11, 19));
     if (m.method === 'Runtime.exceptionThrown') errors.push(m.params.exceptionDetails?.exception?.description || m.params.exceptionDetails?.text);
   };
   const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
   const ev = async expr => { const r = await send('Runtime.evaluate', { expression: `(async()=>{${expr}})()`, awaitPromise: true, returnByValue: true }); if (r.result.exceptionDetails) throw new Error(r.result.exceptionDetails.exception?.description); return r.result.result.value; };
-  await send('Runtime.enable');
+  await send('Runtime.enable'); await send('Page.enable');
   await send('Emulation.setDeviceMetricsOverride', { width: 393, height: 852, deviceScaleFactor: 2, mobile: true });
   for (let i = 0; i < 20; i++) {
     try { if (await ev(`return location.protocol.startsWith('http') && document.readyState !== 'loading' && document.documentElement.lang === '${lang}'`)) break; } catch { }
     try { await ev(`if (!location.protocol.startsWith('http')) return false; localStorage.setItem('gym_lang','${lang}'); setTimeout(() => location.reload(), 30); return true`); } catch { }
     await sleep(800);
   }
-  const ready = async () => { for (let i = 0; i < 100; i++) { try { if (await ev(`return !!document.querySelector('#exercise-dropdown option') && !!window.GymStorage`)) return; } catch { } await sleep(200); } };
+  const ready = async () => { for (let i = 0; i < 100; i++) { try { if (await ev(`return !!document.querySelector('#exercise-dropdown option') && !!window.GymStorage && /محفوظ|Saved/.test(document.getElementById('db-status-badge')?.textContent||'')`)) { await sleep(300); return; } } catch { } await sleep(200); } };
   await ready();
   const clearToasts = () => ev(`document.getElementById('toast-container')?.replaceChildren()`);
   const shot = async name => {
@@ -68,9 +80,15 @@ async function open(lang, port) {
 const failures = [];
 function check(lang, name, ok, detail = '') { console.log(`${ok ? '✔' : '✘'} [${lang}] ${name}${detail ? ' — ' + detail : ''}`); if (!ok) failures.push(`[${lang}] ${name} ${detail}`); }
 
-async function run(lang, port) {
-  const p = await open(lang, port);
-  const { ev } = p;
+async function run(lang) {
+  const p = await open(lang);
+  // wait for any save in progress (the app disables every control while it saves), then run
+  const ev = async expr => {
+    let i = 0;
+    for (; i < 60; i++) { try { if (await p.ev(`return !document.getElementById('nav-workout')?.disabled`)) break; } catch { break; } await sleep(100); }
+    if (i === 60) console.log('  (still saving after 6 s)', expr.slice(0, 80));
+    return p.ev(expr);
+  };
   const b64 = Buffer.from(JSON.stringify(fixture(lang))).toString('base64');
   await ev(`const bytes=Uint8Array.from(atob('${b64}'),c=>c.charCodeAt(0)); const f=new File([bytes],'f.json',{type:'application/json'}); const dt=new DataTransfer(); dt.items.add(f); const i=document.getElementById('import-file-input'); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}));`);
   await sleep(1500);
@@ -86,14 +104,14 @@ async function run(lang, port) {
     return null`);
   check(lang, 'A4 warm-up chips show for an exercise with a suggestion', !!exId, exId || 'none found');
   if (exId) {
-    const chips = await ev(`return [...document.querySelectorAll('.sugg-wchip')].map(b=>b.textContent)`);
+    const chips = await ev(`return [...document.querySelectorAll('#sugg-warmup-sets .sugg-wchip')].map(b=>b.textContent)`);
     check(lang, 'A4 chips are labelled', chips.length >= 2, chips.join(' | '));
-    await ev(`document.querySelector('.sugg-wchip').click()`);
+    await ev(`document.querySelector('#sugg-warmup-sets .sugg-wchip').click()`);
     const filled = await ev(`return {w:document.getElementById('input-weight').value, type:document.querySelector('.set-type-btn[aria-pressed="true"]')?.dataset.settype}`);
     check(lang, 'A4 chip fills a warm-up set', filled.type === 'warmup' && Number(filled.w) > 0, JSON.stringify(filled));
     await ev(`document.getElementById('btn-apply-suggestion').click()`);
     check(lang, 'A4 applying the suggestion goes back to a normal set', await ev(`return document.querySelector('.set-type-btn[aria-pressed="true"]')?.dataset.settype`) === 'normal');
-    await ev(`document.querySelector('.sugg-wchip').click()`);
+    await ev(`document.querySelector('#sugg-warmup-sets .sugg-wchip').click()`);
     await p.shotEl('a4-warmup', '#next-suggestion');
   }
   const ex = exId || await ev(`return document.getElementById('exercise-dropdown').options[0].value`);
@@ -165,13 +183,15 @@ async function run(lang, port) {
   check(lang, 'B1 picking one switches the exercise', after && after !== ex, after);
   check(lang, 'B1 toast', /انتقلت|بدّلت|Switched|Swapped/.test(await ev(toast)), await ev(toast));
 
-  // C3 insights: a big set → a record, then finish
+  // C3 insights: a big bench set → a record, then finish
+  await select('ex_1');
+  await ev(`const m=document.getElementById('load-mode-select'); m.value='external'; m.dispatchEvent(new Event('change',{bubbles:true}))`);
   await ev(`const w=document.getElementById('input-weight'); w.value='300'; w.dispatchEvent(new Event('input',{bubbles:true})); document.getElementById('btn-save-weights').click()`);
   await sleep(800);
   await ev(`document.getElementById('btn-finish-session').click()`); await sleep(300);
   await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(800);
   const ins = await ev(`return [...document.querySelectorAll('#modal-insights .insight')].map(p=>p.textContent)`);
-  check(lang, 'C3 summary shows the record', ins.length >= 1 && /كسرت|New record/.test(ins[0]), ins.join(' | '));
+  check(lang, 'C3 summary shows the record', ins.length >= 1 && /كسرت|New record/.test(ins[0]), ins.join(' | ') + ' :: toasts ' + await ev(`return [...document.querySelectorAll('#toast-container > div')].map(d=>d.textContent).join(' / ')`));
   await p.shotEl('c3-insights', '#custom-modal .glass-card');
   await ev(`document.getElementById('modal-cancel-btn').click()`);
   // an ordinary dialog afterwards has no leftover insights
@@ -187,10 +207,55 @@ async function run(lang, port) {
   const lines = csv ? csv.t.split('\r\n') : [];
   check(lang, 'E1 CSV made with a BOM and a header', !!csv && csv.bom && lines.length > 10, csv ? lines[0].slice(0, 120) : 'no file');
   check(lang, 'E1 header language', !!csv && (lang === 'en' ? /^Date,Session,Exercise,/.test(lines[0]) : /^التاريخ,الجلسة,التمرين,/.test(lines[0])), lines[0]);
-  check(lang, 'E1 one row per log', csv && lines.length - 1 === await ev(`return (await GymStorage.load()).logs.length`).catch(() => lines.length - 1));
+  check(lang, 'E1 one row per log line', csv && new RegExp('\\(' + (lines.length - 1) + ' ').test(await ev(toast)), (lines.length - 1) + ' :: ' + await ev(toast));
   check(lang, 'E1 toast', /Excel/.test(await ev(toast)), await ev(toast));
   if (csv) fs.writeFileSync(path.join(outDir, `${lang}-e1.csv`), csv.t);
   await p.shotEl('e1-export', '#btn-export-csv');
+
+  /* ---------- Batch 2 ---------- */
+  // A2 plateau
+  await ev(`document.getElementById('nav-workout').click()`);
+  await select('ex_2');
+  const plat = await ev(`return document.getElementById('sugg-plateau').classList.contains('hidden') ? null : {text:document.getElementById('sugg-plateau-text').textContent, btn:document.getElementById('btn-deload').textContent}`);
+  check(lang, 'A2 plateau note shows after 3 sessions without a better 1RM', !!plat && /3/.test(plat.text), JSON.stringify(plat));
+  if (plat) {
+    check(lang, 'A2 light session = 10% less, rounded to 2.5', /55/.test(plat.btn), plat.btn);
+    await ev(`document.getElementById('btn-deload').click()`);
+    check(lang, 'A2 tapping fills 55 × 8', await ev(`return document.getElementById('input-weight').value==='55' && document.getElementById('input-reps').value==='8'`));
+    await p.shotEl('a2-plateau', '#next-suggestion');
+  }
+  await select('ex_1');
+  check(lang, 'A2 no plateau note for a lift that is going up', await ev(`return document.getElementById('sugg-plateau').classList.contains('hidden')`), await ev(`return document.getElementById('sugg-plateau-text').textContent + ' :: ' + document.getElementById('exercise-dropdown').value`));
+
+  // C1 + C2 on the analysis tab
+  await ev(`document.getElementById('nav-bento').click()`); await sleep(300);
+  const str = await ev(`return [...document.querySelectorAll('#bento-strength .strength-row')].map(r=>r.innerText.replace(/\\n/g,' / '))`);
+  check(lang, 'C1 strength rows for bench and squat', str.length >= 2, str.join(' || '));
+  const month = await ev(`return {opts:[...document.querySelectorAll('#month-select option')].map(o=>o.textContent), cells:[...document.querySelectorAll('#bento-month .month-cell')].map(c=>c.innerText.replace(/\\n/g,' / '))}`);
+  check(lang, 'C2 month report has 4 numbers', month.cells.length === 4, month.cells.join(' || '));
+  check(lang, 'C2 month list has this month and earlier ones', month.opts.length >= 2, month.opts.join(', '));
+  await p.shotEl('c1-strength', '#bento-strength');
+  await p.shotEl('c2-month', '#bento-month');
+  await ev(`const s=document.getElementById('month-select'); s.value=s.options[s.options.length-1].value; s.dispatchEvent(new Event('change',{bubbles:true}))`);
+  check(lang, 'C2 picking an older month changes the numbers', await ev(`return document.querySelectorAll('#bento-month .month-cell').length === 4`));
+  await ev(`document.getElementById('nav-profile').click(); document.getElementById('input-weight-profile') && 0`);
+
+  // C5 share the session as an image
+  await ev(`document.getElementById('nav-workout').click(); document.getElementById('btn-start-session').click()`); await sleep(400);
+  await select('ex_1');
+  await ev(`document.getElementById('btn-save-weights').click()`); await sleep(600);
+  await ev(`document.getElementById('btn-finish-session').click()`); await sleep(300);
+  await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(800);
+  check(lang, 'C5 share button in the summary', await ev(`return !document.getElementById('modal-share-btn').classList.contains('hidden')`));
+  await ev(`window.__png=null; const o=URL.createObjectURL; URL.createObjectURL=b=>{ if(b.type==='image/png') { const r=new FileReader(); r.onload=()=>window.__png=r.result; r.readAsDataURL(b); } return o.call(URL,b); }; navigator.canShare=null; document.getElementById('modal-share-btn').click()`);
+  await sleep(2500);
+  const png = await ev(`return window.__png`);
+  check(lang, 'C5 a PNG is made', !!png && png.length > 20000, png ? png.length + ' chars' : 'none');
+  if (png) fs.writeFileSync(path.join(outDir, `${lang}-c5-share.png`), Buffer.from(png.split(',')[1], 'base64'));
+  await p.shotEl('c5-modal', '#custom-modal .glass-card');
+  await ev(`document.getElementById('modal-cancel-btn').click()`);
+  await ev(`document.getElementById('btn-wipe-all-data')?.click()`); await sleep(200);
+  check(lang, 'C5 other dialogs have no share button', await ev(`const r=document.getElementById('modal-share-btn').classList.contains('hidden'); document.getElementById('modal-cancel-btn').click(); return r`));
 
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);
@@ -215,7 +280,6 @@ async function run(lang, port) {
   p.close();
 }
 
-await run('ar', 9661);
-await run('en', 9662);
+for (const lang of ['ar', 'en']) if (!process.env.LANGS || process.env.LANGS.includes(lang)) await run(lang).catch(e => { console.log('✘ [' + lang + '] crashed — ' + e.message); failures.push(lang + ' crashed'); });
 console.log(failures.length ? `\n${failures.length} failed` : '\nall passed');
 process.exit(failures.length ? 1 : 0);

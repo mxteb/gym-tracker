@@ -271,3 +271,45 @@ test('C3 session insights: records broken in the session and the muscle furthest
 test('E1 CSV: commas, quotes, line breaks and formula starts are escaped', () => {
   assert.equal(GymCalc.toCSV([['a', 'b,c', 'say "hi"'], [1, null, '=SUM(A1)']]), 'a,"b,c","say ""hi"""\r\n1,,"\'=SUM(A1)"');
 });
+test('E1 CSV: negative numbers stay numbers', () => {
+  assert.equal(GymCalc.toCSV([[-2.5, '-x', '@a']]), '-2.5,"\'-x","\'@a"');
+});
+
+// ---------- v11.4 (الدفعة 2) ----------
+const S = (sid, date, w, reps, ex = 'ex_1', mode = 'external') => ({ id: sid + w + reps, type: 'weights', exerciseId: ex, date, sessionId: sid, weight: w, reps, loadMode: mode, setType: 'normal', timestamp: Date.parse(date) });
+test('A2 plateau: no better 1RM for 3+ sessions, needs 4 sessions, ignores the current one', () => {
+  const up = [S('a', '2026-09-01', 60, 8), S('b', '2026-09-04', 62.5, 8), S('c', '2026-09-08', 65, 8), S('d', '2026-09-11', 67.5, 8)];
+  assert.equal(GymCalc.plateau(up, 'ex_1'), null);
+  const flat = [S('a', '2026-09-01', 60, 8), S('b', '2026-09-04', 70, 8), S('c', '2026-09-08', 70, 8), S('d', '2026-09-11', 70, 7), S('e', '2026-09-15', 70, 8)];
+  const p = plain(GymCalc.plateau(flat, 'ex_1'));
+  assert.equal(p.sessions, 3); assert.equal(p.bestDate, '2026-09-04');
+  assert.equal(GymCalc.plateau(flat, 'ex_1', { excludeSessionId: 'e' }), null); // only 2 after the best
+  assert.equal(GymCalc.plateau(flat.slice(0, 3), 'ex_1'), null);
+  assert.equal(GymCalc.plateau(flat.map(l => ({ ...l, loadMode: 'bodyweight' })), 'ex_1', { mode: 'bodyweight' }), null);
+});
+test('C1 strength levels: 1RM over bodyweight, men and women, next level in kg', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const logs = [S('a', '2026-09-01', 100, 1), S('a', '2026-09-01', 140, 1, 'ex_44')];
+  const men = plain(GymCalc.strengthLevels(logs, ex, { weight: 80, isMan: true }));
+  const bench = men.find(x => x.key === 'bench'), squat = men.find(x => x.key === 'squat');
+  assert.equal(bench.ratio, 1.25); assert.equal(bench.level, 2); assert.deepEqual(bench.next, { level: 3, kg: 20 });
+  assert.equal(squat.ratio, 1.75); assert.equal(squat.level, 3);
+  assert.ok(bench.pos > 0.4 && bench.pos < 0.6, String(bench.pos));
+  const women = plain(GymCalc.strengthLevels(logs, ex, { weight: 80, isMan: false }));
+  assert.equal(women.find(x => x.key === 'bench').level, 4); assert.equal(women.find(x => x.key === 'bench').next, null);
+  assert.deepEqual(plain(GymCalc.strengthLevels(logs, ex, {})), []);
+  const custom = [...ex, { id: 'dl', name: 'ديدليفت', type: 'weights', equip: 'barbell', category: 'legs' }, { id: 'rdl2', name: 'Barbell RDL deadlift', type: 'weights', equip: 'barbell', category: 'legs' }];
+  const dl = plain(GymCalc.strengthLevels([S('a', '2026-09-01', 160, 1, 'dl'), S('a', '2026-09-01', 300, 1, 'rdl2')], custom, { weight: 80 }));
+  assert.equal(dl.length, 1); assert.equal(dl[0].key, 'deadlift'); assert.equal(dl[0].oneRm, 160);
+});
+test('C2 month stats: sessions, sets, volume, records, top muscle, cardio', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const logs = [S('a', '2026-09-20', 60, 8), S('b', '2026-10-02', 65, 8), S('b', '2026-10-02', 60, 10), S('c', '2026-10-05', 50, 10, 'ex_44'),
+    { ...S('c', '2026-10-05', 20, 10), setType: 'warmup' }, { id: 'tm', type: 'treadmill', date: '2026-10-05', duration: 20, sessionId: 'c' }];
+  const m = plain(GymCalc.monthStats(logs, ex, '2026-10'));
+  assert.equal(m.sessions, 2); assert.equal(m.days, 2); assert.equal(m.sets, 3);
+  assert.equal(m.volumeKg, 65 * 8 + 60 * 10 + 50 * 10);
+  assert.equal(m.records, 1); assert.deepEqual(m.topMuscle, { muscle: 'chest', sets: 2 }); assert.equal(m.cardioMin, 20);
+  assert.deepEqual(plain(GymCalc.monthsWithLogs(logs)), ['2026-10', '2026-09']);
+  assert.equal(GymCalc.prevMonth('2026-01'), '2025-12'); assert.equal(GymCalc.prevMonth('2026-10'), '2026-09');
+});
