@@ -344,3 +344,16 @@ test('B5 unilateral exercises', () => {
   assert.ok(!GymCalc.isUnilateral(ex.find(e => e.id === 'ex_1')));
   assert.ok(GymCalc.isUnilateral({ ...ex.find(e => e.id === 'ex_1'), sides: true }));
 });
+test('I2 plan time follows your own pace between sets', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const t0 = Date.parse('2026-10-01T18:00:00');
+  const logs = [0, 150, 300, 450].map((s, i) => ({ id: 'p' + i, type: 'weights', exerciseId: 'ex_3', sessionId: 's1', date: '2026-10-01', timestamp: t0 + s * 1000, weight: 20, reps: 10, loadMode: 'per_hand', setType: 'normal' }));
+  const est = plain(GymCalc.planMinutes(['ex_3'], ex, logs));
+  assert.equal(est.per.ex_3, Math.round((4 * 150 + 60) / 6) / 10); // 4 sets usually, 150 s apart, no warm-up for dumbbells
+});
+test('B5 side balance: the same side over 10% weaker in the last 3 sessions', () => {
+  const L = (sid, t, r, l) => ({ id: sid + t, exerciseId: 'ex_55', sessionId: sid, date: '2026-10-0' + t, timestamp: t, type: 'weights', repsRight: r, repsLeft: l, reps: Math.min(r, l), setType: 'normal' });
+  assert.deepEqual(plain(GymCalc.sideBalance([L('a', 1, 10, 8), L('b', 2, 10, 8), L('c', 3, 12, 10)], 'ex_55')), { weak: 'left', pct: 19 });
+  assert.equal(GymCalc.sideBalance([L('a', 1, 10, 8), L('b', 2, 10, 10), L('c', 3, 12, 10)], 'ex_55'), null);
+  assert.equal(GymCalc.sideBalance([L('a', 1, 10, 8), L('b', 2, 10, 8)], 'ex_55'), null);
+});

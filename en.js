@@ -799,6 +799,9 @@
     [/^تقريبًا ([\d.,]+) دقيقة$/, function (m) { return 'About ' + m + ' min'; }],
     [/^الخطة تدخل في ([\d.,]+) دقيقة \(تقريبًا ([\d.,]+)\)\.$/, function (a, b) { return 'The plan fits in ' + a + ' min (about ' + b + ').'; }],
     [/^شلت (.+) عشان تخلص في ([\d.,]+) دقيقة تقريبًا\.$/, function (a, m) { return 'Removed ' + a.split('، ').map(t).join(', ') + ' so you finish in about ' + m + ' min.'; }],
+    [/^(يسارك|يمينك) أضعف بـ ([\d]+)% في آخر 3 جلسات\. ابدأ باليسار، وخل اليمين يوقف على نفس عداته\.$|^(يمينك) أضعف بـ ([\d]+)% في آخر 3 جلسات\. ابدأ باليمين، وخل اليسار يوقف على نفس عداته\.$/, function (a, p, b, q) { return a ? 'Your left side is ' + p + '% weaker over the last 3 sessions. Start with the left and stop the right at the same reps.' : 'Your right side is ' + q + '% weaker over the last 3 sessions. Start with the right and stop the left at the same reps.'; }],
+    [/^جاهز: (.+?)(?: · يرتاح: (.+))?$/, function (a, b) { return 'Ready: ' + a.split('، ').map(t).join(', ') + (b ? ' · Resting: ' + b.split('، ').map(t).join(', ') : ''); }],
+    [/^يرتاح: (.+)$/, function (b) { return 'Resting: ' + b.split('، ').map(t).join(', '); }],
     [/^يمين ([\d]+) · يسار ([\d]+)$/, function (r, l) { return 'R ' + r + ' · L ' + l; }],
     [/^(.+) × ([\d]+)\/([\d]+)$/, function (w, r, l) { var x = t(w); return x == null ? null : x + ' × ' + r + '/' + l; }]
   ]);

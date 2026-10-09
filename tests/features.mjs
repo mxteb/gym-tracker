@@ -270,6 +270,8 @@ async function run(lang) {
 
   // I2 time I have
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0); document.getElementById('btn-plan-session').click()`); await sleep(300);
+  const pr = await ev(`return document.getElementById('plan-recovery').classList.contains('hidden') ? '' : document.getElementById('plan-recovery').textContent`);
+  check(lang, 'A1 plan shows what is ready and what is resting', /جاهز|Ready/.test(pr), pr);
   await ev(`document.querySelector('#plan-quick .plan-chip').click()`);
   const n0 = await ev(`return document.querySelectorAll('#plan-list input:checked').length`);
   const est0 = await ev(`return document.getElementById('plan-time-est').textContent`);

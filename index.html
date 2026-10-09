@@ -295,6 +295,7 @@
                                         <button type="button" data-step-target="input-reps-left" data-step="1" class="stepper-btn w-11 h-11 rounded-xl font-black text-sm" aria-label="زد عدات اليسار">+1</button>
                                     </div>
                                 </div>
+                                <p id="sides-hint" class="sides-hint hidden"></p>
                             </div>
                         </div>
 
@@ -921,6 +922,7 @@
         <div class="glass-card edit-dialog plan-dialog p-5 space-y-3">
             <h3 id="plan-title" class="font-black text-base">خطة الجلسة</h3>
             <p class="field-hint">اختر التمارين اللي ناوي عليها اليوم. تقدر تضيف غيرها أثناء الجلسة عادي.</p>
+            <p id="plan-recovery" class="plan-recovery hidden" data-added></p>
             <div id="plan-quick" class="plan-quick"></div>
             <input type="search" id="plan-search" maxlength="50" placeholder="بحث عن تمرين…" class="w-full glass-input px-3 py-2 rounded-xl" aria-label="بحث في التمارين">
             <div id="plan-list" class="plan-list"></div>

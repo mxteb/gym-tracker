@@ -2475,6 +2475,18 @@
             box.append(figs, list, note);
         }
 
+        // A1 داخل خطة الجلسة: سطر واحد يقول وش جاهز ووش يرتاح
+        function renderPlanRecovery() {
+            const line = document.getElementById('plan-recovery');
+            if (!line) return;
+            const rec = GymCalc.recovery(state.logs, state.exercises, Date.now());
+            const name = m => GymCatalog.MUSCLE_NAMES[m];
+            const ready = Object.keys(rec).filter(m => rec[m] && rec[m].pct >= 1).map(name);
+            const resting = Object.keys(rec).filter(m => rec[m] && rec[m].pct < 1).sort((a, b) => rec[a].pct - rec[b].pct).map(name);
+            line.classList.toggle('hidden', !ready.length && !resting.length);
+            line.textContent = [ready.length ? `جاهز: ${ready.join('، ')}` : '', resting.length ? `يرتاح: ${resting.join('، ')}` : ''].filter(Boolean).join(' · ');
+        }
+
         // I2: «عندي وقت» في خطة الجلسة: يشيل تمارين لين تدخل في وقتك
         function renderPlanTime() {
             const est = document.getElementById('plan-time-est');
@@ -2521,6 +2533,12 @@
             document.getElementById('sides-left').classList.toggle('hidden', !on);
             document.getElementById('reps-side-label').classList.toggle('hidden', !on);
             if (on && !document.getElementById('input-reps-left').value) document.getElementById('input-reps-left').value = document.getElementById('input-reps').value;
+            const hint = document.getElementById('sides-hint');
+            const bal = on ? GymCalc.sideBalance(state.logs, ex.id) : null;
+            hint.classList.toggle('hidden', !bal);
+            if (bal) hint.textContent = bal.weak === 'left'
+                ? `يسارك أضعف بـ ${bal.pct}% في آخر 3 جلسات. ابدأ باليسار، وخل اليمين يوقف على نفس عداته.`
+                : `يمينك أضعف بـ ${bal.pct}% في آخر 3 جلسات. ابدأ باليمين، وخل اليسار يوقف على نفس عداته.`;
         }
         async function toggleSides() {
             const ex = currentExercise();
@@ -2552,6 +2570,7 @@
             addChip('مسح الكل', []);
             document.getElementById('plan-search').value = '';
             const planTime = document.getElementById('plan-time'); if (planTime) planTime.value = '0';
+            renderPlanRecovery();
             const planHint = document.getElementById('plan-time-hint'); if (planHint) planHint.textContent = '';
             document.getElementById('btn-plan-confirm').textContent = session ? 'حفظ الخطة' : 'ابدأ بهذي الخطة';
             renderPlanList();

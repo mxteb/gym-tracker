@@ -487,7 +487,13 @@ function planMinutes(ids, exercises, logs) {
   if (ex.type !== 'weights') { per[id] = 20; continue; }
   const rest = Number.isFinite(Number(ex.restSec)) && ex.restSec !== undefined ? Number(ex.restSec) : 90;
   const warm = ex.equip === 'barbell' ? 1 : 0;
-  per[id] = Math.round(((sets + warm) * (40 + rest) + 60) / 60 * 10) / 10;
+  // your own pace: the usual time between two sets of this exercise (set + rest), from the last sessions
+  const gaps = [], bySession = new Map();
+  for (const l of logs) if (l.exerciseId === id && l.type === 'weights' && Number.isFinite(l.timestamp)) { const k = l.sessionId || l.date; if (!bySession.has(k)) bySession.set(k, []); bySession.get(k).push(l.timestamp); }
+  for (const ts of bySession.values()) { ts.sort((a, b) => a - b); for (let i = 1; i < ts.length; i++) { const g = (ts[i] - ts[i - 1]) / 1000; if (g >= 20 && g <= 900) gaps.push(g); } }
+  const recentGaps = gaps.slice(-20).sort((a, b) => a - b);
+  const pace = recentGaps.length >= 3 ? recentGaps[Math.floor(recentGaps.length / 2)] : 40 + rest;
+  per[id] = Math.round(((sets + warm) * pace + 60) / 60 * 10) / 10;
  }
  return { per, total: Math.round(Object.values(per).reduce((a, b) => a + b, 0)) };
 }
@@ -513,5 +519,21 @@ function isUnilateral(ex) {
  return /(بلغاري|طعن|بيد وحدة|بيد واحدة|رجل وحدة|رجل واحدة|single|one[- ]arm|one[- ]leg|unilateral|lunge|split squat|concentration|تركيز)/i.test(String(ex.name || ''));
 }
 
-window.GymCalc = { LBS_PER_KG, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
+/** B5: جهة أضعف؟ آخر 3 جلسات فيها يمين ويسار: لو نفس الجهة أقل بأكثر من 10% في الثلاث = { weak, pct }. */
+function sideBalance(logs, exerciseId) {
+ const by = new Map();
+ for (const l of logs) {
+  if (l.exerciseId !== exerciseId || l.repsLeft == null || l.repsRight == null || l.setType === 'warmup') continue;
+  const k = l.sessionId || l.date, cur = by.get(k) || { t: 0, L: 0, R: 0 };
+  cur.L += Number(l.repsLeft) || 0; cur.R += Number(l.repsRight) || 0; cur.t = Math.max(cur.t, l.timestamp || Date.parse(l.date) || 0);
+  by.set(k, cur);
+ }
+ const last = [...by.values()].sort((a, b) => a.t - b.t).slice(-3);
+ if (last.length < 3) return null;
+ const gap = x => (Math.max(x.L, x.R) ? (Math.max(x.L, x.R) - Math.min(x.L, x.R)) / Math.max(x.L, x.R) : 0);
+ const weak = last[0].L < last[0].R ? 'left' : last[0].R < last[0].L ? 'right' : null;
+ if (!weak || !last.every(x => (weak === 'left' ? x.L < x.R : x.R < x.L) && gap(x) > 0.1)) return null;
+ return { weak, pct: Math.round(last.reduce((s, x) => s + gap(x), 0) / 3 * 100) };
+}
+window.GymCalc = { LBS_PER_KG, sideBalance, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();
