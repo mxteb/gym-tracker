@@ -324,6 +324,64 @@ async function run(lang) {
   await importFixture();
   await ev(`document.querySelectorAll('.modal-overlay:not(.hidden) #modal-cancel-btn').forEach(b=>b.click())`);
 
+  /* ---------- Batch 4 ---------- */
+  // D2 how to do it
+  await ev(`document.getElementById('nav-workout').click()`);
+  await select('ex_1');
+  await ev(`document.getElementById('ex-guide').open = true`);
+  const guide = await ev(`return {steps:document.querySelectorAll('#ex-guide-body .guide-steps li').length, mist:document.querySelectorAll('#ex-guide-body .guide-mistakes li').length, text:document.getElementById('ex-guide-body').innerText}`);
+  check(lang, 'D2 guide: 3 steps and 2 mistakes', guide.steps === 3 && guide.mist === 2, guide.text.slice(0, 80));
+  check(lang, 'D2 guide in the page language', lang === 'en' ? !/[؀-ۿ]/.test(guide.text) : /[؀-ۿ]/.test(guide.text), guide.text.slice(0, 60));
+  await p.shotEl('d2-guide', '#ex-guide');
+  await ev(`document.getElementById('ex-guide').open = false`);
+
+  // D1 programs
+  await ev(`scrollTo(0,0); document.getElementById('btn-plan-session').click()`); await sleep(300);
+  await ev(`const s=document.getElementById('plan-program'); s.value='5x5'; s.dispatchEvent(new Event('change',{bubbles:true}))`); await sleep(400);
+  const days = await ev(`return [...document.querySelectorAll('#plan-days .plan-chip')].map(b=>b.textContent)`);
+  check(lang, 'D1 5×5 shows days A and B, one marked next', days.length === 2 && days.some(d => /الجاي|next/.test(d)), days.join(' | '));
+  await ev(`document.querySelectorAll('#plan-days .plan-chip')[1].click()`); await sleep(500);
+  const picked = await ev(`return [...document.querySelectorAll('#plan-list input:checked')].map(i=>i.value)`);
+  check(lang, 'D1 day B fills squat, overhead press and the new deadlift', ['ex_44', 'ex_11', 'ex_70'].every(id => picked.includes(id)) && picked.length === 3, picked.join(','));
+  const pinfo = await ev(`return document.getElementById('plan-program-info').textContent`);
+  check(lang, 'D1 targets listed', /5 (جولات|sets) × 5/.test(pinfo), pinfo);
+  await p.shotEl('d1-plan', '#plan-modal .glass-card');
+  await ev(`document.getElementById('btn-plan-confirm').click()`); await sleep(700);
+  await select('ex_44');
+  const tgt = await ev(`return document.getElementById('program-target').classList.contains('hidden') ? '' : document.getElementById('program-target').textContent`);
+  check(lang, 'D1 target on the workout screen', /5 (جولات|sets) × 5/.test(tgt), tgt);
+  await select('ex_70');
+  check(lang, 'D1 deadlift exists with its guide', await ev(`return document.getElementById('exercise-dropdown').value==='ex_70' && !document.getElementById('ex-guide').classList.contains('hidden')`));
+  await ev(`document.getElementById('btn-finish-session').click()`); await sleep(300);
+  await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(800);
+  await ev(`document.getElementById('modal-cancel-btn').click()`);
+  await ev(`scrollTo(0,0); document.getElementById('btn-plan-session').click()`); await sleep(300);
+  const next = await ev(`return [...document.querySelectorAll('#plan-days .plan-chip')].findIndex(b=>/الجاي|next/.test(b.textContent))`);
+  check(lang, 'D1 after day B the next day is A again', next === 0, String(next));
+  await ev(`document.getElementById('btn-plan-cancel').click()`);
+
+  // I1 Ramadan
+  await ev(`document.getElementById('nav-profile').click(); document.getElementById('set-ramadan').click()`); await sleep(500);
+  check(lang, 'I1 iftar time shows', await ev(`return !document.getElementById('ramadan-iftar-row').classList.contains('hidden')`));
+  await ev(`const t=document.getElementById('ramadan-iftar'); t.value='18:10'; t.dispatchEvent(new Event('change',{bubbles:true}))`); await sleep(400);
+  check(lang, 'I1 saved for the Android reminder', await ev(`return JSON.parse(localStorage.getItem('gym_ramadan')).iftar === '18:10'`));
+  await p.shotEl('i1-setting', '#app-settings');
+  await ev(`document.getElementById('nav-workout').click()`);
+  let held = null;
+  for (const id of ['ex_44', 'ex_1', 'ex_3', 'ex_31', 'ex_custom_hip', 'ex_19']) {
+    await select(id);
+    const sg = await ev(`return document.getElementById('next-suggestion').classList.contains('hidden') ? null : {kind:document.getElementById('next-suggestion').dataset.kind, reason:document.getElementById('sugg-reason').textContent}`);
+    if (sg) { held = sg; if (/رمضان|Ramadan/.test(sg.reason)) break; }
+  }
+  check(lang, 'I1 suggestion holds the numbers in Ramadan', held && held.kind === 'hold' && /رمضان|Ramadan/.test(held.reason), JSON.stringify(held));
+  await p.shotEl('i1-suggestion', '#next-suggestion');
+  await ev(`document.getElementById('nav-bento').click()`); await sleep(300);
+  const split = await ev(`return document.getElementById('bento-ramadan').classList.contains('hidden') ? '' : document.getElementById('bento-ramadan').textContent`);
+  check(lang, 'I1 calories split between iftar and suhoor', /\d/.test(split), split);
+  await p.shotEl('i1-calories', '#bento-ramadan');
+  await ev(`document.getElementById('nav-profile').click(); document.getElementById('set-ramadan').click()`); await sleep(400);
+  check(lang, 'I1 off again', await ev(`return JSON.parse(localStorage.getItem('gym_ramadan')).on === false`));
+
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);
   await select(ex);

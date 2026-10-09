@@ -357,3 +357,32 @@ test('B5 side balance: the same side over 10% weaker in the last 3 sessions', ()
   assert.equal(GymCalc.sideBalance([L('a', 1, 10, 8), L('b', 2, 10, 10), L('c', 3, 12, 10)], 'ex_55'), null);
   assert.equal(GymCalc.sideBalance([L('a', 1, 10, 8), L('b', 2, 10, 8)], 'ex_55'), null);
 });
+
+// ---------- v11.6 (الدفعة 4) ----------
+test('D2 guide: every library exercise (and the deadlift) has muscles, 3 steps and 2 mistakes in both languages', () => {
+  const ctx = { window: {} }; ctx.window.window = ctx.window;
+  vm.createContext(ctx); vm.runInContext(fs.readFileSync(path.join(ROOT, 'guide.js'), 'utf8') + ';this.G=window.GymGuide;', ctx);
+  const ids = ctx.G.ids();
+  for (const ex of GymCatalog.DEFAULT_EXERCISES) assert.ok(ids.includes(ex.id), 'missing ' + ex.id);
+  assert.ok(ids.includes('ex_70'));
+  for (const lang of ['ar', 'en']) {
+    ctx.window.GymI18n = { lang };
+    for (const id of ids) {
+      const g = ctx.G.get(id);
+      assert.ok(g.muscles && g.steps.length === 3 && g.mistakes.length === 2, id + ' ' + lang);
+      for (const line of [g.muscles, ...g.steps, ...g.mistakes]) assert.equal(/[؀-ۿ]/.test(line), lang === 'ar', id + ' ' + lang + ': ' + line);
+    }
+  }
+});
+test('D1 programs: every exercise exists, next day follows the last finished session', () => {
+  const ctx = { window: {} }; ctx.window.window = ctx.window;
+  vm.createContext(ctx); vm.runInContext(fs.readFileSync(path.join(ROOT, 'programs.js'), 'utf8') + ';this.P=window.GymPrograms;', ctx);
+  const known = new Set([...GymCatalog.DEFAULT_EXERCISES.map(e => e.id), 'ex_70']);
+  assert.equal(ctx.P.list.length, 5);
+  for (const p of ctx.P.list) for (const d of p.split) for (const [id, sets, reps] of d.ex) { assert.ok(known.has(id), p.id + ' ' + id); assert.ok(sets >= 1 && /^\d+(-\d+)?s?$/.test(reps), p.id + ' ' + id + ' ' + reps); }
+  const ses = [{ status: 'completed', endedAt: 1, programDay: { program: '5x5', day: 0 } }, { status: 'completed', endedAt: 2, programDay: { program: '5x5', day: 1 } }];
+  assert.equal(ctx.P.nextDay('5x5', ses), 0);
+  assert.equal(ctx.P.nextDay('5x5', ses.slice(0, 1)), 1);
+  assert.equal(ctx.P.nextDay('ppl', ses), 0);
+  assert.deepEqual(JSON.parse(JSON.stringify(ctx.P.target('5x5', 1, 'ex_70'))), { sets: 1, reps: '5' });
+});

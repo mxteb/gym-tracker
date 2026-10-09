@@ -806,4 +806,52 @@
     [/^(.+) × ([\d]+)\/([\d]+)$/, function (w, r, l) { var x = t(w); return x == null ? null : x + ' × ' + r + '/' + l; }]
   ]);
 
+  /* ---------- v11.6 (batch 4) ---------- */
+  GymI18n.add({
+    'طريقة الأداء': 'How to do it',
+    'العضلات:': 'Muscles:',
+    'أشهر الأغلاط:': 'Common mistakes:',
+    'برنامج:': 'Program:',
+    'بدون برنامج': 'No program',
+    'الجاي': 'next',
+    'هدف البرنامج': 'Program target',
+    'سويت {0} من {1}': '{0} of {1} done',
+    '{0} جولات × {1} عدات': '{0} sets × {1} reps',
+    '{0} جولات × {1} ثانية': '{0} sets × {1} s',
+    'جولة وحدة × {0} عدات': '1 set × {0} reps',
+    'جولة وحدة × {0} ثانية': '1 set × {0} s',
+    'ديدليفت بالبار': 'Barbell Deadlift',
+    'دفع / سحب / أرجل (PPL)': 'Push / Pull / Legs (PPL)',
+    'علوي / سفلي (Upper / Lower)': 'Upper / Lower',
+    '5×5 للمبتدئين': '5×5 for beginners',
+    'جسم كامل 3 أيام (Full Body)': 'Full Body, 3 days',
+    'يوم أ (A)': 'Day A', 'يوم ب (B)': 'Day B', 'يوم ج (C)': 'Day C',
+    'يوم {0}': 'Day {0}',
+    'من {0} إلى {1} أيام بالأسبوع': '{0} to {1} days a week',
+    '{0} أيام بالأسبوع': '{0} days a week',
+    '{0} أيام بالأسبوع (أ، ب، أ… بالتناوب)': '{0} days a week (A, B, A… alternating)',
+    '{0} أو {1} أيام بالأسبوع': '{0} or {1} days a week',
+    '{0} أيام بالأسبوع وبينها يوم راحة': '{0} days a week with a rest day between',
+    'لما تكمل أعلى العدات في كل الجولات، زد الوزن الجلسة الجاية. كرر الأيام الثلاثة مرة أو مرتين بالأسبوع.': 'When you hit the top of the rep range on every set, add weight next session. Run the three days once or twice a week.',
+    'يومين علوي ويومين سفلي. التمارين المركبة أول وبأوزان ثقيلة، وزد الوزن لما توصل أعلى العدات.': 'Two upper and two lower days. Heavy compound lifts first; add weight when you reach the top of the rep range.',
+    'لو كملت 5×5 كلها، زد 2.5 كجم الجلسة الجاية (الديدليفت 5 كجم). لو ما كملتها 3 مرات ورا بعض، نزّل 10% وابنِ من جديد.': 'If you complete all 5×5, add 2.5 kg next session (5 kg on the deadlift). If you miss it 3 times in a row, drop 10% and build back up.',
+    'T1 (أول تمرين): 5×3 ثقيل، وآخر جولة أكثر عدات تقدر. T2: 3×10 متوسط. T3: 3×15 خفيف. لو فشلت في T1 انتقل لـ 6×2 بعدها 10×1.': 'T1 (first lift): heavy 5×3, last set as many reps as you can. T2: moderate 3×10. T3: light 3×15. If you fail T1, move to 6×2, then 10×1.',
+    'كل يوم يشغّل الجسم كامل. زد الوزن لما توصل أعلى العدات في كل الجولات.': 'Every day trains the whole body. Add weight when you reach the top of the rep range on every set.',
+    'وضع رمضان': 'Ramadan mode',
+    'الاقتراح يثبّت الوزن بدل ما يزيده، تذكير بالماء بعد الفطور، والسعرات تنقسم على الفطور والسحور': 'Suggestions hold your weight instead of adding, a water reminder after iftar, and calories split between iftar and suhoor',
+    'وقت الفطور تقريبًا': 'Iftar time (roughly)',
+    'تذكير الماء يجيك بعده بربع ساعة': 'The water reminder comes 15 minutes after',
+    'وضع رمضان: ثبّت نفس أرقام آخر مرة. الصيام يقلل طاقتك، والهدف تحافظ على قوتك لين يخلص الشهر.': 'Ramadan mode: repeat last time\'s numbers. Fasting lowers your energy, and the goal is to keep your strength until the month ends.',
+    'وضع رمضان شغال: الاقتراح يثبّت الوزن، وتذكير الماء بعد الفطور': 'Ramadan mode on: suggestions hold your weight, and a water reminder after iftar',
+    'وضع رمضان مطفي': 'Ramadan mode off',
+    'اكتب وقت الفطور مثل 18:05': 'Enter the iftar time, like 18:05',
+    'وقت الفطور': 'Iftar time',
+    'رمضان: اشرب ماء بين الجولات، ولو كنت صايم خل الجلسة أقصر': 'Ramadan: drink water between sets, and keep the session shorter if you are fasting',
+    'يوم البرنامج': 'Program day', 'البرنامج': 'Program'
+  }, [
+    [/^تذكير الماء الساعة ([\d:]+)$/, function (a) { return 'Water reminder at ' + a; }],
+    [/^في رمضان: قسّم سعرات المحافظة \(([\d.,]+)\) على وجبتين: الفطور حوالي ([\d.,]+) سعرة، والسحور حوالي ([\d.,]+)\. خل البروتين في الوجبتين\.$/, function (a, b, c) { return 'In Ramadan: split your maintenance calories (' + a + ') over two meals: about ' + b + ' kcal at iftar and ' + c + ' at suhoor. Keep protein in both.'; }],
+    [/^(.+?) ((?:\d+ جولات|جولة وحدة) × [\d-]+ (?:عدات|ثانية))$/, function (n, x) { return t(n) + ' ' + t(x); }]
+  ]);
+
 })();

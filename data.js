@@ -45,6 +45,9 @@ function profile(x) {
  if(x.isMan!==undefined){if(typeof x.isMan!=='boolean')fail('الجنس');out.isMan=x.isMan;}
  if(x.theme!==undefined)out.theme=choice(x.theme,['plates','logbook','clock','auto'],'الثيم');
  if(x.lang!==undefined)out.lang=choice(x.lang,['ar','en'],'اللغة');
+ if(x.program!==undefined)out.program=x.program===''?'':choice(x.program,['ppl','ul','5x5','gzclp','fb3'],'البرنامج');
+ if(x.ramadan!==undefined){if(typeof x.ramadan!=='boolean')fail('وضع رمضان');out.ramadan=x.ramadan;}
+ if(x.iftar!==undefined){if(typeof x.iftar!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.iftar))fail('وقت الفطور');out.iftar=x.iftar;}
  if(x.effortMode!==undefined)out.effortMode=choice(x.effortMode,['rir','feel'],'طريقة تقييم الجولة');
  for(const key of ['keepAwake','haptics'])if(x[key]!==undefined){if(typeof x[key]!=='boolean')fail('الإعدادات');out[key]=x[key];}
  if(x.updatedAt!==undefined)out.updatedAt=num(x.updatedAt,'وقت البروفايل');
@@ -86,6 +89,7 @@ function session(x){
  if(x.exerciseIds)out.exerciseIds=array(x.exerciseIds,10000,'تمارين الجلسة').map(id);
  if(x.planIds)out.planIds=array(x.planIds,500,'خطة الجلسة').map(id);
  if(x.copiedFromSessionId)out.copiedFromSessionId=id(x.copiedFromSessionId);
+ if(x.programDay){object(x.programDay,'يوم البرنامج');out.programDay={program:choice(x.programDay.program,['ppl','ul','5x5','gzclp','fb3'],'البرنامج'),day:num(x.programDay.day,'يوم البرنامج',0,20)};}
  return out;
 }
 function recalculateWeightLog(x) {

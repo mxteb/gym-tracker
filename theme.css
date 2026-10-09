@@ -733,6 +733,33 @@ button.cal-day{min-height:0;padding:0}
 .sides-hint.hidden,.plan-recovery.hidden{display:none}
 .plan-recovery{margin:0;padding:.45rem .6rem;border-inline-start:3px solid var(--ok);background:var(--bg-deep);font-size:.8rem;color:var(--ink-2)}
 
+/* ---------- v11.6 (الدفعة 4): البرامج، طريقة الأداء، وضع رمضان ---------- */
+.program-target{margin:0;padding:.45rem .7rem;border:1px solid var(--line);border-inline-start:3px solid var(--accent-ink);border-radius:var(--r-sm);font-size:.82rem;font-weight:700;color:var(--ink)}
+.program-target[data-done="true"]{border-inline-start-color:var(--ok);color:var(--ink-2)}
+.program-target.hidden,.ex-guide.hidden,.ramadan-split.hidden,.plan-program-info.hidden{display:none}
+.ex-guide{border:1px solid var(--line);border-radius:var(--r-sm);background:transparent}
+.ex-guide summary{min-height:44px;display:flex;align-items:center;padding:0 .8rem;font-size:.82rem;font-weight:700;color:var(--ink-2);cursor:pointer;list-style:none}
+.ex-guide summary::-webkit-details-marker{display:none}
+.ex-guide summary::after{content:"+";margin-inline-start:auto;color:var(--mute);font-weight:800}
+.ex-guide[open] summary::after{content:"−"}
+.ex-guide-body{padding:0 .8rem .8rem;font-size:.84rem;color:var(--ink-2);line-height:1.75}
+.guide-muscles{margin:0 0 .4rem}
+.guide-muscles b,.guide-mistakes-title{color:var(--ink);font-weight:700}
+.guide-steps{margin:0 0 .5rem;padding-inline-start:1.2rem}
+.guide-steps li,.guide-mistakes li{margin:.15rem 0}
+.guide-mistakes-title{margin:.2rem 0}
+.guide-mistakes{margin:0;padding-inline-start:1.2rem}
+.guide-mistakes li::marker{color:var(--bad)}
+.plan-program-info{margin:0;color:var(--ink-2)}
+.plan-days.hidden{display:none}
+#plan-days .plan-chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-ink)}
+.setting-row input.ramadan-time{appearance:auto;-webkit-appearance:auto;width:auto;min-width:7rem;height:44px;border-radius:var(--r-sm);padding:0 .5rem;background:var(--bg-deep);color:var(--ink);font-size:.95rem}
+.setting-row input.ramadan-time::after{content:none}
+.setting-row.hidden{display:none}
+.ramadan-split{margin:.25rem 0 0;padding:.6rem .8rem;border:1px solid var(--line);border-inline-start:3px solid var(--accent-ink);border-radius:var(--r-sm);background:var(--panel);font-size:.84rem;color:var(--ink-2);line-height:1.7}
+:root[data-theme="logbook"] .ex-guide{border-width:0 0 1px;border-radius:0}
+:root[data-theme="clock"] .program-target{font-family:var(--font);font-size:.9rem}
+
 /* ===================== v11.1: English (من اليسار لليمين) =====================
  * العربي ما يتأثر: كل القواعد هنا على :root[dir="ltr"] بس.
  * مولّدة بقلب left/right للقواعد اللي فوق (styles.css ثم theme.css بنفس الترتيب)،

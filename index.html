@@ -187,6 +187,13 @@
                     </div>
                 </div>
 
+                <p id="program-target" class="program-target hidden" data-added></p>
+
+                <details id="ex-guide" class="ex-guide hidden" data-added>
+                    <summary>طريقة الأداء</summary>
+                    <div id="ex-guide-body" class="ex-guide-body" translate="no"></div>
+                </details>
+
                 <div id="next-suggestion" class="next-suggestion hidden" data-added aria-live="polite">
                     <div class="sugg-head"><span class="sugg-label">اقتراح اليوم</span><span id="sugg-value" class="sugg-value num-led"></span></div>
                     <p id="sugg-reason" class="sugg-reason"></p>
@@ -627,6 +634,7 @@
                     <span>أهداف السعرات اليومية المطلوبة</span>
                 </h3>
                 <div id="bento-calories-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
+                <p id="bento-ramadan" class="ramadan-split hidden" data-added></p>
             </div>
 
             <div class="space-y-2.5">
@@ -688,6 +696,8 @@
                 <h3 class="font-bold text-xs text-slate-300">أثناء الجلسة</h3>
                 <label class="setting-row"><span><strong>خلّ الشاشة شغالة</strong><small>ما تنطفي بين الجولات، وترجع طبيعية لما تنهي الجلسة</small></span><input type="checkbox" id="set-keep-awake" role="switch"></label>
                 <label class="setting-row"><span><strong>قيّم الجولة بسهل / مناسب / صعب</strong><small>ثلاث أزرار بدل أرقام RIR، والتطبيق يحوّلها لـ RIR من ورا</small></span><input type="checkbox" id="set-feel" role="switch"></label>
+                <label class="setting-row" data-added><span><strong>وضع رمضان</strong><small>الاقتراح يثبّت الوزن بدل ما يزيده، تذكير بالماء بعد الفطور، والسعرات تنقسم على الفطور والسحور</small></span><input type="checkbox" id="set-ramadan" role="switch"></label>
+                <label id="ramadan-iftar-row" class="setting-row hidden" data-added><span><strong>وقت الفطور تقريبًا</strong><small>تذكير الماء يجيك بعده بربع ساعة</small></span><input type="time" id="ramadan-iftar" class="glass-input ramadan-time" value="18:00"></label>
                 <label class="setting-row"><span><strong>اهتزاز خفيف مع الأزرار</strong><small>لما تحفظ جولة أو تضغط + و −، ولما تخلص الراحة</small></span><input type="checkbox" id="set-haptics" role="switch"></label>
             </div>
 
@@ -923,6 +933,12 @@
             <h3 id="plan-title" class="font-black text-base">خطة الجلسة</h3>
             <p class="field-hint">اختر التمارين اللي ناوي عليها اليوم. تقدر تضيف غيرها أثناء الجلسة عادي.</p>
             <p id="plan-recovery" class="plan-recovery hidden" data-added></p>
+            <div class="plan-time" data-added>
+                <label for="plan-program">برنامج:</label>
+                <select id="plan-program" class="glass-input"><option value="">بدون برنامج</option></select>
+            </div>
+            <div id="plan-days" class="plan-quick plan-days hidden" data-added></div>
+            <p id="plan-program-info" class="field-hint plan-program-info hidden" data-added></p>
             <div id="plan-quick" class="plan-quick"></div>
             <input type="search" id="plan-search" maxlength="50" placeholder="بحث عن تمرين…" class="w-full glass-input px-3 py-2 rounded-xl" aria-label="بحث في التمارين">
             <div id="plan-list" class="plan-list"></div>
@@ -971,6 +987,8 @@
     <script src="./data.js" defer></script>
     <script src="./catalog.js" defer></script>
     <script src="./calc.js" defer></script>
+    <script src="./programs.js" defer></script>
+    <script src="./guide.js" defer></script>
     <script src="./visual.js" defer></script>
     <script src="./app.js" defer></script>
     <script src="./photos.js" defer></script>

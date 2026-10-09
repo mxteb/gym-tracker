@@ -270,6 +270,7 @@
             if (ROUTINE_PRESETS[routine]) loadPresetRoutine(routine);
             updateSessionUI();
             showToast(`بدأت ${session.name}`);
+            if (state.profile.ramadan === true) setTimeout(() => showToast('رمضان: اشرب ماء بين الجولات، ولو كنت صايم خل الجلسة أقصر'), 700);
             return session;
         }
 
@@ -561,7 +562,7 @@
 
             if (!ex) {
                 equipBadge.textContent = 'غير محدد';
-                renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton(); renderSides();
+                renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton(); renderSides(); renderGuide(); renderProgramTarget();
                 return;
             }
 
@@ -582,7 +583,7 @@
             else if (ex.type === 'treadmill') formTm.classList.remove('hidden');
             else if (ex.type === 'bike_elliptical') formBe.classList.remove('hidden');
             applyExerciseRest(ex);
-            renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton(); renderSides();
+            renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton(); renderSides(); renderGuide(); renderProgramTarget();
         }
 
         function update1RMLiveDisplay() {
@@ -1032,14 +1033,14 @@
             if (todayLogs.length === 0) {
                 container.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs glass-card border border-slate-800">لا توجد جولات مسجلة في هذا التاريخ.</div>`;
                 loadMoreWrapper.classList.add('hidden');
-                renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion);
+                renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion); renderProgramTarget();
                 return;
             }
 
             if (currentTheme() === 'logbook') {
                 loadMoreWrapper.classList.add('hidden');
                 renderLogbook(container, todayLogs);
-                renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion);
+                renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion); renderProgramTarget();
                 return;
             }
             const visibleLogs = todayLogs.slice(0, logsRenderLimit);
@@ -1083,7 +1084,7 @@
 
             container.innerHTML = '';
             container.appendChild(fragment);
-            renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion);
+            renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion); renderProgramTarget();
         }
 
         function startRestTimer(seconds, exName = '', extra = {}) {
@@ -1427,7 +1428,7 @@
         }
 
         function renderBentoGridAnalysis() {
-            renderRecovery(); renderStrength(); renderMonthReport();
+            renderRecovery(); renderStrength(); renderMonthReport(); renderRamadan();
             const calContainer = document.getElementById('bento-calories-container');
             const healthContainer = document.getElementById('bento-health-container');
             const compContainer = document.getElementById('bento-comp-container');
@@ -1828,6 +1829,10 @@
             document.getElementById('btn-deload')?.addEventListener('click', fillDeload);
             document.getElementById('month-select')?.addEventListener('change', renderMonthReport);
             document.getElementById('btn-sides')?.addEventListener('click', () => runMutation(toggleSides));
+            document.getElementById('plan-program')?.addEventListener('change', () => runMutation(chooseProgram));
+            document.getElementById('plan-days')?.addEventListener('click', e => { const b = e.target.closest('[data-day]'); if (b) runMutation(() => chooseProgramDay(Number(b.dataset.day))); });
+            document.getElementById('set-ramadan')?.addEventListener('change', e => runMutation(() => saveRamadan(e.target.checked)));
+            document.getElementById('ramadan-iftar')?.addEventListener('change', () => runMutation(saveIftar));
             document.getElementById('plan-time')?.addEventListener('change', applyPlanTime);
             document.addEventListener('gym:repeat-set', e => runMutation(() => repeatFromNotification(e.detail)));
             document.addEventListener('gym:toast', e => showToast(String(e.detail || '')));
@@ -1934,6 +1939,7 @@
             const feel = document.getElementById('set-feel');
             if (feel) feel.checked = state.profile.effortMode === 'feel';
             renderFeel();
+            renderRamadan();
         }
         async function saveSetting(key, value) {
             state.profile = { ...state.profile, [key]: value };
@@ -2007,7 +2013,7 @@
             const box = document.getElementById('next-suggestion');
             if (!box) return;
             const ex = currentExercise();
-            currentSuggestion = ex && ex.type === 'weights' ? GymCalc.suggestNext(state.logs, ex.id, { excludeSessionId: activeSessionId, mode: activeLoadMode }) : null;
+            currentSuggestion = ramadanSuggestion(ex && ex.type === 'weights' ? GymCalc.suggestNext(state.logs, ex.id, { excludeSessionId: activeSessionId, mode: activeLoadMode }) : null);
             box.classList.toggle('hidden', !currentSuggestion);
             renderWarmup(ex, currentSuggestion);
             renderPlateau(ex, currentSuggestion);
@@ -2554,6 +2560,135 @@
             return { right, left };
         }
 
+
+        /* ---------- v11.6 (الدفعة 4) ---------- */
+        // D2: طريقة الأداء لكل تمرين (نص بس)
+        function renderGuide() {
+            const box = document.getElementById('ex-guide');
+            if (!box) return;
+            const ex = currentExercise();
+            const g = ex && !ex.isCustom ? window.GymGuide?.get(ex.id) : null;
+            box.classList.toggle('hidden', !g);
+            if (!g) return;
+            const T = s => (window.GymI18n ? GymI18n.t(s) : s);
+            const body = document.getElementById('ex-guide-body');
+            body.replaceChildren();
+            const m = document.createElement('p'); m.className = 'guide-muscles';
+            const ml = document.createElement('b'); ml.textContent = T('العضلات:') + ' ';
+            m.append(ml, g.muscles);
+            const ol = document.createElement('ol'); ol.className = 'guide-steps';
+            for (const step of g.steps) { const li = document.createElement('li'); li.textContent = step; ol.appendChild(li); }
+            const mh = document.createElement('p'); mh.className = 'guide-mistakes-title'; mh.textContent = T('أشهر الأغلاط:');
+            const ul = document.createElement('ul'); ul.className = 'guide-mistakes';
+            for (const x of g.mistakes) { const li = document.createElement('li'); li.textContent = x; ul.appendChild(li); }
+            body.append(m, ol, mh, ul);
+        }
+
+        // D1: برامج جاهزة في خطة الجلسة
+        let planProgramDay = null;
+        const programs = () => window.GymPrograms;
+        function targetText(t) {
+            const secs = /s$/.test(t.reps);
+            // words between the numbers keep "4 × 6-8" in the right order in Arabic too
+            return `${t.sets === 1 ? 'جولة وحدة' : t.sets + ' جولات'} × ${t.reps.replace(/s$/, '')} ${secs ? 'ثانية' : 'عدات'}`;
+        }
+        function fillProgramSelect() {
+            const sel = document.getElementById('plan-program');
+            if (!sel || !programs() || sel.options.length > 1) return;
+            for (const p of programs().list) { const o = document.createElement('option'); o.value = p.id; o.textContent = p.name; sel.appendChild(o); }
+        }
+        function renderProgramDays() {
+            const sel = document.getElementById('plan-program'), days = document.getElementById('plan-days'), info = document.getElementById('plan-program-info');
+            if (!sel || !programs()) return;
+            const p = programs().find(sel.value);
+            days.classList.toggle('hidden', !p); info.classList.toggle('hidden', !p);
+            days.replaceChildren();
+            if (!p) { info.textContent = ''; return; }
+            const next = programs().nextDay(p.id, state.sessions);
+            p.split.forEach((d, i) => {
+                const b = document.createElement('button'); b.type = 'button'; b.className = 'plan-chip'; b.dataset.day = i;
+                b.textContent = d.name + (i === next ? ' · الجاي' : '');
+                b.setAttribute('aria-pressed', String(planProgramDay?.program === p.id && planProgramDay.day === i));
+                days.appendChild(b);
+            });
+            const chosen = planProgramDay?.program === p.id ? p.split[planProgramDay.day] : null;
+            info.replaceChildren();
+            if (chosen) info.textContent = chosen.ex.map(([id, sets, reps]) => `${shortName(state.exercises.find(e => e.id === id)?.name || id)} ${targetText({ sets, reps })}`).join('، ');
+            else { const d = document.createElement('b'); d.textContent = p.days; const r = document.createElement('span'); r.textContent = p.rule; info.append(d, document.createElement('br'), r); }
+        }
+        async function chooseProgram() {
+            const v = document.getElementById('plan-program').value;
+            if ((state.profile.program || '') !== v) { state.profile = { ...state.profile, program: v }; await GymStorage.save(state); }
+            planProgramDay = null;
+            renderProgramDays();
+        }
+        async function chooseProgramDay(day) {
+            const p = programs().find(document.getElementById('plan-program').value);
+            if (!p || !p.split[day]) return;
+            const ids = p.split[day].ex.map(r => r[0]);
+            // the deadlift is not in the original library: add it the first time a program needs it
+            if (ids.includes('ex_70') && !state.exercises.some(e => e.id === 'ex_70')) {
+                state.exercises.push({ ...programs().DEADLIFT, isCustom: false, archived: false, editedAt: Date.now() });
+                await GymStorage.save(state);
+                renderExerciseDropdown();
+            }
+            planProgramDay = { program: p.id, day };
+            planDraft = new Set(ids.filter(id => state.exercises.some(e => e.id === id && !e.archived)));
+            renderPlanList();
+            renderProgramDays();
+            haptic('tap');
+        }
+        function renderProgramTarget() {
+            const el = document.getElementById('program-target');
+            if (!el) return;
+            const session = getActiveSession(), ex = currentExercise();
+            const pd = session?.programDay;
+            const t = pd && ex && programs() ? programs().target(pd.program, pd.day, ex.id) : null;
+            el.classList.toggle('hidden', !t);
+            if (!t) return;
+            const done = state.logs.filter(l => l.sessionId === session.id && l.exerciseId === ex.id && l.type === 'weights' && l.setType !== 'warmup').length;
+            el.textContent = `هدف البرنامج: ${targetText(t)} · سويت ${done} من ${t.sets}`;
+            el.dataset.done = String(done >= t.sets);
+        }
+
+        // I1: وضع رمضان
+        const RAMADAN_GROW = ['add-weight', 'add-rep', 'less-assist', 'add-time'];
+        function ramadanSuggestion(sg) {
+            if (!sg || state.profile.ramadan !== true || !RAMADAN_GROW.includes(sg.kind)) return sg;
+            const b = sg.basedOn || {};
+            const first = String(sg.reason).replace(/^(.*?\.)\s.*$/, '$1');
+            return { ...sg, kind: 'hold', weight: b.weight ?? sg.weight, reps: b.reps ?? sg.reps, seconds: b.seconds ?? sg.seconds,
+                reason: first + ' وضع رمضان: ثبّت نفس أرقام آخر مرة. الصيام يقلل طاقتك، والهدف تحافظ على قوتك لين يخلص الشهر.' };
+        }
+        function renderRamadan() {
+            const on = state.profile.ramadan === true;
+            const set = document.getElementById('set-ramadan'); if (set) set.checked = on;
+            const row = document.getElementById('ramadan-iftar-row'); if (row) row.classList.toggle('hidden', !on);
+            const time = document.getElementById('ramadan-iftar'); if (time && document.activeElement !== time) time.value = state.profile.iftar || '18:00';
+            const split = document.getElementById('bento-ramadan');
+            if (split) {
+                const m = on ? GymCalc.bodyMetrics(state.profile) : null;
+                split.classList.toggle('hidden', !m);
+                if (m) split.textContent = `في رمضان: قسّم سعرات المحافظة (${m.tdee}) على وجبتين: الفطور حوالي ${Math.round(m.tdee * 0.6)} سعرة، والسحور حوالي ${Math.round(m.tdee * 0.4)}. خل البروتين في الوجبتين.`;
+            }
+            try { localStorage.setItem('gym_ramadan', JSON.stringify({ on, iftar: state.profile.iftar || '18:00' })); } catch {}
+        }
+        async function saveRamadan(on) {
+            state.profile = { ...state.profile, ramadan: on, iftar: state.profile.iftar || document.getElementById('ramadan-iftar')?.value || '18:00' };
+            await GymStorage.save(state);
+            renderRamadan(); renderSuggestion();
+            showToast(on ? 'وضع رمضان شغال: الاقتراح يثبّت الوزن، وتذكير الماء بعد الفطور' : 'وضع رمضان مطفي');
+        }
+        async function saveIftar() {
+            const v = document.getElementById('ramadan-iftar').value;
+            if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(v)) { const e = Error('اكتب وقت الفطور مثل 18:05'); e.fieldId = 'ramadan-iftar'; throw e; }
+            state.profile = { ...state.profile, iftar: v };
+            await GymStorage.save(state);
+            renderRamadan();
+            showToast(`تذكير الماء الساعة ${addMinutes(v, 15)}`);
+        }
+        function addMinutes(hhmm, add) { const [h, m] = hhmm.split(':').map(Number); const t = (h * 60 + m + add) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
+
         // خطة الجلسة
         let planDraft = new Set();
         function shortName(name) { return String(name).replace(/\s*\([^)]*\)\s*$/, ''); }
@@ -2563,7 +2698,7 @@
             if (!planDraft.size) { const routine = document.getElementById('session-routine-select').value; (ROUTINE_PRESETS[routine] || []).forEach(id => planDraft.add(id)); }
             const quick = document.getElementById('plan-quick');
             quick.replaceChildren();
-            const addChip = (label, ids) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'plan-chip'; b.textContent = label; b.addEventListener('click', () => { planDraft = new Set(ids); renderPlanList(); }); quick.appendChild(b); };
+            const addChip = (label, ids) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'plan-chip'; b.textContent = label; b.addEventListener('click', () => { planDraft = new Set(ids); planProgramDay = null; renderPlanList(); renderProgramDays(); }); quick.appendChild(b); };
             for (const [key, ids] of Object.entries(ROUTINE_PRESETS)) addChip(ROUTINE_LABELS[key] || key, ids);
             const prev = getPreviousCompletedSession();
             if (prev) { const ids = [...new Set(state.logs.filter(l => l.sessionId === prev.id).map(l => l.exerciseId))]; if (ids.length) addChip('مثل الجلسة السابقة', ids); }
@@ -2571,6 +2706,10 @@
             document.getElementById('plan-search').value = '';
             const planTime = document.getElementById('plan-time'); if (planTime) planTime.value = '0';
             renderPlanRecovery();
+            fillProgramSelect();
+            const progSel = document.getElementById('plan-program'); if (progSel) progSel.value = state.profile.program || '';
+            planProgramDay = null;
+            renderProgramDays();
             const planHint = document.getElementById('plan-time-hint'); if (planHint) planHint.textContent = '';
             document.getElementById('btn-plan-confirm').textContent = session ? 'حفظ الخطة' : 'ابدأ بهذي الخطة';
             renderPlanList();
@@ -2604,6 +2743,7 @@
             let session = getActiveSession();
             if (!session) session = await startWorkoutSession();
             session.planIds = ids; session.editedAt = Date.now();
+            if (planProgramDay) session.programDay = planProgramDay; else delete session.programDay;
             await GymStorage.save(state);
             document.getElementById('plan-modal').classList.add('hidden');
             renderSessionPlan();
