@@ -672,6 +672,63 @@ button.cal-day{min-height:0;padding:0}
 :root[data-theme="clock"] .strength-bar b{background:var(--led)}
 :root[data-theme="clock"] .strength-level{color:var(--led-amber)}
 
+/* ---------- v11.5 (الدفعة 3): الاستشفاء، الوقت المتاح، يمين/يسار، صور التقدم ---------- */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.recovery-card{display:flex;flex-direction:column;gap:.8rem}
+.rec-figs{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;max-width:20rem;margin-inline:auto;width:100%}
+.rec-figs svg{width:100%;height:auto;display:block}
+.rec-body{fill:var(--track-2)}
+.rec-part{stroke:var(--panel);stroke-width:1.5}
+.rec-part[data-state="none"]{fill:var(--track-2)}
+.rec-part[data-state="ready"]{fill:var(--ok)}
+.rec-part[data-state="mid"]{fill:var(--accent-ink)}
+.rec-part[data-state="tired"]{fill:var(--primary)}
+.rec-cap{fill:var(--mute);font-size:9px;font-family:var(--font)}
+.rec-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr;border-top:1px solid var(--line-soft)}
+.rec-list li{display:flex;align-items:center;gap:.55rem;min-height:40px;border-bottom:1px solid var(--line-soft);font-size:.82rem}
+.rec-list i{flex:none;width:10px;height:10px;border-radius:50%;background:var(--track-2)}
+.rec-list li[data-state="ready"] i{background:var(--ok)}
+.rec-list li[data-state="mid"] i{background:var(--accent-ink)}
+.rec-list li[data-state="tired"] i{background:var(--primary)}
+.rec-list strong{color:var(--ink);font-weight:700;min-width:4.5rem}
+.rec-list span{color:var(--ink-2);margin-inline-start:auto;text-align:end}
+.plan-time{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;font-size:.82rem;color:var(--ink-2)}
+.plan-time select{min-height:40px;padding:0 .6rem;font-size:.82rem}
+.plan-time-hint:empty{display:none}
+.plan-time-hint{color:var(--accent-ink)}
+.reps-side{color:var(--mute);font-weight:600}
+.reps-side.hidden{display:none}
+.sides-box{display:flex;flex-direction:column;gap:.5rem}
+.sides-toggle{align-self:flex-start;min-height:36px;padding:0 .7rem;border:1px dashed var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink-2);font-size:.78rem;font-weight:700}
+.sides-toggle[aria-pressed="true"]{border-style:solid;color:var(--ink)}
+.sides-toggle.hidden,.sides-left.hidden{display:none}
+.sides-left{display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem .6rem;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--bg-deep);font-size:.82rem;color:var(--ink-2)}
+.sides-stepper{display:flex;align-items:center;gap:.4rem}
+.sides-stepper input{width:4.2rem;min-height:44px;font-size:1.1rem}
+.photos-head{display:flex;justify-content:space-between;align-items:center;gap:.75rem}
+.photo-add{position:relative;display:inline-flex;align-items:center;min-height:40px;padding:0 .9rem;border:1px solid var(--accent);border-radius:var(--r-sm);color:var(--accent-ink);font-size:.8rem;font-weight:800;cursor:pointer}
+.photo-add:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.photo-empty{margin:0;font-size:.82rem;color:var(--ink-2);line-height:1.7}
+.photo-empty.hidden,.photo-view.hidden{display:none}
+.photo-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+.photo-thumb{position:relative;aspect-ratio:3 / 4;padding:0;border:0;border-radius:var(--r-sm);overflow:hidden;background:var(--track)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-thumb[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:-3px}
+.photo-date{position:absolute;inset-inline:0;bottom:0;padding:2px 4px;background:#000a;color:#fff;font-size:.6rem;text-align:center}
+.photo-pick{position:absolute;top:4px;inset-inline-start:4px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-size:.7rem;display:flex;align-items:center;justify-content:center}
+.photo-view{display:flex;flex-direction:column;gap:.5rem}
+.photo-row{display:grid;grid-template-columns:1fr;gap:6px}
+.photo-row.two{grid-template-columns:1fr 1fr}
+.photo-fig{margin:0;display:flex;flex-direction:column;gap:4px}
+.photo-fig img{width:100%;max-height:60vh;object-fit:contain;background:var(--bg-deep);border-radius:var(--r-sm)}
+.photo-fig figcaption{display:flex;justify-content:space-between;align-items:center;gap:.5rem;font-size:.78rem;color:var(--ink-2)}
+.photo-del{min-height:36px;padding:0 .6rem;border:1px solid var(--bad-line);border-radius:var(--r-sm);background:transparent;color:var(--bad);font-size:.75rem;font-weight:700}
+:root[data-theme="logbook"] .rec-part{stroke:#fff}
+:root[data-theme="logbook"] .photo-thumb{border-radius:0}
+:root[data-theme="clock"] .rec-part[data-state="tired"]{fill:var(--led)}
+:root[data-theme="clock"] .rec-part[data-state="mid"]{fill:var(--led-amber)}
+:root[data-theme="clock"] .sides-stepper input{font-family:var(--ledf);font-size:1.6rem}
+
 /* ===================== v11.1: English (من اليسار لليمين) =====================
  * العربي ما يتأثر: كل القواعد هنا على :root[dir="ltr"] بس.
  * مولّدة بقلب left/right للقواعد اللي فوق (styles.css ثم theme.css بنفس الترتيب)،

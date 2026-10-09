@@ -313,3 +313,34 @@ test('C2 month stats: sessions, sets, volume, records, top muscle, cardio', () =
   assert.deepEqual(plain(GymCalc.monthsWithLogs(logs)), ['2026-10', '2026-09']);
   assert.equal(GymCalc.prevMonth('2026-01'), '2025-12'); assert.equal(GymCalc.prevMonth('2026-10'), '2026-09');
 });
+
+// ---------- v11.5 (الدفعة 3) ----------
+test('A1 recovery: hours since the last workout of each muscle against 36/48/72 h', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const now = Date.parse('2026-10-10T18:00:00');
+  const at = (h, id = 'ex_1', extra = {}) => ({ id: 'r' + h + id + Math.random(), type: 'weights', exerciseId: id, date: '2026-10-09', timestamp: now - h * 3600000, weight: 50, reps: 8, loadMode: 'external', setType: 'normal', ...extra });
+  const logs = [...Array(6)].map((_, i) => at(24 + i * 0.1)).concat([at(30, 'ex_44'), at(100, 'ex_24'), at(23, 'ex_1', { setType: 'warmup' })]);
+  const r = plain(GymCalc.recovery(logs, ex, now));
+  assert.equal(r.chest.sets, 6); assert.equal(r.chest.need, 48); assert.equal(r.chest.hours, 24); assert.equal(r.chest.left, 24); assert.equal(r.chest.pct, 0.5);
+  assert.equal(r.legs.need, 36); assert.equal(r.back.pct, 1); assert.equal(r.back.left, 0);
+  assert.equal(r.abs, null);
+});
+test('I2 plan time: estimate from your sets and rest, trim isolation first, keep the order', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES.map(e => e.id === 'ex_44' ? { ...e, restSec: 180 } : e);
+  const est = plain(GymCalc.planMinutes(['ex_1', 'ex_44', 'ex_37'], ex, []));
+  assert.equal(est.per.ex_1, Math.round(((3 + 1) * 130 + 60) / 6) / 10); // 3 sets + 1 warm-up, 90 s rest
+  assert.equal(est.per.ex_44, Math.round(((3 + 1) * 220 + 60) / 6) / 10);
+  const isoId = ex.find(e => GymCalc.muscleOf(e) === 'arms').id;
+  const plan = ['ex_1', isoId, 'ex_44', 'ex_3'];
+  const t = plain(GymCalc.trimPlan(plan, ex, [], 25));
+  assert.ok(t.drop.includes(isoId) && t.total <= 25, JSON.stringify(t));
+  assert.deepEqual(t.keep, plan.filter(id => !t.drop.includes(id)));
+  assert.deepEqual(plain(GymCalc.trimPlan(plan, ex, [], 999)).drop, []);
+  assert.equal(plain(GymCalc.trimPlan(plan, ex, [], 1)).keep.length, 1);
+});
+test('B5 unilateral exercises', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  for (const id of ['ex_27', 'ex_43', 'ex_54', 'ex_55']) assert.ok(GymCalc.isUnilateral(ex.find(e => e.id === id)), id);
+  assert.ok(!GymCalc.isUnilateral(ex.find(e => e.id === 'ex_1')));
+  assert.ok(GymCalc.isUnilateral({ ...ex.find(e => e.id === 'ex_1'), sides: true }));
+});

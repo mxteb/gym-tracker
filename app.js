@@ -561,7 +561,7 @@
 
             if (!ex) {
                 equipBadge.textContent = 'غير محدد';
-                renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton();
+                renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton(); renderSides();
                 return;
             }
 
@@ -582,7 +582,7 @@
             else if (ex.type === 'treadmill') formTm.classList.remove('hidden');
             else if (ex.type === 'bike_elliptical') formBe.classList.remove('hidden');
             applyExerciseRest(ex);
-            renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton();
+            renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton(); renderSides();
         }
 
         function update1RMLiveDisplay() {
@@ -619,6 +619,7 @@
             update1RMLiveDisplay();
             renderEquipSettings();
             renderSuggestion();
+            renderSides();
         }
 
         function updateLastPerformanceDisplay(exerciseId) {
@@ -758,7 +759,11 @@
             if (!ex) return;
 
             const rawWeight = ['bodyweight','timed'].includes(activeLoadMode)?0:readField('input-weight','الوزن',0,activeWeightUnit==='lbs'?2204.62:1000);
-            const reps = activeLoadMode === 'timed' ? 1 : readField('input-reps','العدات',1,150,{integer:true});
+            const repsInput = activeLoadMode === 'timed' ? 1 : readField('input-reps','العدات',1,150,{integer:true});
+            const sides = sideReps();
+            if (sides && !Number.isInteger(sides.left)) { const error = Error('عدات اليسار لازم رقم صحيح'); error.fieldId = 'input-reps-left'; throw error; }
+            // v11.5 B5: the weaker side counts for 1RM, records and the next suggestion
+            const reps = sides ? Math.max(1, Math.min(sides.right, sides.left)) : repsInput;
             const durationSeconds = activeLoadMode === 'timed' ? readField('input-duration-sec','المدة بالثواني',1,3600) : null;
             let weightInKg = activeLoadMode === 'timed' ? 0 : activeWeightUnit === 'lbs' ? rawWeight / 2.20462 : rawWeight;
             const bodyWeightKg = parseFloat(state.profile.weight) || 0;
@@ -791,6 +796,7 @@
                 displayWeight: activeLoadMode === 'timed' ? 0 : rawWeight,
                 unit: activeWeightUnit,
                 reps,
+                ...(sides ? { repsRight: sides.right, repsLeft: sides.left } : {}),
                 oneRepMax,
                 rir: activeRIR,
                 setType: activeSetType,
@@ -825,7 +831,8 @@
                 setTimeout(() => { showToast(`رقم قياسي جديد في ${shortName(ex.name)}: ${what}`); haptic('long'); }, 600);
             }
             const customRestSecs = Number(document.getElementById('rest-timer-duration').value);
-            if(customRestSecs>0)startRestTimer(customRestSecs, ex.name);else stopRestTimer();
+            // v11.5 B6: the lock-screen notification can repeat this set ("كرر: 60 كجم × 8")
+            if(customRestSecs>0)startRestTimer(customRestSecs, ex.name, { exerciseId: ex.id, repeat: setLabel(logEntry) });else stopRestTimer();
         }
 
         async function saveCardioSet(cardioType) {
@@ -975,6 +982,8 @@
                     log.displayWeight=log.loadMode==='bodyweight'?0:readField('edit-log-weight','الوزن',0,log.unit==='lbs'?2204.62:1000);
                     log.weight=log.unit==='lbs'?log.displayWeight/2.20462:log.displayWeight;
                     log.reps=readField('edit-log-reps','العدات',1,150,{integer:true,legacyValue:Number(original.reps)});
+                    // v11.5 B5: a hand-edited rep count replaces the per-side numbers
+                    if(log.reps!==Number(original.reps)){delete log.repsLeft;delete log.repsRight;}
                     if(!Number.isInteger(log.reps))log.legacyFractionalReps=true;else delete log.legacyFractionalReps;
                     if(['bodyweight','added','assisted'].includes(log.loadMode))log.bodyWeightKgAtLog=readField('edit-log-body','وزن الجسم وقت الجولة',20,350);
                     if(log.loadMode==='external'&&document.getElementById('edit-log-machinekg')){const m=readField('edit-log-machinekg','وزن الجهاز',0,500,{optional:true});if(m>0)log.machineKg=m;else delete log.machineKg;}
@@ -1048,7 +1057,7 @@
                     const printWeight = log.displayWeight ?? getCanonicalWeightKg(log);
                     const loadLabel = log.loadMode === 'per_hand' ? ' لكل يد' : log.loadMode === 'assisted' ? ' مساعدة' : log.loadMode === 'added' ? ' إضافي' : '';
                     if (log.loadMode === 'timed') detailText = `<span class="font-bold text-cyan-300">${escapeHTML(String(log.durationSeconds || 0))} ثانية</span>`;
-                    else detailText = `<span class="font-bold text-cyan-300">${log.loadMode==='bodyweight'?'وزن الجسم ('+escapeHTML(String(log.bodyWeightKgAtLog??log.effectiveLoadKg??'—'))+' كجم)':escapeHTML(String(printWeight))+' '+unitLabel+loadLabel}</span> × <span class="font-bold text-cyan-300">${escapeHTML(String(log.reps))} عدات</span> <span class="text-[10px] text-emerald-400 font-bold">[1RM: ${escapeHTML(get1RMLabel(getProgressWeightKg(log), log.reps))}]</span>`;
+                    else detailText = `<span class="font-bold text-cyan-300">${log.loadMode==='bodyweight'?'وزن الجسم ('+escapeHTML(String(log.bodyWeightKgAtLog??log.effectiveLoadKg??'—'))+' كجم)':escapeHTML(String(printWeight))+' '+unitLabel+loadLabel}</span> × <span class="font-bold text-cyan-300">${escapeHTML(repsText(log))}</span> <span class="text-[10px] text-emerald-400 font-bold">[1RM: ${escapeHTML(get1RMLabel(getProgressWeightKg(log), log.reps))}]</span>`;
                 } else {
                     detailText = `<span class="text-cyan-300 font-bold">${log.duration} دقيقة</span>`;
                 }
@@ -1077,9 +1086,9 @@
             renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion);
         }
 
-        function startRestTimer(seconds, exName = '') {
+        function startRestTimer(seconds, exName = '', extra = {}) {
             stopRestTimer();
-            restDeadline = {endsAt: Date.now() + seconds * 1000, name: exName};
+            restDeadline = {endsAt: Date.now() + seconds * 1000, name: exName, ...extra};
             try { localStorage.setItem('gym_rest_deadline', JSON.stringify(restDeadline)); } catch { showToast('المؤقت يعمل؛ تعذر حفظه لإعادة فتح الصفحة'); }
             restoreRestTimer();
             tickClockBar();
@@ -1418,7 +1427,7 @@
         }
 
         function renderBentoGridAnalysis() {
-            renderStrength(); renderMonthReport();
+            renderRecovery(); renderStrength(); renderMonthReport();
             const calContainer = document.getElementById('bento-calories-container');
             const healthContainer = document.getElementById('bento-health-container');
             const compContainer = document.getElementById('bento-comp-container');
@@ -1643,6 +1652,7 @@
                         sessions: []
                     };
                     await GymStorage.save(state, {wipe:true});
+                    try { await window.GymPhotos?.wipe(); } catch (e) { console.warn('photos wipe', e); }
                     stopRestTimer();
                     activeSessionId = null;
         
@@ -1817,10 +1827,15 @@
             document.getElementById('btn-export-csv')?.addEventListener('click', exportCSV);
             document.getElementById('btn-deload')?.addEventListener('click', fillDeload);
             document.getElementById('month-select')?.addEventListener('change', renderMonthReport);
+            document.getElementById('btn-sides')?.addEventListener('click', () => runMutation(toggleSides));
+            document.getElementById('plan-time')?.addEventListener('change', applyPlanTime);
+            document.addEventListener('gym:repeat-set', e => runMutation(() => repeatFromNotification(e.detail)));
+            document.addEventListener('gym:toast', e => showToast(String(e.detail || '')));
+            window.__gymConfirm = showModal;
             document.getElementById('btn-plan-cancel')?.addEventListener('click', closePlan);
             document.getElementById('btn-plan-confirm')?.addEventListener('click', () => runMutation(confirmPlan));
             document.getElementById('plan-search')?.addEventListener('input', renderPlanList);
-            document.getElementById('plan-list')?.addEventListener('change', e => { const b = e.target.closest('input[type=checkbox]'); if (!b) return; if (b.checked) planDraft.add(b.value); else planDraft.delete(b.value); document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`; });
+            document.getElementById('plan-list')?.addEventListener('change', e => { const b = e.target.closest('input[type=checkbox]'); if (!b) return; if (b.checked) planDraft.add(b.value); else planDraft.delete(b.value); document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`; renderPlanTime(); });
             initSwipe();
             document.getElementById('theme-picker')?.addEventListener('click', e => { const b = e.target.closest('[data-theme-pick]'); if (b) runMutation(() => saveTheme(b.dataset.themePick)); });
             document.getElementById('lang-picker')?.addEventListener('click', e => { const b = e.target.closest('[data-lang-pick]'); if (b) runMutation(() => saveLang(b.dataset.langPick)); });
@@ -1948,10 +1963,12 @@
             return state.logs.filter(l => l.exerciseId === exerciseId && l.type === 'weights' && (activeSessionId ? l.sessionId === activeSessionId : l.date === today))
                 .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0] || null;
         }
+        function repsText(log) { return log.repsLeft != null && log.repsRight != null ? `يمين ${log.repsRight} · يسار ${log.repsLeft}` : `${log.reps} عدات`; }
         function setLabel(log) {
             if (log.loadMode === 'timed') return `${Number(log.durationSeconds) || 0} ثانية`;
-            if (log.loadMode === 'bodyweight') return `وزن الجسم × ${log.reps}`;
-            return `${log.displayWeight ?? getCanonicalWeightKg(log)} ${log.unit === 'lbs' ? 'باوند' : 'كجم'} × ${log.reps}`;
+            const r = log.repsLeft != null && log.repsRight != null ? `${log.repsRight}/${log.repsLeft}` : log.reps;
+            if (log.loadMode === 'bodyweight') return `وزن الجسم × ${r}`;
+            return `${log.displayWeight ?? getCanonicalWeightKg(log)} ${log.unit === 'lbs' ? 'باوند' : 'كجم'} × ${r}`;
         }
         function renderRepeatButton() {
             const btn = document.getElementById('btn-repeat-set');
@@ -1965,8 +1982,10 @@
             if (log.unit && log.unit !== activeWeightUnit) setWeightUnit(log.unit);
             if (log.loadMode) setLoadMode(log.loadMode);
             if (!['bodyweight', 'timed'].includes(log.loadMode)) document.getElementById('input-weight').value = log.displayWeight ?? getCanonicalWeightKg(log);
-            document.getElementById('input-reps').value = log.reps;
-            document.getElementById('val-reps-display').textContent = log.reps;
+            document.getElementById('input-reps').value = log.repsRight ?? log.reps;
+            document.getElementById('val-reps-display').textContent = log.repsRight ?? log.reps;
+            const leftInput = document.getElementById('input-reps-left');
+            if (leftInput) leftInput.value = log.repsLeft ?? log.repsRight ?? log.reps;
             if (log.loadMode === 'timed') document.getElementById('input-duration-sec').value = log.durationSeconds || 60;
             const type = log.setType === 'drop' ? 'dropset' : log.setType === 'failure' ? 'normal' : log.setType || 'normal';
             setSetType(type, document.querySelector('[data-settype="' + type + '"]'));
@@ -2389,6 +2408,134 @@
             if (!window.Capacitor) showToast('انحفظت صورة الجلسة');
         }
 
+
+        /* ---------- v11.5 (الدفعة 3) ---------- */
+        // A1: خريطة الاستشفاء: وش جاهز للتمرين اليوم ووش يحتاج راحة
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+        // simple geometric figure (front, back): [muscle, shape, attrs]; muscle null = neutral body part
+        const BODY_FRONT = [
+            [null, 'circle', { cx: 60, cy: 18, r: 12 }], [null, 'rect', { x: 54, y: 30, width: 12, height: 8 }],
+            ['shoulders', 'circle', { cx: 33, cy: 46, r: 10 }], ['shoulders', 'circle', { cx: 87, cy: 46, r: 10 }],
+            ['chest', 'rect', { x: 40, y: 40, width: 19, height: 24, rx: 4 }], ['chest', 'rect', { x: 61, y: 40, width: 19, height: 24, rx: 4 }],
+            ['arms', 'rect', { x: 20, y: 58, width: 12, height: 30, rx: 5 }], ['arms', 'rect', { x: 88, y: 58, width: 12, height: 30, rx: 5 }],
+            [null, 'rect', { x: 16, y: 91, width: 11, height: 32, rx: 5 }], [null, 'rect', { x: 93, y: 91, width: 11, height: 32, rx: 5 }],
+            ['abs', 'rect', { x: 46, y: 67, width: 28, height: 40, rx: 4 }],
+            [null, 'rect', { x: 42, y: 109, width: 36, height: 14, rx: 4 }],
+            ['legs', 'rect', { x: 41, y: 125, width: 18, height: 52, rx: 7 }], ['legs', 'rect', { x: 61, y: 125, width: 18, height: 52, rx: 7 }],
+            [null, 'rect', { x: 43, y: 180, width: 14, height: 46, rx: 6 }], [null, 'rect', { x: 63, y: 180, width: 14, height: 46, rx: 6 }]
+        ];
+        const BODY_BACK = [
+            [null, 'circle', { cx: 60, cy: 18, r: 12 }], [null, 'rect', { x: 54, y: 30, width: 12, height: 8 }],
+            ['shoulders', 'circle', { cx: 33, cy: 46, r: 10 }], ['shoulders', 'circle', { cx: 87, cy: 46, r: 10 }],
+            ['back', 'path', { d: 'M40 38 H80 L78 70 L68 104 H52 L42 70 Z' }],
+            ['arms', 'rect', { x: 20, y: 58, width: 12, height: 30, rx: 5 }], ['arms', 'rect', { x: 88, y: 58, width: 12, height: 30, rx: 5 }],
+            [null, 'rect', { x: 16, y: 91, width: 11, height: 32, rx: 5 }], [null, 'rect', { x: 93, y: 91, width: 11, height: 32, rx: 5 }],
+            ['legs', 'rect', { x: 42, y: 106, width: 36, height: 20, rx: 6 }],
+            ['legs', 'rect', { x: 41, y: 128, width: 18, height: 50, rx: 7 }], ['legs', 'rect', { x: 61, y: 128, width: 18, height: 50, rx: 7 }],
+            ['legs', 'rect', { x: 43, y: 181, width: 14, height: 45, rx: 6 }], ['legs', 'rect', { x: 63, y: 181, width: 14, height: 45, rx: 6 }]
+        ];
+        function recoveryState(r) { return !r ? 'none' : r.pct >= 1 ? 'ready' : r.pct >= 0.5 ? 'mid' : 'tired'; }
+        function bodySvg(parts, rec, label) {
+            const svg = document.createElementNS(SVG_NS, 'svg');
+            svg.setAttribute('viewBox', '0 0 120 244'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', label);
+            for (const [m, tag, attrs] of parts) {
+                const el = document.createElementNS(SVG_NS, tag);
+                for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+                el.setAttribute('class', m ? 'rec-part' : 'rec-body');
+                if (m) { el.dataset.muscle = m; el.dataset.state = recoveryState(rec[m]); }
+                svg.appendChild(el);
+            }
+            const cap = document.createElementNS(SVG_NS, 'text');
+            cap.setAttribute('x', 60); cap.setAttribute('y', 241); cap.setAttribute('text-anchor', 'middle'); cap.setAttribute('class', 'rec-cap');
+            cap.textContent = label;
+            svg.appendChild(cap);
+            return svg;
+        }
+        function renderRecovery() {
+            const box = document.getElementById('bento-recovery');
+            if (!box) return;
+            const rec = GymCalc.recovery(state.logs, state.exercises, Date.now());
+            box.replaceChildren();
+            const figs = document.createElement('div'); figs.className = 'rec-figs';
+            figs.append(bodySvg(BODY_FRONT, rec, 'من قدام'), bodySvg(BODY_BACK, rec, 'من ورا'));
+            const list = document.createElement('ul'); list.className = 'rec-list';
+            const order = Object.keys(GymCatalog.MUSCLE_NAMES).sort((a, b) => (rec[b]?.pct ?? 2) - (rec[a]?.pct ?? 2));
+            for (const m of order) {
+                const r = rec[m], li = document.createElement('li');
+                li.dataset.state = recoveryState(r);
+                const dot = document.createElement('i'); dot.setAttribute('aria-hidden', 'true');
+                const name = document.createElement('strong'); name.textContent = GymCatalog.MUSCLE_NAMES[m];
+                const what = document.createElement('span');
+                what.textContent = !r ? 'ما تمرنت عليها للحين' : r.pct >= 1 ? 'جاهزة' : `ترتاح كمان ${r.left} ساعة تقريبًا`;
+                li.append(dot, name, what);
+                list.appendChild(li);
+            }
+            const note = document.createElement('p'); note.className = 'field-hint';
+            note.textContent = 'تقدير من آخر جلسة لكل عضلة وكم جولة سويت: 1–4 جولات تحتاج يوم ونص، 5–9 يومين، و10 أو أكثر 3 أيام. النوم والأكل يفرقون.';
+            box.append(figs, list, note);
+        }
+
+        // I2: «عندي وقت» في خطة الجلسة: يشيل تمارين لين تدخل في وقتك
+        function renderPlanTime() {
+            const est = document.getElementById('plan-time-est');
+            if (!est) return;
+            const ids = [...planDraft];
+            const total = ids.length ? GymCalc.planMinutes(ids, state.exercises, state.logs).total : 0;
+            est.textContent = ids.length ? `تقريبًا ${total} دقيقة` : '';
+        }
+        function applyPlanTime() {
+            const sel = document.getElementById('plan-time');
+            const minutes = Number(sel.value);
+            if (!minutes) { renderPlanTime(); return; }
+            const ids = [...planDraft];
+            const { keep, drop, total } = GymCalc.trimPlan(ids, state.exercises, state.logs, minutes);
+            const hint = document.getElementById('plan-time-hint');
+            if (!drop.length) { hint.textContent = `الخطة تدخل في ${minutes} دقيقة (تقريبًا ${total}).`; renderPlanTime(); return; }
+            planDraft = new Set(keep);
+            renderPlanList();
+            hint.textContent = `شلت ${drop.map(id => shortName(state.exercises.find(e => e.id === id)?.name || id)).join('، ')} عشان تخلص في ${minutes} دقيقة تقريبًا.`;
+            haptic('tap');
+        }
+
+        // B6: «كرر الجولة» من إشعار الراحة في شاشة القفل (أندرويد يرسل gym:repeat-set)
+        async function repeatFromNotification(detail) {
+            const exId = detail?.exerciseId;
+            if (exId && state.exercises.some(e => e.id === exId) && document.getElementById('exercise-dropdown').value !== exId) selectExercise(exId);
+            const ex = currentExercise();
+            if (!ex || !lastSetForRepeat(ex.id)) { showToast('ما فيه جولة أكررها'); return; }
+            switchTab('workout');
+            await repeatLastSet();
+        }
+
+        // B5: يمين ويسار لحالهم (لانجز، سكوات بلغاري، سحب بيد وحدة…)
+        function sidesOn() { const ex = currentExercise(); return !!ex && ex.sidesOn === true && GymCalc.isUnilateral(ex); }
+        function renderSides() {
+            const ex = currentExercise();
+            const can = !!ex && GymCalc.isUnilateral(ex) && activeLoadMode !== 'timed';
+            const toggle = document.getElementById('btn-sides');
+            if (!toggle) return;
+            toggle.classList.toggle('hidden', !can);
+            const on = can && ex.sidesOn === true;
+            toggle.setAttribute('aria-pressed', String(on));
+            toggle.textContent = on ? 'نفس العدات للجهتين' : 'يمين ويسار مختلفة؟';
+            document.getElementById('sides-left').classList.toggle('hidden', !on);
+            document.getElementById('reps-side-label').classList.toggle('hidden', !on);
+            if (on && !document.getElementById('input-reps-left').value) document.getElementById('input-reps-left').value = document.getElementById('input-reps').value;
+        }
+        async function toggleSides() {
+            const ex = currentExercise();
+            if (!ex) return;
+            await saveExerciseSetting({ sidesOn: ex.sidesOn === true ? null : true });
+            document.getElementById('input-reps-left').value = document.getElementById('input-reps').value;
+            renderSides();
+        }
+        function sideReps() {
+            if (!sidesOn() || activeLoadMode === 'timed') return null;
+            const right = Number(document.getElementById('input-reps').value);
+            const left = readField('input-reps-left', 'عدات اليسار', 0, 150);
+            return { right, left };
+        }
+
         // خطة الجلسة
         let planDraft = new Set();
         function shortName(name) { return String(name).replace(/\s*\([^)]*\)\s*$/, ''); }
@@ -2404,6 +2551,8 @@
             if (prev) { const ids = [...new Set(state.logs.filter(l => l.sessionId === prev.id).map(l => l.exerciseId))]; if (ids.length) addChip('مثل الجلسة السابقة', ids); }
             addChip('مسح الكل', []);
             document.getElementById('plan-search').value = '';
+            const planTime = document.getElementById('plan-time'); if (planTime) planTime.value = '0';
+            const planHint = document.getElementById('plan-time-hint'); if (planHint) planHint.textContent = '';
             document.getElementById('btn-plan-confirm').textContent = session ? 'حفظ الخطة' : 'ابدأ بهذي الخطة';
             renderPlanList();
             document.getElementById('plan-modal').classList.remove('hidden');
@@ -2428,6 +2577,7 @@
             }
             if (!list.children.length) { const p = document.createElement('p'); p.className = 'field-hint'; p.textContent = 'ما فيه تمرين بهذا الاسم'; list.appendChild(p); }
             document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`;
+            renderPlanTime();
         }
         async function confirmPlan() {
             const ids = [...planDraft].filter(id => state.exercises.some(e => e.id === id));

@@ -755,4 +755,52 @@
     [/^أيام التمرين: ([\d.,]+)$/, function (n) { return 'Training days: ' + n; }]
   ]);
 
+  /* ---------- v11.5 (batch 3) ---------- */
+  GymI18n.add({
+    'استشفاء العضلات: وش جاهز اليوم': 'Muscle recovery: what is ready today',
+    'من قدام': 'Front', 'من ورا': 'Back',
+    'ما تمرنت عليها للحين': 'Not trained yet',
+    'جاهزة': 'Ready',
+    'تقدير من آخر جلسة لكل عضلة وكم جولة سويت: 1–4 جولات تحتاج يوم ونص، 5–9 يومين، و10 أو أكثر 3 أيام. النوم والأكل يفرقون.': 'Estimated from the last workout of each muscle and how many sets you did: 1–4 sets need a day and a half, 5–9 two days, 10 or more three days. Sleep and food matter too.',
+    'عندي وقت:': 'Time I have:',
+    'بدون حد': 'No limit',
+    'ما فيه جولة أكررها': 'No set to repeat',
+    '(اليمين)': '(right)',
+    'يمين ويسار مختلفة؟': 'Different left and right?',
+    'نفس العدات للجهتين': 'Same reps both sides',
+    'عدات اليسار:': 'Left reps:',
+    'عدات اليسار': 'Left reps',
+    'عدات اليمين': 'Right reps',
+    'عدات اليمين واليسار': 'Left and right reps',
+    'عدات اليسار لازم رقم صحيح': 'Left reps must be a whole number',
+    'أنقص عدات اليسار': 'Fewer left reps', 'زد عدات اليسار': 'More left reps',
+    'صور التقدم': 'Progress photos',
+    '+ أضف صورة': '+ Add photo',
+    'خاصة: تنحفظ في جوالك بس، وما تدخل في النسخة الاحتياطية ولا تطلع لأي مكان. اضغط صورتين عشان تقارنهم.': 'Private: kept on your phone only, never in backups and never sent anywhere. Tap two photos to compare them.',
+    'ما فيه صور للحين. صوّر نفسك كل أسبوعين بنفس المكان، وبتشوف الفرق اللي الميزان ما يبينه.': 'No photos yet. Take one every two weeks in the same spot, and you will see changes the scale does not show.',
+    'صورة': 'Photo',
+    'حذف': 'Delete',
+    'حذف الصورة': 'Delete photo',
+    'الصورة تنحذف من جوالك نهائيًا، وما ترجع.': 'The photo is deleted from your phone for good.',
+    'حذف الصورة نهائيًا؟': 'Delete this photo for good?',
+    'انحفظت الصورة في جوالك بس': 'Photo saved on your phone only',
+    'انحذفت الصورة': 'Photo deleted',
+    'اختر صورة ثانية عشان تقارنهم جنب بعض.': 'Pick a second photo to compare them side by side.',
+    'اختر صورة (JPG أو PNG)': 'Choose a photo (JPG or PNG)',
+    'الصورة كبيرة جدًا؛ الحد 30 ميجابايت': 'The photo is too large; the limit is 30 MB',
+    'الملف مو صورة يقدر التطبيق يقراها': "The file isn't an image the app can read",
+    'تعذر فتح تخزين الصور': "Couldn't open photo storage",
+    'تعذر حفظ الصورة': "Couldn't save the photo",
+    'التخزين غير متاح في هذا المتصفح': 'Storage is not available in this browser',
+    '{0} يوم بين الصورتين. صوّر بنفس المكان والإضاءة عشان المقارنة تكون عادلة.': function (n) { return n + (n === '1' ? ' day' : ' days') + ' between the photos. Use the same spot and light so the comparison is fair.'; },
+    'وصلت {0} صورة. احذف صور قديمة عشان تضيف جديدة': 'You have {0} photos. Delete old ones to add new photos'
+  }, [
+    [/^ترتاح كمان ([\d.,]+) ساعة تقريبًا$/, function (h) { return 'Needs about ' + h + (h === '1' ? ' more hour' : ' more hours'); }],
+    [/^تقريبًا ([\d.,]+) دقيقة$/, function (m) { return 'About ' + m + ' min'; }],
+    [/^الخطة تدخل في ([\d.,]+) دقيقة \(تقريبًا ([\d.,]+)\)\.$/, function (a, b) { return 'The plan fits in ' + a + ' min (about ' + b + ').'; }],
+    [/^شلت (.+) عشان تخلص في ([\d.,]+) دقيقة تقريبًا\.$/, function (a, m) { return 'Removed ' + a.split('، ').map(t).join(', ') + ' so you finish in about ' + m + ' min.'; }],
+    [/^يمين ([\d]+) · يسار ([\d]+)$/, function (r, l) { return 'R ' + r + ' · L ' + l; }],
+    [/^(.+) × ([\d]+)\/([\d]+)$/, function (w, r, l) { var x = t(w); return x == null ? null : x + ' × ' + r + '/' + l; }]
+  ]);
+
 })();

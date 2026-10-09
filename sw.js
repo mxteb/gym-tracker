@@ -1,7 +1,7 @@
 'use strict';
 const CACHE_PREFIX='gym-tracker-';
-const CACHE_NAME='gym-tracker-v11-4-0';
-const APP_SHELL=['./index.html','./privacy.html','./i18n.js','./en.js','./styles.css','./theme.css','./storage.js','./data.js','./catalog.js','./calc.js','./visual.js','./app.js','./manifest.json','./assets/icon-192.png','./assets/icon-512.png','./assets/fonts/alexandria.woff','./assets/fonts/bigshoulders-stencil.woff','./assets/fonts/handjet.woff','./assets/fonts/plexarabic-Regular.woff','./assets/fonts/plexarabic-SemiBold.woff','./assets/fonts/plexarabic-Bold.woff','./assets/fonts/plexmono-Regular.woff','./assets/fonts/plexmono-SemiBold.woff','./assets/fonts/notokufi.woff'];
+const CACHE_NAME='gym-tracker-v11-5-0';
+const APP_SHELL=['./index.html','./privacy.html','./i18n.js','./en.js','./styles.css','./theme.css','./storage.js','./data.js','./catalog.js','./calc.js','./visual.js','./app.js','./photos.js','./manifest.json','./assets/icon-192.png','./assets/icon-512.png','./assets/fonts/alexandria.woff','./assets/fonts/bigshoulders-stencil.woff','./assets/fonts/handjet.woff','./assets/fonts/plexarabic-Regular.woff','./assets/fonts/plexarabic-SemiBold.woff','./assets/fonts/plexarabic-Bold.woff','./assets/fonts/plexmono-Regular.woff','./assets/fonts/plexmono-SemiBold.woff','./assets/fonts/notokufi.woff'];
 const home=new URL('./index.html',self.registration.scope).href;
 self.addEventListener('install',event=>{
  event.waitUntil((async()=>{

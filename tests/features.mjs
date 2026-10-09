@@ -90,8 +90,11 @@ async function run(lang) {
     return p.ev(expr);
   };
   const b64 = Buffer.from(JSON.stringify(fixture(lang))).toString('base64');
-  await ev(`const bytes=Uint8Array.from(atob('${b64}'),c=>c.charCodeAt(0)); const f=new File([bytes],'f.json',{type:'application/json'}); const dt=new DataTransfer(); dt.items.add(f); const i=document.getElementById('import-file-input'); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}));`);
-  await sleep(1500);
+  const importFixture = async () => {
+    await ev(`const bytes=Uint8Array.from(atob('${b64}'),c=>c.charCodeAt(0)); const f=new File([bytes],'f.json',{type:'application/json'}); const dt=new DataTransfer(); dt.items.add(f); const i=document.getElementById('import-file-input'); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}));`);
+    await sleep(1500);
+  };
+  await importFixture();
   await ev(`document.querySelectorAll('.modal-overlay:not(.hidden) #modal-cancel-btn').forEach(b=>b.click()); document.getElementById('nav-workout').click();`);
   const toast = `return [...document.querySelectorAll('#toast-container > div')].map(d=>d.textContent).pop()||''`;
   const select = id => ev(`const d=document.getElementById('exercise-dropdown'); d.value=${JSON.stringify(id)}; d.dispatchEvent(new Event('change',{bubbles:true})); return d.value`);
@@ -174,7 +177,7 @@ async function run(lang) {
   await ev(`document.getElementById('btn-busy').click()`); await sleep(200);
   const rows = await ev(`return [...document.querySelectorAll('#busy-list .busy-row')].map(r=>r.innerText.replace(/\\n/g,' / '))`);
   check(lang, 'B1 lists alternatives', rows.length >= 1 && rows.length <= 3, rows.join(' || '));
-  await p.shot('b1-busy');
+  await p.shotEl('b1-busy', '#busy-modal .glass-card');
   await ev(`document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`);
   check(lang, 'B1 Escape closes', await ev(`return document.getElementById('busy-modal').classList.contains('hidden')`));
   await ev(`document.getElementById('btn-busy').click()`); await sleep(200);
@@ -256,6 +259,68 @@ async function run(lang) {
   await ev(`document.getElementById('modal-cancel-btn').click()`);
   await ev(`document.getElementById('btn-wipe-all-data')?.click()`); await sleep(200);
   check(lang, 'C5 other dialogs have no share button', await ev(`const r=document.getElementById('modal-share-btn').classList.contains('hidden'); document.getElementById('modal-cancel-btn').click(); return r`));
+
+  /* ---------- Batch 3 ---------- */
+  // A1 recovery map
+  await ev(`document.getElementById('nav-bento').click()`); await sleep(300);
+  const rec = await ev(`return {parts:[...document.querySelectorAll('#bento-recovery .rec-part')].map(p=>p.dataset.state), list:[...document.querySelectorAll('#bento-recovery .rec-list li')].map(l=>l.innerText.replace(/\\n/g,' '))}`);
+  check(lang, 'A1 body map coloured', rec.parts.length >= 10 && rec.parts.some(x => x === 'tired' || x === 'mid'), rec.parts.join(','));
+  check(lang, 'A1 list of 6 muscles', rec.list.length === 6, rec.list.join(' | '));
+  await p.shotEl('a1-recovery', '#bento-recovery');
+
+  // I2 time I have
+  await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0); document.getElementById('btn-plan-session').click()`); await sleep(300);
+  await ev(`document.querySelector('#plan-quick .plan-chip').click()`);
+  const n0 = await ev(`return document.querySelectorAll('#plan-list input:checked').length`);
+  const est0 = await ev(`return document.getElementById('plan-time-est').textContent`);
+  check(lang, 'I2 estimate shown', /\d/.test(est0), est0);
+  await ev(`const s=document.getElementById('plan-time'); s.value='30'; s.dispatchEvent(new Event('change',{bubbles:true}))`);
+  const n1 = await ev(`return document.querySelectorAll('#plan-list input:checked').length`);
+  const hint = await ev(`return document.getElementById('plan-time-hint').textContent`);
+  check(lang, 'I2 30 min drops exercises and says which', n1 < n0 && hint.length > 10, `${n0} → ${n1} ${hint}`);
+  await p.shotEl('i2-plan', '#plan-modal .glass-card');
+  await ev(`document.getElementById('btn-plan-cancel').click()`);
+
+  // B5 left / right
+  await select('ex_55');
+  check(lang, 'B5 toggle shows for a one-side exercise', await ev(`return !document.getElementById('btn-sides').classList.contains('hidden')`));
+  await ev(`document.getElementById('btn-sides').click()`); await sleep(300);
+  await ev(`const s=document.getElementById('rest-timer-duration'); s.value='0'; s.dispatchEvent(new Event('change',{bubbles:true}))`);
+  await ev(`document.getElementById('input-weight').value='12'; document.getElementById('input-reps').value='10'; document.getElementById('input-reps-left').value='8'; document.getElementById('btn-save-weights').click()`); await sleep(700);
+  const sideRow = await ev(`return document.querySelector('#today-logs-container .glass-card')?.innerText.replace(/\\n/g,' ')`);
+  check(lang, 'B5 log shows both sides', /يمين 10 · يسار 8|R 10 · L 8/.test(sideRow), sideRow);
+  await p.shotEl('b5-sides', '#reps-field-wrapper');
+  await select('ex_1');
+  check(lang, 'B5 no toggle for bench', await ev(`return document.getElementById('btn-sides').classList.contains('hidden')`));
+
+  // B6 repeat (what the Android notification button sends)
+  const cnt = `return Number((document.getElementById('today-sets-count')?.textContent||'').replace(/\\D/g,''))||0`;
+  const c0 = await ev(cnt);
+  await ev(`document.dispatchEvent(new CustomEvent('gym:repeat-set',{detail:{exerciseId:'ex_55'}}))`); await sleep(800);
+  check(lang, 'B6 repeat saves the same set again', await ev(cnt) === c0 + 1 && /يمين 10 · يسار 8|R 10 · L 8/.test(await ev(`return document.querySelector('#today-logs-container .glass-card')?.innerText.replace(/\\n/g,' ')`)), `${c0} → ${await ev(cnt)}`);
+
+  // C4 photos
+  await ev(`document.getElementById('nav-profile').click()`);
+  for (const color of ['#c8322a', '#2f5da8']) {
+    await ev(`const c=document.createElement('canvas'); c.width=600; c.height=800; const x=c.getContext('2d'); x.fillStyle='${color}'; x.fillRect(0,0,600,800); x.fillStyle='#fff'; x.fillRect(200,150,200,500);
+      const b=await new Promise(r=>c.toBlob(r,'image/png')); const f=new File([b],'p.png',{type:'image/png'}); const dt=new DataTransfer(); dt.items.add(f); const i=document.getElementById('photo-input'); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}))`);
+    await sleep(900);
+  }
+  check(lang, 'C4 two photos stored', await ev(`return document.querySelectorAll('#photo-grid .photo-thumb').length`) === 2);
+  await ev(`const t=[...document.querySelectorAll('#photo-grid .photo-thumb')]; if(t[0].getAttribute('aria-pressed')!=='true') t[0].click();`); await sleep(300);
+  await ev(`const t=[...document.querySelectorAll('#photo-grid .photo-thumb')]; t[1].click();`); await sleep(400);
+  check(lang, 'C4 two picked = side by side', await ev(`return document.querySelectorAll('#photo-view .photo-fig').length`) === 2);
+  check(lang, 'C4 photos not in the JSON backup', await ev(`window.__json=null; const o=URL.createObjectURL; URL.createObjectURL=b=>{ if(/json/.test(b.type)) b.text().then(t=>window.__json=t); return o.call(URL,b); }; document.getElementById('btn-export-json').click(); await new Promise(r=>setTimeout(r,600)); return !!window.__json && !/photo_|image\\/jpeg/.test(window.__json)`));
+  await ev(`document.querySelectorAll('.modal-overlay:not(.hidden) #modal-cancel-btn').forEach(b=>b.click())`);
+  await p.shotEl('c4-photos', '#photos-card');
+  await ev(`document.querySelector('#photo-view [data-del]').click()`); await sleep(200);
+  await ev(`document.getElementById('modal-confirm-btn').click()`); await sleep(600);
+  check(lang, 'C4 delete asks, then removes', await ev(`return document.querySelectorAll('#photo-grid .photo-thumb').length`) === 1);
+  await ev(`document.getElementById('btn-wipe-all-data').click()`); await sleep(200);
+  await ev(`document.getElementById('modal-confirm-btn').click()`); await sleep(900);
+  check(lang, 'C4 erase all also erases photos', await ev(`return (await GymPhotos.all()).length`) === 0);
+  await importFixture();
+  await ev(`document.querySelectorAll('.modal-overlay:not(.hidden) #modal-cancel-btn').forEach(b=>b.click())`);
 
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);

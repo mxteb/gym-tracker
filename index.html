@@ -270,7 +270,7 @@
 
                         <div id="reps-field-wrapper" class="space-y-2">
                             <div class="flex justify-between items-center text-xs">
-                                <label for="input-reps" class="text-slate-300 font-medium">عدد العدات:</label>
+                                <label for="input-reps" class="text-slate-300 font-medium">عدد العدات: <span id="reps-side-label" class="reps-side hidden" data-added>(اليمين)</span></label>
                                 <span class="text-cyan-400 font-bold text-xs"><span id="val-reps-display">10</span> عدات</span>
                             </div>
 
@@ -283,6 +283,17 @@
                                 <div class="flex gap-1">
                                     <button type="button" data-step-target="input-reps" data-step="1" class="stepper-btn w-11 h-11 rounded-xl font-black text-emerald-400 text-sm flex items-center justify-center">+1</button>
                                     <button type="button" data-step-target="input-reps" data-step="5" class="stepper-btn w-11 h-11 rounded-xl font-black text-cyan-400 text-xs flex items-center justify-center">+5</button>
+                                </div>
+                            </div>
+                            <div id="sides-box" class="sides-box" data-added>
+                                <button type="button" id="btn-sides" class="sides-toggle hidden" aria-pressed="false">يمين ويسار مختلفة؟</button>
+                                <div id="sides-left" class="sides-left hidden">
+                                    <label for="input-reps-left">عدات اليسار:</label>
+                                    <div class="sides-stepper">
+                                        <button type="button" data-step-target="input-reps-left" data-step="-1" class="stepper-btn w-11 h-11 rounded-xl font-black text-sm" aria-label="أنقص عدات اليسار">-1</button>
+                                        <input type="number" id="input-reps-left" min="0" max="150" step="1" class="glass-input text-center rounded-xl font-black" inputmode="numeric">
+                                        <button type="button" data-step-target="input-reps-left" data-step="1" class="stepper-btn w-11 h-11 rounded-xl font-black text-sm" aria-label="زد عدات اليسار">+1</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -634,6 +645,11 @@
             </div>
 
             <div class="space-y-2.5" data-added>
+                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1"><span>استشفاء العضلات: وش جاهز اليوم</span></h3>
+                <div id="bento-recovery" class="glass-card p-4 recovery-card"></div>
+            </div>
+
+            <div class="space-y-2.5" data-added>
                 <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1"><span>مستوى قوتك مقابل وزنك</span></h3>
                 <div id="bento-strength" class="glass-card p-4 strength-card"></div>
             </div>
@@ -755,6 +771,17 @@
                 <h3 id="body-chart-title" class="font-bold text-xs text-slate-300">وزنك وخصرك مع الوقت</h3>
                 <div id="body-chart" class="body-chart"></div>
                 <p class="field-hint">من سجل القياسات اللي تحفظه هنا (قياس واحد لكل يوم).</p>
+            </section>
+
+            <section id="photos-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="photos-title">
+                <div class="photos-head">
+                    <h3 id="photos-title" class="font-bold text-xs text-slate-300">صور التقدم</h3>
+                    <label class="photo-add"><input type="file" id="photo-input" accept="image/*" class="sr-only">+ أضف صورة</label>
+                </div>
+                <p class="field-hint">خاصة: تنحفظ في جوالك بس، وما تدخل في النسخة الاحتياطية ولا تطلع لأي مكان. اضغط صورتين عشان تقارنهم.</p>
+                <p id="photo-empty" class="photo-empty">ما فيه صور للحين. صوّر نفسك كل أسبوعين بنفس المكان، وبتشوف الفرق اللي الميزان ما يبينه.</p>
+                <div id="photo-view" class="photo-view hidden"></div>
+                <div id="photo-grid" class="photo-grid"></div>
             </section>
 
             <div class="glass-card p-4 space-y-3">
@@ -897,6 +924,19 @@
             <div id="plan-quick" class="plan-quick"></div>
             <input type="search" id="plan-search" maxlength="50" placeholder="بحث عن تمرين…" class="w-full glass-input px-3 py-2 rounded-xl" aria-label="بحث في التمارين">
             <div id="plan-list" class="plan-list"></div>
+            <div class="plan-time" data-added>
+                <label for="plan-time">عندي وقت:</label>
+                <select id="plan-time" class="glass-input">
+                    <option value="0">بدون حد</option>
+                    <option value="30">30 دقيقة</option>
+                    <option value="45">45 دقيقة</option>
+                    <option value="60">60 دقيقة</option>
+                    <option value="75">75 دقيقة</option>
+                    <option value="90">90 دقيقة</option>
+                </select>
+                <span id="plan-time-est" class="field-hint"></span>
+            </div>
+            <p id="plan-time-hint" class="field-hint plan-time-hint" data-added aria-live="polite"></p>
             <div class="edit-actions flex justify-between items-center gap-2">
                 <span id="plan-count" class="field-hint">0 تمارين</span>
                 <span class="flex gap-2">
@@ -931,6 +971,7 @@
     <script src="./calc.js" defer></script>
     <script src="./visual.js" defer></script>
     <script src="./app.js" defer></script>
+    <script src="./photos.js" defer></script>
 
 </body>
 </html>

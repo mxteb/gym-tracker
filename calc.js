@@ -446,5 +446,72 @@ function monthStats(logs, exercises, month) {
 function monthsWithLogs(logs) { return [...new Set(logs.map(l => typeof l.date === 'string' ? l.date.slice(0, 7) : null).filter(Boolean))].sort().reverse(); }
 function prevMonth(month) { const [y, m] = month.split('-').map(Number); return m === 1 ? (y - 1) + '-12' : y + '-' + String(m - 1).padStart(2, '0'); }
 
-window.GymCalc = { LBS_PER_KG, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
+/* ---------- v11.5 (الدفعة 3) ---------- */
+/** A1: استشفاء العضلات. لكل عضلة: آخر مرة اشتغلت عليها وكم جولة. الراحة اللازمة تقريبًا:
+ * 1–4 جولات = 36 ساعة، 5–9 = 48، 10+ = 72. pct من 0 (تو خلصت) إلى 1 (جاهزة). */
+function recovery(logs, exercises, now = Date.now()) {
+ const byId = new Map(exercises.map(e => [e.id, e]));
+ const times = {};
+ for (const l of logs) {
+  if (l.type !== 'weights' || l.setType === 'warmup') continue;
+  const m = muscleOf(byId.get(l.exerciseId));
+  if (!m) continue;
+  const t = Number.isFinite(l.timestamp) ? l.timestamp : Date.parse(l.date + 'T18:00:00');
+  if (!Number.isFinite(t) || t > now + 60000) continue;
+  (times[m] = times[m] || []).push(t);
+ }
+ const last = {};
+ // the last workout for a muscle = its latest set and every set in the 6 hours before it
+ for (const [m, ts] of Object.entries(times)) { const top = Math.max(...ts); last[m] = { time: top, sets: ts.filter(t => t >= top - 6 * 3600000).length }; }
+ const out = {};
+ for (const m of Object.keys(GymCatalog.MUSCLE_NAMES)) {
+  const r = last[m];
+  if (!r) { out[m] = null; continue; }
+  const need = r.sets >= 10 ? 72 : r.sets >= 5 ? 48 : 36;
+  const hours = Math.max(0, (now - r.time) / 3600000);
+  out[m] = { sets: r.sets, hours: Math.round(hours), need, pct: Math.min(1, hours / need), left: Math.max(0, Math.ceil(need - hours)) };
+ }
+ return out;
+}
+
+/** I2: كم دقيقة تاخذ الخطة تقريبًا. لكل تمرين: معدل جولاتك الفعلية (أو 3) × (40 ثانية شغل + الراحة)، + جولة تسخين للتمارين بالبار، + دقيقة تجهيز. */
+function planMinutes(ids, exercises, logs) {
+ const per = {};
+ for (const id of ids) {
+  const ex = exercises.find(e => e.id === id);
+  if (!ex) continue;
+  const sessions = new Map();
+  for (const l of logs) if (l.exerciseId === id && l.type === 'weights' && l.setType !== 'warmup') sessions.set(l.sessionId || l.date, (sessions.get(l.sessionId || l.date) || 0) + 1);
+  const recent = [...sessions.values()].slice(-5);
+  const sets = recent.length ? Math.max(1, Math.round(recent.reduce((a, b) => a + b, 0) / recent.length)) : 3;
+  if (ex.type !== 'weights') { per[id] = 20; continue; }
+  const rest = Number.isFinite(Number(ex.restSec)) && ex.restSec !== undefined ? Number(ex.restSec) : 90;
+  const warm = ex.equip === 'barbell' ? 1 : 0;
+  per[id] = Math.round(((sets + warm) * (40 + rest) + 60) / 60 * 10) / 10;
+ }
+ return { per, total: Math.round(Object.values(per).reduce((a, b) => a + b, 0)) };
+}
+/** يشيل من الخطة لين تدخل في الوقت: تمارين الذراع والبطن أول (عزل)، وبعدها من آخر الخطة. الترتيب يبقى نفسه. */
+function trimPlan(ids, exercises, logs, minutes) {
+ const { per } = planMinutes(ids, exercises, logs);
+ const keep = ids.filter(id => per[id] != null);
+ const order = keep.map((id, i) => ({ id, i, iso: ['arms', 'abs'].includes(muscleOf(exercises.find(e => e.id === id))) ? 1 : 0 }))
+  .sort((a, b) => b.iso - a.iso || b.i - a.i);
+ const drop = [];
+ let total = keep.reduce((s, id) => s + per[id], 0);
+ for (const o of order) {
+  if (total <= minutes || keep.length - drop.length <= 1) break;
+  drop.push(o.id); total -= per[o.id];
+ }
+ return { keep: keep.filter(id => !drop.includes(id)), drop, total: Math.round(total) };
+}
+
+/** B5: تمرين بجهة وحدة (يمين ويسار كل وحدة لحالها)؟ */
+function isUnilateral(ex) {
+ if (!ex || ex.type !== 'weights') return false;
+ if (ex.sides === true) return true;
+ return /(بلغاري|طعن|بيد وحدة|بيد واحدة|رجل وحدة|رجل واحدة|single|one[- ]arm|one[- ]leg|unilateral|lunge|split squat|concentration|تركيز)/i.test(String(ex.name || ''));
+}
+
+window.GymCalc = { LBS_PER_KG, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();
