@@ -22,9 +22,12 @@ function fixture() {
 }
 
 const dir = fs.mkdtempSync('/tmp/gt-i18n-');
-const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--remote-debugging-port=9433', `--user-data-dir=${dir}`, '--lang=en-US', 'about:blank'], { stdio: 'ignore' });
+const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--remote-debugging-port=0', `--user-data-dir=${dir}`, '--lang=en-US', 'about:blank'], { stdio: 'ignore' });
+process.on('exit', () => { try { proc.kill(); } catch { } });
+for (let i = 0; i < 60 && !fs.existsSync(path.join(dir, 'DevToolsActivePort')); i++) await new Promise(r => setTimeout(r, 100));
+const PORT = fs.readFileSync(path.join(dir, 'DevToolsActivePort'), 'utf8').split('\n')[0];
 let list;
-for (let i = 0; i < 60; i++) { try { list = await (await fetch('http://127.0.0.1:9433/json/list')).json(); if (list.some(t => t.type === 'page')) break; } catch { } await sleep(200); }
+for (let i = 0; i < 60; i++) { try { list = await (await fetch(`http://127.0.0.1:${PORT}/json/list`)).json(); if (list.some(t => t.type === 'page')) break; } catch { } await sleep(200); }
 const ws = new WebSocket(list.find(t => t.type === 'page').webSocketDebuggerUrl);
 await new Promise(r => ws.onopen = r);
 let id = 0; const pending = new Map();

@@ -27,7 +27,11 @@ function fixture() {
 
 async function open(url, port) {
   const dir = fs.mkdtempSync('/tmp/gt-eq-');
-  const proc = spawn(chrome, ['--headless=new', '--no-sandbox', `--remote-debugging-port=${port}`, `--user-data-dir=${dir}`, url], { stdio: 'ignore' });
+  // port 0 = Chrome picks a free port, so a browser left over from an earlier run can never answer instead
+  const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--remote-debugging-port=0', `--user-data-dir=${dir}`, url], { stdio: 'ignore' });
+  process.on('exit', () => { try { proc.kill(); } catch { } });
+  for (let i = 0; i < 60 && !fs.existsSync(path.join(dir, 'DevToolsActivePort')); i++) await sleep(100);
+  port = fs.readFileSync(path.join(dir, 'DevToolsActivePort'), 'utf8').split('\n')[0];
   let list;
   for (let i = 0; i < 60; i++) { try { list = await (await fetch(`http://127.0.0.1:${port}/json/list`)).json(); if (list.some(t => t.type === 'page')) break; } catch { } await sleep(200); }
   const ws = new WebSocket(list.find(t => t.type === 'page').webSocketDebuggerUrl);
@@ -57,7 +61,8 @@ async function snapshot(page, data) {
   for (const tab of ['workout', 'exercises', 'progress', 'bento', 'profile']) {
     await page.ev(`document.getElementById('nav-${tab}').click(); document.querySelectorAll('#screen-${tab} details').forEach(d=>d.open=true);`);
     await sleep(300);
-    out[tab] = norm(await page.ev(`const s=document.getElementById('screen-${tab}'); const c=s.cloneNode(true); c.classList.remove('hidden'); return ${VIS}(c)`));
+    // the order of the progress exercise list follows storage order (it changes after any reload), so compare it sorted
+    out[tab] = norm(await page.ev(`const s=document.getElementById('screen-${tab}'); const c=s.cloneNode(true); c.classList.remove('hidden'); const sel=c.querySelector('#chart-exercise-select'); if(sel){ const o=[...sel.options].sort((a,b)=>a.textContent.localeCompare(b.textContent)); sel.replaceChildren(...o); } return ${VIS}(c)`));
   }
   // every progress chart: each exercise × each load mode × both metrics
   await page.ev(`document.getElementById('nav-progress').click();`);
