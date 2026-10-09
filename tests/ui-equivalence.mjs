@@ -37,6 +37,10 @@ async function open(url, port) {
   const send = (method, params = {}) => new Promise(r => { const i = ++id; pending.set(i, r); ws.send(JSON.stringify({ id: i, method, params })); });
   const ev = async expr => { const r = await send('Runtime.evaluate', { expression: `(async()=>{${expr}})()`, awaitPromise: true, returnByValue: true }); if (r.result.exceptionDetails) throw new Error(r.result.exceptionDetails.exception?.description); return r.result.result.value; };
   await send('Emulation.setDeviceMetricsOverride', { width: 393, height: 852, deviceScaleFactor: 2, mobile: true });
+  // v11.1: a fresh browser with an English system opens in English; this test compares the Arabic screens
+  for (let i = 0; i < 50; i++) { try { await ev(`localStorage.setItem('gym_lang','ar'); return true`); break; } catch { await sleep(200); } }
+  await ev(`location.reload(); return true`).catch(() => {});
+  await sleep(800);
   for (let i = 0; i < 100; i++) { try { if (await ev(`return /محفوظ/.test(document.getElementById('db-status-badge')?.textContent||'') && !!document.querySelector('#exercise-dropdown option')`)) break; } catch { } await sleep(200); }
   return { ev, close: () => { ws.close(); proc.kill(); } };
 }

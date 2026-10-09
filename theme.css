@@ -459,6 +459,14 @@ button.cal-day{min-height:0;padding:0}
 .sw-clock b:nth-child(1){background:#000;border:1px solid #333}.sw-clock b:nth-child(2){background:#FF3B1F}.sw-clock b:nth-child(3){background:#FFB000}
 .sw-auto b:nth-child(1){background:linear-gradient(90deg,#F2F3EF 50%,#121212 50%);border:1px solid #888}.sw-auto b:nth-child(2){background:linear-gradient(90deg,#C2410C 50%,#C8322A 50%)}
 
+/* ===================== v11.1: اختيار اللغة ===================== */
+.lang-picker{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.lang-opt{display:flex;flex-direction:column;align-items:flex-start;gap:.2rem;padding:.7rem;border:1px solid var(--line);border-radius:var(--r);background:var(--bg-deep);color:var(--ink);text-align:start;min-height:64px}
+.lang-opt strong{font-size:.95rem}
+.lang-opt small{font-size:.72rem;color:var(--mute)}
+.lang-opt[lang="en"] strong,.lang-opt[lang="en"] small{font-family:'IBM Plex Sans Arabic','Alexandria',Arial,sans-serif}
+.lang-opt.on{border:2px solid var(--primary);padding:calc(.7rem - 1px)}
+
 /* العناصر الخاصة بثيم معيّن مخفية في الباقي */
 .clock-bar,.led-columns{display:none}
 .lb-group{display:none}
@@ -572,3 +580,60 @@ button.cal-day{min-height:0;padding:0}
 :root[data-theme="logbook"] #last-performance-text{font-family:var(--font);font-size:1rem}
 :root[data-theme="clock"] #exercise-volume-breakdown-list strong{white-space:nowrap;font-size:1rem}
 :root[data-theme="clock"] #exercise-volume-breakdown-list small{display:block}
+
+/* ===================== v11.1: English (من اليسار لليمين) =====================
+ * العربي ما يتأثر: كل القواعد هنا على :root[dir="ltr"] بس.
+ * مولّدة بقلب left/right للقواعد اللي فوق (styles.css ثم theme.css بنفس الترتيب)،
+ * وما تشمل اللي معناه مكان فعلي على الشاشة: كلمة السحب (تعديل يسار، حذف يمين) والعناصر اللي بالنص. */
+:root[dir="ltr"] .left-0{left:auto;right:0.0rem}
+:root[dir="ltr"] .ml-2{margin-left:0;margin-right:0.5rem}
+:root[dir="ltr"] .pl-3{padding-left:0;padding-right:0.75rem}
+:root[dir="ltr"] .pr-1{padding-right:0;padding-left:0.25rem}
+:root[dir="ltr"] .pr-8{padding-right:0;padding-left:2.0rem}
+:root[dir="ltr"] .right-0{right:auto;left:0.0rem}
+:root[dir="ltr"] .right-3{right:auto;left:0.75rem}
+:root[dir="ltr"] .text-left{text-align:right}
+:root[dir="ltr"] .text-right{text-align:left}
+:root[dir="ltr"] .border-r-4{border-right-width:0;border-left-width:4px}
+:root[dir="ltr"] .border-r-blue-500{border-right-color:transparent;border-left-color:#3b82f6}
+:root[dir="ltr"] .border-r-cyan-400{border-right-color:transparent;border-left-color:#22d3ee}
+:root[dir="ltr"] .border-r-4{border-right-width:0;border-left-width:3px}
+:root[dir="ltr"] .border-r-cyan-400{border-right-color:transparent;border-left-color:var(--primary)}
+:root[dir="ltr"] .border-r-blue-500{border-right-color:transparent;border-left-color:var(--blue)}
+:root[dir="ltr"] .set-type-btn,:root[dir="ltr"] .rir-btn{border-left:0;border-right:1px solid var(--line)}
+:root[dir="ltr"] #rir-container .rir-btn:last-child,:root[dir="ltr"] #set-type-container .set-type-btn:last-child{border-left:0;border-right:0}
+:root[dir="ltr"] .led-cell{border-left:0;border-right:1px solid var(--line-soft)}
+:root[dir="ltr"] .led-cell:last-child{border-left:0;border-right:0}
+:root[dir="ltr"] .led-value.led-text{direction:ltr}
+:root[dir="ltr"] .hero-cell + .hero-cell{border-right:0;border-left:1px solid var(--line)}
+:root[dir="ltr"] .hero-val{text-align:left}
+:root[dir="ltr"] .progress-row > strong{text-align:right}
+:root[dir="ltr"] .progress-row > small{text-align:right}
+:root[dir="ltr"] .next-suggestion{border-right:0;border-left:3px solid var(--accent)}
+:root[dir="ltr"] .next-suggestion[data-kind="hold"]{border-right-color:transparent;border-left-color:var(--mute)}
+:root[dir="ltr"] .setting-row input::after{right:auto;left:3px;transition:left .15s}
+:root[dir="ltr"] .setting-row input:checked::after{right:auto;left:25px}
+:root[dir="ltr"] .record-row{text-align:left}
+:root[dir="ltr"] .record-cell b{text-align:left}
+:root[dir="ltr"] .cal-stats > div{border-left:0;border-right:1px solid var(--line-soft)}
+:root[dir="ltr"] .cal-stats > div:last-child{border-left:0;border-right:0}
+:root[dir="ltr"] .muscle-bar{direction:ltr}
+:root[dir="ltr"] .muscle-bar i{right:auto;left:0}
+:root[dir="ltr"] .muscle-row b{text-align:right}
+:root[dir="ltr"] .session-ex{padding-right:0;padding-left:.6rem;border-right:0;border-left:2px solid var(--line)}
+:root[dir="ltr"] .session-sets{text-align:left}
+:root[dir="ltr"] #undo-meter{transform-origin:left}
+:root[dir="ltr"] .theme-opt{text-align:left}
+:root[dir="ltr"][data-theme="logbook"] .next-suggestion{border-right:0;border-left:3px solid var(--primary)}
+:root[dir="ltr"][data-theme="logbook"] .hero-cell + .hero-cell{border-right:0;border-left:1px solid var(--line)}
+:root[dir="ltr"][data-theme="logbook"] .progress-row > strong{text-align:left}
+:root[dir="ltr"][data-theme="logbook"] .progress-row > small{text-align:left}
+:root[dir="ltr"] .cb-cell + .cb-cell{border-right:0;border-left:1px solid var(--line-soft)}
+:root[dir="ltr"] .cb-led{text-align:left}
+:root[dir="ltr"][data-theme="logbook"] .progress-row > small{text-align:right}
+:root[dir="ltr"][data-theme="logbook"] .progress-row > strong{text-align:right}
+/* أسهم الشهر: السابق صار على اليسار */
+:root[dir="ltr"] #cal-prev svg,:root[dir="ltr"] #cal-next svg{transform:scaleX(-1)}
+/* كلمة السحب */
+:root[dir="ltr"] .log-row.swipe-edit::after{content:"Edit"}
+:root[dir="ltr"] .log-row.swipe-delete::after{content:"Delete"}

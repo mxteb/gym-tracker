@@ -382,7 +382,7 @@
             if (session) {
                 card.classList.add('session-active');
                 title.textContent = session.name;
-                meta.textContent = `بدأت ${new Date(session.startedAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`;
+                meta.textContent = `بدأت ${new Date(session.startedAt).toLocaleTimeString(GymI18n.locale, { hour: '2-digit', minute: '2-digit' })}`;
                 startBtn.disabled = true;
                 finishBtn.disabled = false;
                 clearInterval(sessionTimerInterval);
@@ -1514,6 +1514,7 @@
             renderSettings();
             renderBodyChart();
             renderThemePicker();
+            renderLangPicker();
         }
 
         function renderProfileHistoryList() {
@@ -1791,6 +1792,7 @@
             document.getElementById('plan-list')?.addEventListener('change', e => { const b = e.target.closest('input[type=checkbox]'); if (!b) return; if (b.checked) planDraft.add(b.value); else planDraft.delete(b.value); document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`; });
             initSwipe();
             document.getElementById('theme-picker')?.addEventListener('click', e => { const b = e.target.closest('[data-theme-pick]'); if (b) runMutation(() => saveTheme(b.dataset.themePick)); });
+            document.getElementById('lang-picker')?.addEventListener('click', e => { const b = e.target.closest('[data-lang-pick]'); if (b) runMutation(() => saveLang(b.dataset.langPick)); });
             document.getElementById('cb-minus')?.addEventListener('click', () => { adjustRest(-15); tickClockBar(); });
             document.getElementById('cb-plus')?.addEventListener('click', () => { adjustRest(15); tickClockBar(); });
             document.getElementById('cb-stop')?.addEventListener('click', () => { stopRestTimer(); tickClockBar(); });
@@ -2072,8 +2074,8 @@
 
 
         /* ---------- v10.8: التطور والتحليل ---------- */
-        const AR_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-        const AR_MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+        const AR_DAYS = GymI18n.list('days', ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت']);
+        const AR_MONTHS = GymI18n.list('months', ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']);
         const fmt1 = n => String(Math.round(Number(n) * 10) / 10);
         const modeUnit = mode => mode === 'timed' ? 'ثانية' : mode === 'per_hand' ? 'كجم لكل يد' : 'كجم';
         const MODE_NOTE = { per_hand: 'لكل يد', bodyweight: 'وزن الجسم', added: 'وزن جسم + إضافي', assisted: 'بمساعدة', timed: 'بالوقت' };
@@ -2379,6 +2381,27 @@
         }
         lightQuery?.addEventListener?.('change', () => { if (state.profile.theme === 'auto') applyTheme(); });
 
+        /* ---------- v11.1: اللغة (العربية / English) ----------
+         * الترجمة نفسها في i18n.js و en.js. هنا بس الاختيار: ينحفظ في البروفايل (عشان ينتقل مع النسخة الاحتياطية)
+         * وفي الجهاز، وبعدها تنفتح الصفحة من جديد باللغة الجديدة واتجاهها. */
+        function renderLangPicker() {
+            document.querySelectorAll('[data-lang-pick]').forEach(b => { const on = b.dataset.langPick === GymI18n.lang; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
+        }
+        async function saveLang(lang) {
+            if (lang === GymI18n.lang) return;
+            state.profile = { ...state.profile, lang };
+            await GymStorage.save(state);
+            if (!GymI18n.setLang(lang)) { showToast(lang === 'en' ? 'Could not save the language on this device' : 'ما قدرت أحفظ اللغة على هذا الجهاز'); return; }
+            haptic('confirm');
+            location.reload();
+        }
+        // a backup restored on a new phone carries the language with it
+        function syncLangFromProfile() {
+            const want = state.profile.lang;
+            if ((want === 'ar' || want === 'en') && want !== GymI18n.lang && !GymI18n.stored() && GymI18n.setLang(want)) { location.reload(); return true; }
+            return false;
+        }
+
         // الساعة: شريط المؤقتات فوق
         let clockTimer = null;
         function tickClockBar() {
@@ -2482,6 +2505,7 @@
             updateSessionUI();
             restoreRestTimer();
             applyTheme();
+            if (syncLangFromProfile()) return;
             document.dispatchEvent(new CustomEvent('gym:ready'));
         });
 

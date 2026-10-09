@@ -2,6 +2,8 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <script src="./i18n.js"></script>
+    <script src="./en.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>متتبع التمارين - Gym Tracker v11.0</title>
 
@@ -622,6 +624,14 @@
                     <button type="button" role="radio" data-theme-pick="logbook" class="theme-opt"><i class="sw sw-logbook" aria-hidden="true"><b></b><b></b><b></b></i><strong>الدفتر</strong><small>فاتح ومرتب، جولاتك صفوف مثل الدفتر الورقي</small></button>
                     <button type="button" role="radio" data-theme-pick="clock" class="theme-opt"><i class="sw sw-clock" aria-hidden="true"><b></b><b></b><b></b></i><strong>الساعة</strong><small>أسود مثل ساعة الجيم، مؤقتات LED وأزرار ضخمة</small></button>
                     <button type="button" role="radio" data-theme-pick="auto" class="theme-opt"><i class="sw sw-auto" aria-hidden="true"><b></b><b></b></i><strong>تلقائي</strong><small>الدفتر لما يكون جوالك فاتح، والأقراص لما يكون غامق</small></button>
+                </div>
+            </section>
+
+            <section id="lang-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="lang-title">
+                <h3 id="lang-title" class="font-bold text-xs text-slate-300">اللغة</h3>
+                <div id="lang-picker" class="lang-picker" role="radiogroup" aria-labelledby="lang-title" translate="no">
+                    <button type="button" role="radio" data-lang-pick="ar" class="lang-opt" lang="ar" dir="rtl"><strong>العربية</strong><small>من اليمين لليسار</small></button>
+                    <button type="button" role="radio" data-lang-pick="en" class="lang-opt" lang="en" dir="ltr"><strong>English</strong><small>Left to right</small></button>
                 </div>
             </section>
 
