@@ -494,6 +494,14 @@
                         </div>
                     </div>
 
+                    <div id="new-ex-muscles" class="muscle-pick" data-added>
+                        <div class="muscle-pick-head"><span id="new-ex-muscles-title">العضلات اللي يشغّلها</span><span id="new-ex-guess" class="guess-badge">متخمّنة</span></div>
+                        <p class="field-hint">الضغطة الأولى تخليها أساسية، الثانية مساعدة، والثالثة تشيلها. والمجسم يتلون معك عشان تتأكد.</p>
+                        <div id="new-ex-chips" class="muscle-chips" role="group" aria-labelledby="new-ex-muscles-title"></div>
+                        <div id="new-ex-figs" class="pick-figs" aria-hidden="true"></div>
+                        <p id="new-ex-muscle-sum" class="field-hint" aria-live="polite"></p>
+                    </div>
+
                     <label for="new-ex-machine" class="block text-xs text-slate-300">نوع الجهاز للتمرين المخصص إذا كان كارديو:</label>
 <select id="new-ex-machine" class="w-full glass-input px-3 py-2 rounded-xl text-xs"><option value="bike">دراجة ثابتة</option><option value="treadmill">جهاز مشي</option><option value="elliptical">إليبتيكال</option><option value="stairs">درج</option><option value="rowing">تجديف</option><option value="airbike">دراجة هوائية</option></select>
 <button id="add-ex-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md hover:from-cyan-600 hover:to-blue-700 flex items-center justify-center gap-2 mt-2">
@@ -621,7 +629,7 @@
             <section id="muscles-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="muscles-title">
                 <h3 id="muscles-title" class="sec-title">الجولات هالأسبوع لكل عضلة</h3>
                 <div id="muscle-bars" class="muscle-bars"></div>
-                <p class="field-hint">جولات العمل بدون التسخين. التمرين المركب ينحسب لعضلته الأساسية بس (البنش للصدر). الخط الرمادي = الأسبوع الماضي.</p>
+                <p class="field-hint">جولات العمل بدون التسخين. العضلة الأساسية في التمرين تاخذ جولة كاملة، والمساعدة نص جولة (البنش: جولة للصدر، ونص للتراي والكتف الأمامي). اضغط المجموعة تشوف عضلاتها. الخط الرمادي = الأسبوع الماضي.</p>
             </section>
 
             <section id="sessions-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="sessions-title">

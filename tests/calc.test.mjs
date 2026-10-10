@@ -239,7 +239,9 @@ test('v10.8: muscles, records, streaks, weekly sets', () => {
   assert.equal(GymCalc.consistency([{ date: '2026-09-21' }, { date: '2026-10-05' }], '2026-10-07').streak, 1);
   // weekly sets
   const w = GymCalc.weeklyMuscleSets([L({ date: '2026-10-04' }), L({ date: '2026-10-10' }), L({ date: '2026-10-11' }), L({ date: '2026-10-05', setType: 'warmup' }), L({ date: '2026-10-05', exerciseId: 'ex_44' })], ex, '2026-10-04');
-  assert.equal(w.chest, 2); assert.equal(w.legs, 1); assert.equal(w.back, 0);
+  assert.equal(w.chest, 2); assert.equal(w.legs, 1);
+  // v12: helpers count half: 2 bench sets → triceps 1, shoulders 1; the squat's lower back → back 0.5
+  assert.equal(w.triceps, 1); assert.equal(w.shoulders, 1); assert.equal(w.back, 0.5); assert.equal(w.biceps, 0);
 });
 
 // ---------- v11.3 (الدفعة 1) ----------
@@ -325,7 +327,12 @@ test('A1 recovery: hours since the last workout of each muscle against 36/48/72 
   const logs = [...Array(6)].map((_, i) => at(24 + i * 0.1)).concat([at(30, 'ex_44'), at(100, 'ex_24'), at(23, 'ex_1', { setType: 'warmup' })]);
   const r = plain(GymCalc.recovery(logs, ex, now));
   assert.equal(r.chest.sets, 6); assert.equal(r.chest.need, 48); assert.equal(r.chest.hours, 24); assert.equal(r.chest.left, 24); assert.equal(r.chest.pct, 0.5);
-  assert.equal(r.legs.need, 36); assert.equal(r.back.pct, 1); assert.equal(r.back.left, 0);
+  assert.equal(r.legs.need, 36);
+  // v12: back = its most tired part. Lats (pulldown 100 h ago) are ready, but the squat 30 h ago used the lower back as a helper
+  const parts = plain(GymCalc.recoveryParts(logs, ex, now));
+  assert.equal(parts.lats.pct, 1); assert.equal(parts.lowback.sets, 0.5); assert.equal(r.back.hours, 30);
+  // bench: triceps and front delts rest too (6 sets × 0.5 = 3 → 36 h)
+  assert.equal(parts.tri_lat.sets, 3); assert.equal(parts.tri_lat.need, 36); assert.equal(r.triceps.left, 12);
   assert.equal(r.abs, null);
 });
 test('I2 plan time: estimate from your sets and rest, trim isolation first, keep the order', () => {
@@ -414,4 +421,36 @@ test('v11.8: a session left open counts only up to 10 minutes after its last set
   assert.equal(forgotten, normal);            // 20 hours open, still 60 minutes (last set + 10)
   const short = GymCalc.weightSessionCalories({ startedAt: start, endedAt: start + 30 * 60000, bodyWeightKgAtStart: 80 }, [{ ...logs[0], timestamp: start + 25 * 60000 }]);
   assert.equal(short, 4 * 80 * 0.5);          // finished on time: unchanged
+});
+
+test('v12 muscle parts: library table, your choice, guesses, and merging extra muscles', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const get = id => ex.find(e => e.id === id);
+  // every weights exercise has parts, and its main group matches the old muscle group
+  for (const e of ex.filter(e => e.type === 'weights')) {
+    const p = plain(GymCalc.partsOf(e));
+    assert.ok(p && p.main.length, e.id);
+    assert.equal(GymCatalog.PARTS[p.main[0]].g, GymCatalog.MUSCLE_BY_ID[e.id], e.id);
+    assert.ok(p.main.concat(p.help).every(x => GymCalc.activeParts().includes(x)), e.id + ' only drawn muscles');
+  }
+  // M6–M11 on: 26 muscles; biceps, triceps, abs and calves are split
+  assert.deepEqual(plain(GymCalc.partsOf(get('ex_40'))).main, ['brachialis']);
+  assert.deepEqual(plain(GymCalc.partsOf(get('ex_59'))).main, ['soleus']);
+  assert.deepEqual(plain(GymCalc.partsOf(get('ex_1'))), { main: ['chest_low'], help: ['chest_up', 'delt_f', 'tri_lat', 'tri_long'], guessed: false });
+  assert.equal(GymCalc.activeParts().length, 26);
+  assert.ok(!GymCalc.activeParts().includes('biceps'));
+  // a choice saved with a merged name (older «biceps») still lands on the drawn muscles
+  assert.deepEqual(plain(GymCalc.resolvePart('biceps')), ['bi_long', 'bi_short', 'brachialis']);
+  // your own choice wins, and sets the group
+  const mine = { id: 'c1', isCustom: true, type: 'weights', category: 'push', name: 'شي', parts: { main: ['delt_s'], help: ['traps'] }, muscleConfirmed: true };
+  assert.equal(GymCalc.muscleOf(mine), 'shoulders');
+  assert.deepEqual(plain(GymCalc.partsOf(mine)), { main: ['delt_s'], help: ['traps'], guessed: false });
+  // guesses from the name
+  const g = n => plain(GymCalc.partsOf({ id: 'c', isCustom: true, type: 'weights', category: 'push', name: n }));
+  assert.deepEqual(g('ضغط دمبل مائل').main, ['chest_up']);
+  assert.equal(g('ضغط دمبل مائل').guessed, true);
+  assert.deepEqual(g('Cable lateral raise').main, ['delt_s']);
+  assert.deepEqual(plain(GymCalc.partsOf({ id: 'c', isCustom: true, type: 'weights', category: 'legs', name: 'سمانة على السميث' })).main, ['gastro']);
+  assert.deepEqual(plain(GymCalc.partsOf({ id: 'c', isCustom: true, type: 'weights', category: 'pull', name: 'Hammer curl cable' })).main, ['brachialis']);
+  assert.equal(GymCalc.partsOf({ id: 'c', type: 'bike_elliptical', category: 'cardio', name: 'x' }), null);
 });

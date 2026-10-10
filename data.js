@@ -84,7 +84,16 @@ function profile(x) {
  return out;
 }
 function array(x,max,label){if(!Array.isArray(x)||x.length>max)fail(label);return x;}
-function exercise(x){object(x,'تمرين');return {id:id(x.id),name:str(x.name,'اسم التمرين'),category:choice(x.category,categories,'الفئة'),type:choice(x.type,types,'نوع التمرين'),equip:choice(x.equip||'machine',equipment,'الأداة'),...(x.machine?{machine:choice(x.machine,machines,'الجهاز')}:{}),...optionalNumber(x,'machineKg',0,500),...(x.rig?{rig:choice(x.rig,['pin','plates'],'نوع الجهاز')}:{}),...optionalNumber(x,'barKg',0,50),...(x.note?{note:str(x.note,'ملاحظة التمرين',200)}:{}),...optionalNumber(x,'restSec',0,600),...(x.sidesOn===true?{sidesOn:true}:{}),...(x.muscle?{muscle:choice(x.muscle,['chest','back','shoulders','biceps','triceps','legs','abs'],'العضلة')}:{}),...(x.unit?{unit:choice(x.unit,['kg','lbs'],'وحدة التمرين')}:{}),...(x.muscleConfirmed===true?{muscleConfirmed:true}:{}),isCustom:!!x.isCustom,archived:!!x.archived,...optionalNumber(x,'editedAt',0,1e15)};}
+// v12: العضلات بالتفصيل اللي اخترتها للتمرين. نفس أسماء GymCatalog.PARTS
+const PART_IDS=['chest_up','chest_low','serratus','traps','lats','midback','lowback','delt_f','delt_s','delt_r','biceps','bi_long','bi_short','brachialis','forearm','triceps','tri_long','tri_lat','abs','abs_up','abs_low','obliques','quads','hams','glutes','adductors','abductors','calves','gastro','soleus'];
+function parts(v){
+ if(v==null)return {};
+ object(v,'عضلات التمرين');
+ const list=(a,max,label)=>{if(a==null)return [];if(!Array.isArray(a)||a.length>max)throw Error(label+' غير صالحة');return [...new Set(a.map(p=>choice(p,PART_IDS,label)))];};
+ const main=list(v.main,8,'العضلات الأساسية'),help=list(v.help,12,'العضلات المساعدة').filter(p=>!main.includes(p));
+ return main.length?{parts:{main,help}}:{};
+}
+function exercise(x){object(x,'تمرين');return {id:id(x.id),name:str(x.name,'اسم التمرين'),category:choice(x.category,categories,'الفئة'),type:choice(x.type,types,'نوع التمرين'),equip:choice(x.equip||'machine',equipment,'الأداة'),...(x.machine?{machine:choice(x.machine,machines,'الجهاز')}:{}),...optionalNumber(x,'machineKg',0,500),...(x.rig?{rig:choice(x.rig,['pin','plates'],'نوع الجهاز')}:{}),...optionalNumber(x,'barKg',0,50),...(x.note?{note:str(x.note,'ملاحظة التمرين',200)}:{}),...optionalNumber(x,'restSec',0,600),...(x.sidesOn===true?{sidesOn:true}:{}),...(x.muscle?{muscle:choice(x.muscle,['chest','back','shoulders','biceps','triceps','legs','abs'],'العضلة')}:{}),...(x.unit?{unit:choice(x.unit,['kg','lbs'],'وحدة التمرين')}:{}),...(x.muscleConfirmed===true?{muscleConfirmed:true}:{}),...parts(x.parts),isCustom:!!x.isCustom,archived:!!x.archived,...optionalNumber(x,'editedAt',0,1e15)};}
 function log(x, allowLegacyFractions=false){
  object(x,'جولة');const out={id:id(x.id),date:date(x.date),exerciseId:id(x.exerciseId),exerciseName:str(x.exerciseName,'اسم التمرين'),type:choice(x.type,types,'نوع الجولة'),category:choice(x.category,categories,'الفئة')};
  for(const key of ['timestamp','editedAt'])Object.assign(out,optionalNumber(x,key,0,1e15));

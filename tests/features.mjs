@@ -461,6 +461,50 @@ async function run(lang) {
   check(lang, 'G12 timer hides after the session ends', await ev(`return document.getElementById('nav-workout-timer').hidden`));
   for (const tab of ['profile', 'bento']) { await ev(`document.getElementById('nav-${tab}').click(); scrollTo(0,0)`); await sleep(300); await p.shot('tab-' + tab); }
 
+  /* ---------- v12 muscle map (M1–M5) ---------- */
+  await ev(`document.getElementById('nav-bento').click()`); await sleep(400);
+  const nParts = await ev(`return new Set([...document.querySelectorAll('#rec-figs .rec-part')].map(p=>p.dataset.muscle)).size`);
+  check(lang, 'M1 figure shows 26 muscles', nParts === 26, String(nParts));
+  await ev(`document.querySelector('#rec-figs .rec-part[data-muscle="tri_long"]').dispatchEvent(new MouseEvent('click',{bubbles:true}))`); await sleep(300);
+  const det = await ev(`const d=document.getElementById('rec-detail'); return { shown: !d.hidden, text: d.innerText, items: d.querySelectorAll('.rec-ex li').length }`);
+  check(lang, 'M3 tap triceps: status and exercises', det.shown && det.items >= 3 && /(Triceps|التراي)/.test(det.text), det.text.slice(0, 120));
+  await p.shotEl('m1-map', '#bento-recovery');
+  const addId = await ev(`return document.querySelector('[data-rec-ex]').dataset.recEx`);
+  await ev(`document.querySelector('[data-rec-ex]').click()`); await sleep(700);
+  check(lang, 'M3 «pick it» with no session: goes to workout with the exercise', await ev(`return !document.getElementById('screen-workout').classList.contains('hidden') && document.getElementById('exercise-dropdown').value`) === addId);
+  await ev(`document.getElementById('nav-bento').click()`); await sleep(300);
+  await ev(`document.querySelector('[data-rec-close]')?.click()`);
+  // M4 weekly sets open into muscles
+  await ev(`document.getElementById('nav-progress').click()`); await sleep(300);
+  await ev(`document.querySelector('[data-muscle-group="back"]').click()`); await sleep(200);
+  const subs = await ev(`return document.querySelectorAll('#muscle-bars .muscle-sub').length`);
+  check(lang, 'M4 back opens into 4 muscles', subs === 4, String(subs));
+  await p.shotEl('m4-weekly', '#muscles-card');
+  await ev(`document.querySelector('[data-muscle-group="back"]').click()`);
+  // M5 choose muscles when adding an exercise
+  await ev(`document.getElementById('nav-workout').click(); document.getElementById('btn-new-exercise').click()`); await sleep(300);
+  await ev(`const n=document.getElementById('new-ex-name'); n.value='Incline Smith Press'; n.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(300);
+  const guess = await ev(`return { main: [...document.querySelectorAll('#new-ex-chips [data-role="main"]')].map(c=>c.dataset.part), badge: !document.getElementById('new-ex-guess').hidden }`);
+  check(lang, 'M5 guess from the name: incline → upper chest, marked guessed', guess.main.join() === 'chest_up' && guess.badge, JSON.stringify(guess));
+  await ev(`document.querySelector('#new-ex-chips [data-part="delt_s"]').click()`); await sleep(100);
+  await ev(`document.querySelector('#new-ex-chips [data-part="delt_s"]').click()`); await sleep(100);
+  const pickNow = await ev(`return { f: document.querySelector('#new-ex-chips [data-part="delt_s"]').dataset.role, badge: !document.getElementById('new-ex-guess').hidden, figs: document.querySelectorAll('#new-ex-figs .rec-part[data-state="tired"]').length }`);
+  check(lang, 'M5 tap twice = helper; no longer «guessed»; figure colours', pickNow.f === 'help' && !pickNow.badge && pickNow.figs >= 1, JSON.stringify(pickNow));
+  await p.shotEl('m5-picker', '#new-ex-muscles');
+  await ev(`document.getElementById('add-ex-submit-btn').click()`); await sleep(800);
+  await ev(`document.getElementById('nav-exercises').click()`); await sleep(300);
+  const listTxt = await ev(`return document.getElementById('manage-exercises-list').innerText`);
+  check(lang, 'M5 saved with its muscles', /(Upper chest|صدر علوي)/.test(listTxt) && /(Side delts|كتف جانبي)/.test(listTxt), listTxt.slice(0, 160));
+  // no main muscle = clear error, nothing saved
+  await ev(`const n=document.getElementById('new-ex-name'); n.value='Zzz Test Move'; n.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(200);
+  await ev(`for (const c of document.querySelectorAll('#new-ex-chips [data-role="main"]')) { c.click(); c.click(); }`); await sleep(200);
+  await ev(`for (const c of document.querySelectorAll('#new-ex-chips [data-role="help"]')) c.click();`); await sleep(200);
+  const cx0 = await ev(`return document.querySelectorAll('#manage-exercises-list .custom-ex-del').length`);
+  await ev(`document.getElementById('add-ex-submit-btn').click()`); await sleep(700);
+  const err = await ev(`return document.getElementById('toast-container').innerText`);
+  check(lang, 'M5 no main muscle: says what to do, saves nothing', /(main muscle|الأساسية)/.test(err) && await ev(`return document.querySelectorAll('#manage-exercises-list .custom-ex-del').length`) === cx0, err);
+  await ev(`const n=document.getElementById('new-ex-name'); n.value=''; n.dispatchEvent(new Event('input',{bubbles:true})); document.getElementById('nav-workout').click()`);
+
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);
   await select(ex);

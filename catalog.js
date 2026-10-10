@@ -147,5 +147,52 @@ MUSCLE_BY_ID.ex_70 = 'back'; // ديدليفت بالبار (ينضاف مع ا�
 assign('back', [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 37]);
 assign('legs', [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]);
 assign('abs', [60, 61, 62, 63]);
-window.GymCatalog = Object.freeze({ MUSCLE_NAMES, MUSCLE_BY_ID, ROUTINE_PRESETS, EXERCISE_DICTIONARY, DEFAULT_EXERCISES, CATEGORY_NAMES, EQUIP_NAMES, ROUTINE_LABELS, LOAD_HINTS, SET_LABELS, SET_HELP });
+/* v12 (M1/M2): العضلات بالتفصيل. كل عضلة تابعة لمجموعة من السبع (MUSCLE_NAMES) اللي تبقى في باقي التطبيق.
+ * PARTS = كل العضلات المرسومة. اللي في EXTRA_PARTS (M6–M11) ما تطلع إلا لو انفعّلت، وغير كذا تنضم لعضلة أكبر (PART_MERGE). */
+const PARTS = {
+ chest_up: { ar: 'صدر علوي', en: 'Upper chest', g: 'chest' }, chest_low: { ar: 'صدر سفلي', en: 'Lower chest', g: 'chest' },
+ serratus: { ar: 'السيراتوس', en: 'Serratus', g: 'chest', extra: 1 },
+ traps: { ar: 'الترابيس', en: 'Traps', g: 'back' }, lats: { ar: 'المجنص (اللات)', en: 'Lats', g: 'back' },
+ midback: { ar: 'وسط الظهر', en: 'Mid back', g: 'back' }, lowback: { ar: 'أسفل الظهر', en: 'Lower back', g: 'back' },
+ delt_f: { ar: 'كتف أمامي', en: 'Front delts', g: 'shoulders' }, delt_s: { ar: 'كتف جانبي', en: 'Side delts', g: 'shoulders' }, delt_r: { ar: 'كتف خلفي', en: 'Rear delts', g: 'shoulders' },
+ biceps: { ar: 'الباي', en: 'Biceps', g: 'biceps' },
+ bi_long: { ar: 'الباي الخارجي', en: 'Biceps long head', g: 'biceps', extra: 1 }, bi_short: { ar: 'الباي الداخلي', en: 'Biceps short head', g: 'biceps', extra: 1 },
+ brachialis: { ar: 'عضلة الذراع الجانبية', en: 'Brachialis', g: 'biceps', extra: 1 },
+ forearm: { ar: 'الساعد', en: 'Forearms', g: 'biceps' },
+ triceps: { ar: 'التراي', en: 'Triceps', g: 'triceps' },
+ tri_long: { ar: 'التراي الطويل', en: 'Triceps long head', g: 'triceps', extra: 1 }, tri_lat: { ar: 'التراي الجانبي', en: 'Triceps lateral head', g: 'triceps', extra: 1 },
+ abs: { ar: 'البطن', en: 'Abs', g: 'abs' },
+ abs_up: { ar: 'البطن العلوي', en: 'Upper abs', g: 'abs', extra: 1 }, abs_low: { ar: 'البطن السفلي', en: 'Lower abs', g: 'abs', extra: 1 },
+ obliques: { ar: 'الخواصر', en: 'Obliques', g: 'abs' },
+ quads: { ar: 'الفخذ الأمامي', en: 'Quads', g: 'legs' }, hams: { ar: 'الفخذ الخلفي', en: 'Hamstrings', g: 'legs' }, glutes: { ar: 'الأرداف', en: 'Glutes', g: 'legs' },
+ adductors: { ar: 'الفخذ الداخلي', en: 'Inner thigh', g: 'legs' }, abductors: { ar: 'الفخذ الخارجي', en: 'Outer thigh', g: 'legs', extra: 1 },
+ calves: { ar: 'السمانة', en: 'Calves', g: 'legs' },
+ gastro: { ar: 'السمانة الكبيرة', en: 'Calves (gastrocnemius)', g: 'legs', extra: 1 }, soleus: { ar: 'السمانة العميقة', en: 'Calves (soleus)', g: 'legs', extra: 1 }
+};
+// لو العضلة الزيادة مو مفعّلة تنضم لهذي (null = تنشال)
+const PART_MERGE = { serratus: null, bi_long: 'biceps', bi_short: 'biceps', brachialis: 'biceps', tri_long: 'triceps', tri_lat: 'triceps', abs_up: 'abs', abs_low: 'abs', abductors: 'glutes', gastro: 'calves', soleus: 'calves' };
+// والعكس: العضلة الكبيرة لما تتفصّل
+const PART_SPLIT = { biceps: ['bi_long', 'bi_short', 'brachialis'], triceps: ['tri_long', 'tri_lat'], abs: ['abs_up', 'abs_low'], calves: ['gastro', 'soleus'] };
+// المفعّلة
+const EXTRA_PARTS = ['serratus', 'bi_long', 'bi_short', 'brachialis', 'tri_long', 'tri_lat', 'abs_up', 'abs_low', 'abductors', 'gastro', 'soleus']; // M6–M11 كلها موافق عليها
+// كل تمرين: «أساسية | مساعدة» بالعضلات المفصّلة. الأساسية = جولة كاملة، المساعدة = نص جولة
+const PARTS_BY_ID = {};
+const pm = (n, spec) => { const [m, h = ''] = spec.split('|'); PARTS_BY_ID['ex_' + n] = { main: m.trim().split(/\s+/).filter(Boolean), help: h.trim().split(/\s+/).filter(Boolean) }; };
+[[1, 'chest_low | chest_up delt_f tri_lat tri_long'], [2, 'chest_up | delt_f tri_lat chest_low'], [3, 'chest_low | chest_up delt_f tri_lat'], [4, 'chest_up | delt_f tri_lat'],
+ [5, 'chest_low | tri_lat'], [6, 'chest_low chest_up | delt_f'], [7, 'chest_low | chest_up delt_f tri_lat'], [8, 'chest_up | delt_f tri_lat'], [9, 'chest_low chest_up | delt_f'], [10, 'chest_low | chest_up delt_f'],
+ [11, 'delt_f | delt_s tri_long tri_lat chest_up traps serratus'], [12, 'delt_f | delt_s tri_lat tri_long'], [13, 'delt_f delt_s | tri_lat'], [14, 'delt_f | delt_s tri_lat'],
+ [15, 'delt_s | traps'], [16, 'delt_s | traps'], [17, 'delt_s | traps'], [18, 'delt_f | chest_up'], [19, 'chest_low tri_lat | tri_long delt_f'],
+ [20, 'tri_lat | tri_long'], [21, 'tri_lat | tri_long'], [22, 'tri_long | tri_lat'], [23, 'tri_lat tri_long'],
+ [24, 'lats | midback bi_long bi_short brachialis delt_r'], [25, 'lats | midback bi_short brachialis'], [26, 'midback lats | delt_r bi_long brachialis traps'],
+ [27, 'lats midback | delt_r bi_long brachialis'], [28, 'midback lats | delt_r lowback bi_long brachialis forearm traps'], [29, 'midback lats | delt_r lowback brachialis'],
+ [30, 'lats midback | delt_r bi_long'], [31, 'lats | midback bi_long bi_short brachialis forearm delt_r'], [32, 'lats | midback bi_short brachialis'], [33, 'lats | chest_low serratus tri_long'],
+ [34, 'delt_r | midback traps'], [35, 'delt_r | midback traps'], [36, 'delt_r | traps midback'], [37, 'traps | forearm'],
+ [38, 'bi_long bi_short | brachialis forearm'], [39, 'bi_long bi_short | brachialis forearm'], [40, 'brachialis | bi_long forearm'], [41, 'bi_long | bi_short brachialis'],
+ [42, 'bi_short bi_long | brachialis'], [43, 'bi_short | bi_long brachialis'],
+ [44, 'quads glutes | adductors lowback hams'], [45, 'quads glutes | adductors'], [46, 'quads | glutes adductors'], [47, 'quads glutes | adductors hams'], [48, 'quads glutes | adductors lowback'],
+ [49, 'quads'], [50, 'hams | gastro'], [51, 'hams | gastro'], [52, 'hams glutes | lowback forearm adductors'], [53, 'hams glutes | lowback forearm'],
+ [54, 'quads glutes | adductors hams abductors'], [55, 'quads glutes | adductors abductors hams'], [56, 'adductors abductors'], [57, 'glutes | hams abductors'],
+ [58, 'gastro | soleus'], [59, 'soleus | gastro'], [60, 'abs_up | obliques abs_low'], [61, 'abs_low | abs_up obliques forearm'], [62, 'abs_up abs_low | obliques delt_f'], [63, 'abs_up | abs_low obliques'],
+ [70, 'lowback glutes hams | traps lats forearm quads midback']].forEach(([n, spec]) => pm(n, spec));
+window.GymCatalog = Object.freeze({ MUSCLE_NAMES, PARTS, PART_MERGE, PART_SPLIT, EXTRA_PARTS, PARTS_BY_ID, MUSCLE_BY_ID, ROUTINE_PRESETS, EXERCISE_DICTIONARY, DEFAULT_EXERCISES, CATEGORY_NAMES, EQUIP_NAMES, ROUTINE_LABELS, LOAD_HINTS, SET_LABELS, SET_HELP });
 })();

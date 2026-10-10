@@ -1143,6 +1143,61 @@
 
         function runLocalClassification(cleanName) { return GymCalc.classifyExercise(cleanName); }
 
+        /* M5: تختار عضلات التمرين وأنت تضيفه. الضغطة: أساسية → مساعدة → تنشال */
+        let newExPick = { main: [], help: [] }, newExTouched = false;
+        const CAT_OF_GROUP = { chest: 'push', shoulders: 'push', triceps: 'push', back: 'pull', biceps: 'pull', legs: 'legs', abs: 'abs' };
+        function guessNewExMuscles() {
+            if (newExTouched) return;
+            const name = document.getElementById('new-ex-name').value.trim();
+            const cat = document.getElementById('new-ex-cat').value;
+            const p = cat === 'cardio' ? null : GymCalc.partsOf({ id: 'new', isCustom: true, type: 'weights', category: cat, name });
+            newExPick = p && name ? { main: p.main, help: p.help } : { main: [], help: [] };
+            renderMusclePicker();
+        }
+        function renderMusclePicker() {
+            const box = document.getElementById('new-ex-muscles');
+            if (!box) return;
+            const cat = document.getElementById('new-ex-cat').value;
+            box.hidden = cat === 'cardio' || document.getElementById('new-ex-equip').value === 'cardio';
+            document.getElementById('new-ex-guess').hidden = newExTouched || !newExPick.main.length;
+            const chips = document.getElementById('new-ex-chips');
+            chips.replaceChildren();
+            const active = GymCalc.activeParts();
+            for (const [g, label] of Object.entries(GymCatalog.MUSCLE_NAMES)) {
+                const row = el('div', 'muscle-chip-row');
+                row.appendChild(el('span', 'muscle-chip-group', label));
+                const wrap = el('div', 'muscle-chip-wrap');
+                for (const p of active.filter(x => GymCatalog.PARTS[x].g === g)) {
+                    const role = newExPick.main.includes(p) ? 'main' : newExPick.help.includes(p) ? 'help' : '';
+                    const c = el('button', 'muscle-chip', partName(p)); c.type = 'button'; c.dataset.part = p; c.setAttribute('translate', 'no');
+                    if (role) c.dataset.role = role;
+                    c.setAttribute('aria-pressed', String(!!role));
+                    c.setAttribute('aria-label', partName(p) + (role === 'main' ? ' · ' + T_('أساسية') : role === 'help' ? ' · ' + T_('مساعدة') : ''));
+                    wrap.appendChild(c);
+                }
+                row.appendChild(wrap); chips.appendChild(row);
+            }
+            const states = {};
+            for (const p of newExPick.help) states[p] = 'mid';
+            for (const p of newExPick.main) states[p] = 'tired';
+            document.getElementById('new-ex-figs').replaceChildren(bodySvg(BODY_FRONT, states, 'من قدام', { mini: true }), bodySvg(BODY_BACK, states, 'من ورا', { mini: true }));
+            const names = a => a.map(partName).join(listSep());
+            const sum = document.getElementById('new-ex-muscle-sum');
+            sum.textContent = newExPick.main.length
+                ? `أساسية (أحمر): ${names(newExPick.main)}` + (newExPick.help.length ? ` · مساعدة (أصفر): ${names(newExPick.help)}` : '')
+                : 'اختر عضلة أساسية وحدة على الأقل.';
+        }
+        const T_ = s => (window.GymI18n ? GymI18n.t(s) : s);
+        function onMuscleChip(p) {
+            const m = newExPick.main.filter(x => x !== p), h = newExPick.help.filter(x => x !== p);
+            if (newExPick.main.includes(p)) h.push(p); else if (!newExPick.help.includes(p)) m.push(p);
+            newExPick = { main: m, help: h }; newExTouched = true;
+            // المجموعة تحدد الفئة: أول عضلة أساسية
+            if (m.length) { const cat = CAT_OF_GROUP[GymCatalog.PARTS[m[0]].g]; if (cat) document.getElementById('new-ex-cat').value = cat; }
+            renderMusclePicker();
+            document.querySelector(`#new-ex-chips [data-part="${p}"]`)?.focus();
+        }
+
         function onCustomExerciseInput(val) {
             const cleanName = val.trim().toLowerCase();
             const statusEl = document.getElementById('new-ex-status');
@@ -1208,12 +1263,20 @@
                 machine,
                 isCustom: true
             };
+            // M5: العضلات اللي اخترتها (أو التخمين، ويبقى «متخمّن» لين تأكده)
+            if (type === 'weights') {
+                if (!newExPick.main.length) throw Error('اختر العضلة الأساسية للتمرين: اضغطها مرة وحدة تحت «العضلات اللي يشغّلها»');
+                newEx.parts = { main: [...newExPick.main], help: [...newExPick.help] };
+                newEx.muscle = GymCatalog.PARTS[newExPick.main[0]].g;
+                if (newExTouched) newEx.muscleConfirmed = true;
+            }
 
             state.exercises.push(newEx);
             await dbSaveAll('exercises', state.exercises);
 
             nameInput.value = '';
             document.getElementById('new-ex-status').classList.add('hidden');
+            newExTouched = false; newExPick = { main: [], help: [] }; renderMusclePicker();
             renderManageExercisesList();
             renderExerciseDropdown();
             if (addFromWorkout) {
@@ -1262,6 +1325,7 @@
                     <div>
                         <div class="font-bold text-xs text-slate-200">${escapeHTML(ex.name)}</div>
                         <div class="text-[10px] text-slate-400 mt-0.5">الفئة: ${escapeHTML(CATEGORY_NAMES[ex.category] || '')} | الأداة: ${escapeHTML(EQUIP_NAMES[ex.equip] || 'مخصص')}</div>
+                        ${(() => { const p = GymCalc.partsOf(ex); return p ? `<div class="custom-ex-muscles" data-added><span translate="no">${escapeHTML(p.main.map(partName).join(listSep()))}</span>${p.help.length ? ` <small translate="no">+ ${escapeHTML(p.help.map(partName).join(listSep()))}</small>` : ''}${p.guessed ? ' <em class="guess-badge">متخمّنة</em>' : ''}</div>` : ''; })()}
                     </div>
                     <button data-action="delete-custom-ex" data-id="${escapeHTML(ex.id)}" aria-label="حذف هذا التمرين المخصص" class="custom-ex-del">
                         <i class="fa-solid fa-trash-can text-sm"></i><span data-added>حذف</span>
@@ -1767,7 +1831,7 @@
             if (targetNav) targetNav.classList.add('active');
 
             if (tabId === 'progress') initProgressScreen();
-            else if (tabId === 'exercises') renderManageExercisesList();
+            else if (tabId === 'exercises') { renderManageExercisesList(); renderMusclePicker(); }
             else if (tabId === 'bento') renderBentoGridAnalysis();
             else if (tabId === 'profile') renderProfileUI();
         }
@@ -1914,7 +1978,10 @@
                 if (editBtn && editBtn.dataset.id) openEditLog(editBtn.dataset.id);
             });
 
-            document.getElementById('new-ex-name').addEventListener('input', function() { onCustomExerciseInput(this.value); });
+            document.getElementById('new-ex-name').addEventListener('input', function() { onCustomExerciseInput(this.value); guessNewExMuscles(); });
+            document.getElementById('new-ex-cat').addEventListener('change', () => { if (newExTouched && newExPick.main.length && CAT_OF_GROUP[GymCatalog.PARTS[newExPick.main[0]].g] !== document.getElementById('new-ex-cat').value) newExTouched = false; guessNewExMuscles(); renderMusclePicker(); });
+            document.getElementById('new-ex-equip').addEventListener('change', renderMusclePicker);
+            document.getElementById('new-ex-chips').addEventListener('click', e => { const c = e.target.closest('[data-part]'); if (c) onMuscleChip(c.dataset.part); });
             document.getElementById('add-ex-submit-btn').addEventListener('click', () => runMutation(addNewExercise));
             document.getElementById('manage-exercises-list').addEventListener('click', function(e) {
                 const deleteBtn = e.target.closest('[data-action="delete-custom-ex"]');
@@ -2468,52 +2535,98 @@
         /* ---------- v11.5 (الدفعة 3) ---------- */
         // A1: خريطة الاستشفاء: وش جاهز للتمرين اليوم ووش يحتاج راحة
         const SVG_NS = 'http://www.w3.org/2000/svg';
-        // simple geometric figure (front, back): [muscle, shape, attrs]; muscle null = neutral body part
+        // v12 (M1): مجسم بشكل الجسم و19 عضلة (والزيادة لو انفعّلت). كل مسار للنص الأيسر، والأيمن نفسه مقلوب.
+        // [عضلة, مسار] على مساحة 200×440
+        const BODY_SIL = 'M100 12 C88 12 82 22 82 34 C82 46 88 54 92 58 L92 64 C84 68 74 70 64 72 C52 76 47 88 47 104 C45 120 46 134 48 148 C44 166 39 184 36 200 C33 210 36 222 44 224 C52 224 52 212 52 204 C57 186 62 168 64 150 C66 136 70 120 72 108 C72 130 72 160 75 196 C70 212 66 236 66 262 C66 284 70 302 72 314 C66 340 66 368 72 398 C70 410 72 420 84 420 C92 420 92 410 88 398 C90 370 92 342 88 316 C92 296 96 262 98 226 L100 226 Z';
         const BODY_FRONT = [
-            [null, 'circle', { cx: 60, cy: 18, r: 12 }], [null, 'rect', { x: 54, y: 30, width: 12, height: 8 }],
-            ['shoulders', 'circle', { cx: 33, cy: 46, r: 10 }], ['shoulders', 'circle', { cx: 87, cy: 46, r: 10 }],
-            ['chest', 'rect', { x: 40, y: 40, width: 19, height: 24, rx: 4 }], ['chest', 'rect', { x: 61, y: 40, width: 19, height: 24, rx: 4 }],
-            ['biceps', 'rect', { x: 20, y: 58, width: 12, height: 30, rx: 5 }], ['biceps', 'rect', { x: 88, y: 58, width: 12, height: 30, rx: 5 }],
-            [null, 'rect', { x: 16, y: 91, width: 11, height: 32, rx: 5 }], [null, 'rect', { x: 93, y: 91, width: 11, height: 32, rx: 5 }],
-            ['abs', 'rect', { x: 46, y: 67, width: 28, height: 40, rx: 4 }],
-            [null, 'rect', { x: 42, y: 109, width: 36, height: 14, rx: 4 }],
-            ['legs', 'rect', { x: 41, y: 125, width: 18, height: 52, rx: 7 }], ['legs', 'rect', { x: 61, y: 125, width: 18, height: 52, rx: 7 }],
-            [null, 'rect', { x: 43, y: 180, width: 14, height: 46, rx: 6 }], [null, 'rect', { x: 63, y: 180, width: 14, height: 46, rx: 6 }]
+            ['chest_up', 'M99 76 L80 73 C73 79 71 88 72 95 L99 95 Z'], ['chest_low', 'M99 96 L72 96 C73 106 79 114 90 117 L99 115 Z'],
+            ['traps', 'M92 60 C88 66 82 70 74 72 L92 71 Z'],
+            ['delt_s', 'M71 73 C59 75 52 84 51 100 L59 99 C60 89 63 81 70 77 Z'], ['delt_f', 'M72 76 C66 81 62 90 61 101 L71 96 C72 88 75 81 79 75 Z'],
+            ['biceps', 'M59 104 C53 116 51 130 52 146 L62 146 C66 133 68 119 70 104 Z'],
+            ['bi_long', 'M60 104 C56 116 55 130 55 146 L60 146 C61 132 62 118 65 104 Z'], ['bi_short', 'M65 104 C62 118 61 132 60 146 L62 146 C66 133 68 119 70 104 Z'],
+            ['brachialis', 'M59 106 C54 118 52 132 52 146 L55 146 C55 130 56 118 60 106 Z'],
+            ['forearm', 'M52 150 C46 166 42 182 40 200 L50 203 C56 186 60 168 62 150 Z'],
+            ['serratus', 'M80 100 L73 103 L78 107 L73 111 L78 115 L83 113 Z'],
+            // البطن قطعتين بس (M11): علوي وسفلي، بدل مربعات «السكس باك»
+            ['abs', 'M98 120 L87 120 C86 150 87 182 98 204 Z'],
+            ['abs_up', 'M98 120 L87 120 C86 130 86 140 87 152 L98 152 Z'], ['abs_low', 'M98 155 L87 155 C87 174 89 192 98 204 Z'],
+            ['obliques', 'M84 119 C78 119 74 125 74 133 L76 168 C78 182 81 192 85 198 L85 160 Z'],
+            ['quads', 'M95 214 L76 207 C68 230 66 262 70 296 L84 300 C89 272 93 242 95 214 Z'],
+            ['adductors', 'M98 216 L96 216 C93 238 90 262 87 290 L94 291 C98 262 99 238 98 216 Z'],
+            ['abductors', 'M76 206 C70 214 68 226 68 238 L72 234 C72 224 74 214 79 207 Z'],
+            ['calves', 'M73 320 C68 344 70 370 74 396 L84 396 C86 372 88 346 86 320 Z']
         ];
         const BODY_BACK = [
-            [null, 'circle', { cx: 60, cy: 18, r: 12 }], [null, 'rect', { x: 54, y: 30, width: 12, height: 8 }],
-            ['shoulders', 'circle', { cx: 33, cy: 46, r: 10 }], ['shoulders', 'circle', { cx: 87, cy: 46, r: 10 }],
-            ['back', 'path', { d: 'M40 38 H80 L78 70 L68 104 H52 L42 70 Z' }],
-            ['triceps', 'rect', { x: 20, y: 58, width: 12, height: 30, rx: 5 }], ['triceps', 'rect', { x: 88, y: 58, width: 12, height: 30, rx: 5 }],
-            [null, 'rect', { x: 16, y: 91, width: 11, height: 32, rx: 5 }], [null, 'rect', { x: 93, y: 91, width: 11, height: 32, rx: 5 }],
-            ['legs', 'rect', { x: 42, y: 106, width: 36, height: 20, rx: 6 }],
-            ['legs', 'rect', { x: 41, y: 128, width: 18, height: 50, rx: 7 }], ['legs', 'rect', { x: 61, y: 128, width: 18, height: 50, rx: 7 }],
-            ['legs', 'rect', { x: 43, y: 181, width: 14, height: 45, rx: 6 }], ['legs', 'rect', { x: 63, y: 181, width: 14, height: 45, rx: 6 }]
+            ['traps', 'M100 56 L92 58 C86 64 78 70 70 74 C82 80 92 90 100 108 Z'],
+            ['delt_r', 'M70 74 C58 77 52 87 51 102 L60 100 C61 90 65 82 73 78 Z'],
+            ['midback', 'M100 110 C92 96 83 86 74 81 L72 96 C82 104 91 112 100 122 Z'],
+            ['lats', 'M72 99 C70 120 74 142 86 166 L96 168 L98 126 C88 118 80 110 72 99 Z'],
+            ['lowback', 'M99 150 L92 152 L89 196 L99 200 Z'],
+            ['triceps', 'M59 104 C53 116 51 130 52 146 L62 146 C66 133 68 119 70 104 Z'],
+            ['tri_lat', 'M59 104 C53 116 51 130 52 146 L57 146 C58 132 60 118 64 104 Z'], ['tri_long', 'M64 104 C60 118 58 132 57 146 L62 146 C66 133 68 119 70 104 Z'],
+            ['forearm', 'M52 150 C46 166 42 182 40 200 L50 203 C56 186 60 168 62 150 Z'],
+            ['glutes', 'M99 206 L80 202 C70 210 68 228 74 242 C84 250 94 248 99 240 Z'],
+            ['abductors', 'M80 200 C72 202 68 210 67 222 L73 216 C75 209 80 205 87 203 Z'],
+            ['hams', 'M96 250 L74 246 C70 266 70 288 74 304 L86 304 C90 284 94 266 96 250 Z'],
+            ['calves', 'M72 318 C64 336 66 356 74 374 L86 374 C92 356 92 336 86 318 Z'],
+            ['gastro', 'M72 318 C64 334 66 350 72 360 L86 360 C92 348 92 334 86 318 Z'], ['soleus', 'M71 360 C71 366 72 371 74 376 L86 376 C88 371 89 366 89 360 Z']
         ];
-        function recoveryState(r) { return !r ? 'none' : r.pct >= 1 ? 'ready' : r.pct >= 0.5 ? 'mid' : 'tired'; }
-        function bodySvg(parts, rec, label) {
-            const svg = document.createElementNS(SVG_NS, 'svg');
-            svg.setAttribute('viewBox', '0 0 120 244'); svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', label);
-            for (const [m, tag, attrs] of parts) {
-                const el = document.createElementNS(SVG_NS, tag);
-                for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
-                el.setAttribute('class', m ? 'rec-part' : 'rec-body');
-                if (m) { el.dataset.muscle = m; el.dataset.state = recoveryState(rec[m]); }
-                svg.appendChild(el);
+        // وش ينرسم على كل جهة: العضلة لو مرسومة، والكبيرة لو ما لها تفصيل على هذي الجهة (مثل السمانة من قدام)
+        function figureParts(shapes) {
+            const active = new Set(GymCalc.activeParts());
+            const ids = new Set(shapes.map(x => x[0]));
+            const out = [];
+            for (const [id, d] of shapes) {
+                if (active.has(id)) { out.push([id, d]); continue; }
+                const split = GymCatalog.PART_SPLIT[id];
+                if (split && split.some(x => active.has(x))) {
+                    if (split.some(x => active.has(x) && ids.has(x))) continue;
+                    out.push([split.find(x => active.has(x)), d]);
+                }
             }
-            const cap = document.createElementNS(SVG_NS, 'text');
-            cap.setAttribute('x', 60); cap.setAttribute('y', 241); cap.setAttribute('text-anchor', 'middle'); cap.setAttribute('class', 'rec-cap');
-            cap.textContent = label;
-            svg.appendChild(cap);
+            return out;
+        }
+        function recoveryState(r) { return !r ? 'none' : r.pct >= 1 ? 'ready' : r.pct >= 0.5 ? 'mid' : 'tired'; }
+        const listSep = () => (GymI18n.lang === 'en' ? ', ' : '، ');
+        const partName = p => (GymI18n.lang === 'en' ? GymCatalog.PARTS[p]?.en : GymCatalog.PARTS[p]?.ar) || p;
+        // states: {part: 'ready'|'mid'|'tired'|'none'}
+        function bodySvg(shapes, states, label, opts = {}) {
+            const svg = document.createElementNS(SVG_NS, 'svg');
+            svg.setAttribute('viewBox', '0 0 200 440'); svg.setAttribute('role', opts.interactive ? 'group' : 'img'); svg.setAttribute('aria-label', label);
+            for (const flip of [false, true]) {
+                const g = document.createElementNS(SVG_NS, 'g');
+                if (flip) g.setAttribute('transform', 'translate(200 0) scale(-1 1)');
+                const sil = document.createElementNS(SVG_NS, 'path'); sil.setAttribute('d', BODY_SIL); sil.setAttribute('class', 'rec-body'); g.appendChild(sil);
+                for (const [id, d] of figureParts(shapes)) {
+                    const el = document.createElementNS(SVG_NS, 'path');
+                    el.setAttribute('d', d); el.setAttribute('class', 'rec-part');
+                    el.dataset.muscle = id; el.dataset.state = states[id] || 'none';
+                    if (opts.interactive && !flip) { el.setAttribute('tabindex', '0'); el.setAttribute('role', 'button'); el.setAttribute('aria-label', partName(id)); }
+                    g.appendChild(el);
+                }
+                svg.appendChild(g);
+            }
+            if (!opts.mini) {
+                const cap = document.createElementNS(SVG_NS, 'text');
+                cap.setAttribute('x', 100); cap.setAttribute('y', 437); cap.setAttribute('text-anchor', 'middle'); cap.setAttribute('class', 'rec-cap');
+                cap.textContent = label;
+                svg.appendChild(cap);
+            }
             return svg;
         }
+        let recPicked = null;
         function renderRecovery() {
             const box = document.getElementById('bento-recovery');
             if (!box) return;
-            const rec = GymCalc.recovery(state.logs, state.exercises, Date.now());
+            const now = Date.now();
+            const rec = GymCalc.recovery(state.logs, state.exercises, now);
+            const parts = GymCalc.recoveryParts(state.logs, state.exercises, now);
+            const states = Object.fromEntries(Object.entries(parts).map(([k, r]) => [k, recoveryState(r)]));
             box.replaceChildren();
-            const figs = document.createElement('div'); figs.className = 'rec-figs';
-            figs.append(bodySvg(BODY_FRONT, rec, 'من قدام'), bodySvg(BODY_BACK, rec, 'من ورا'));
+            const figs = document.createElement('div'); figs.className = 'rec-figs'; figs.id = 'rec-figs';
+            figs.append(bodySvg(BODY_FRONT, states, 'من قدام', { interactive: true }), bodySvg(BODY_BACK, states, 'من ورا', { interactive: true }));
+            const tip = el('p', 'field-hint rec-tip', 'اضغط أي عضلة تشوف حالتها والتمارين اللي تشغّلها.');
+            const detail = document.createElement('div'); detail.id = 'rec-detail'; detail.className = 'rec-detail'; detail.setAttribute('aria-live', 'polite');
             const list = document.createElement('ul'); list.className = 'rec-list';
             const order = Object.keys(GymCatalog.MUSCLE_NAMES).sort((a, b) => (rec[b]?.pct ?? 2) - (rec[a]?.pct ?? 2));
             for (const m of order) {
@@ -2527,9 +2640,74 @@
                 list.appendChild(li);
             }
             const note = document.createElement('p'); note.className = 'field-hint';
-            note.textContent = 'تقدير من آخر جلسة لكل عضلة وكم جولة سويت: 1–4 جولات تحتاج يوم ونص، 5–9 يومين، و10 أو أكثر 3 أيام. النوم والأكل يفرقون.';
-            box.append(figs, list, note);
+            note.textContent = 'تقدير من آخر جلسة لكل عضلة وكم جولة سويت: 1–4 جولات تحتاج يوم ونص، 5–9 يومين، و10 أو أكثر 3 أيام. العضلة المساعدة في التمرين تنحسب نص جولة. النوم والأكل يفرقون.';
+            box.append(figs, tip, detail, list, note);
+            if (recPicked && parts[recPicked] === undefined) recPicked = null;
+            renderRecoveryDetail(parts);
         }
+        // M3: العضلة اللي ضغطتها: حالتها والتمارين اللي تشغّلها
+        function renderRecoveryDetail(parts) {
+            const box = document.getElementById('rec-detail');
+            if (!box) return;
+            document.querySelectorAll('#rec-figs .rec-part').forEach(p => p.classList.toggle('on', p.dataset.muscle === recPicked));
+            document.getElementById('rec-figs')?.classList.toggle('picking', !!recPicked);
+            box.replaceChildren();
+            if (!recPicked) { box.hidden = true; return; }
+            box.hidden = false;
+            parts = parts || GymCalc.recoveryParts(state.logs, state.exercises, Date.now());
+            const r = parts[recPicked], st = recoveryState(r);
+            const head = el('div', 'rec-detail-head');
+            const pill = el('span', 'rec-pill', !r ? 'ما تمرنت عليها للحين' : r.pct >= 1 ? 'جاهزة' : `ترتاح كمان ${r.left} ساعة تقريبًا`); pill.dataset.state = st;
+            const nm = el('b', '', partName(recPicked)); nm.setAttribute('translate', 'no');
+            head.append(nm, pill, el('small', '', 'من مجموعة ' + GymCatalog.MUSCLE_NAMES[GymCatalog.PARTS[recPicked].g]));
+            const close = el('button', 'rec-close', '×'); close.type = 'button'; close.setAttribute('aria-label', 'سكّر'); close.dataset.recClose = '1';
+            head.append(close);
+            box.appendChild(head);
+            const exs = [];
+            for (const ex of state.exercises) {
+                if (ex.archived) continue;
+                const p = GymCalc.partsOf(ex);
+                if (!p) continue;
+                if (p.main.includes(recPicked)) exs.push([ex, 1]); else if (p.help.includes(recPicked)) exs.push([ex, 0]);
+            }
+            exs.sort((a, b) => b[1] - a[1]);
+            if (!exs.length) { box.appendChild(el('p', 'field-hint', 'ما فيه تمرين في مكتبتك يشغّلها.')); return; }
+            const session = getActiveSession();
+            const ul = el('ul', 'rec-ex');
+            for (const [ex, main] of exs.slice(0, 6)) {
+                const li = el('li');
+                const nameEl = el('span', 'rec-ex-name', ex.name);
+                const kind = el('small', '', main ? 'أساسية' : 'مساعدة');
+                const inPlan = session?.planIds?.includes(ex.id);
+                const b = el('button', 'rec-add', inPlan ? 'في الخطة' : session ? '+ للخطة' : 'اختره'); b.type = 'button'; b.dataset.recEx = ex.id; b.disabled = !!inPlan;
+                li.append(nameEl, kind, b); ul.appendChild(li);
+            }
+            box.appendChild(ul);
+            if (exs.length > 6) box.appendChild(el('p', 'field-hint', `و${exs.length - 6} تمارين ثانية.`));
+        }
+        async function recoveryAddExercise(id) {
+            const session = getActiveSession();
+            if (session) {
+                session.planIds = [...new Set([...(session.planIds || []), id])]; session.editedAt = Date.now();
+                await GymStorage.save(state);
+                renderSessionPlan(); renderRecoveryDetail();
+                showToast('انضاف للخطة');
+            } else {
+                switchTab('workout'); selectExercise(id);
+                document.getElementById('exercise-dropdown').scrollIntoView({ block: 'center' });
+                showToast('اخترناه لك. ابدأ الجلسة متى ما جهزت');
+            }
+        }
+        document.addEventListener('click', e => {
+            const part = e.target.closest && e.target.closest('#rec-figs .rec-part');
+            if (part) { recPicked = recPicked === part.dataset.muscle ? null : part.dataset.muscle; renderRecoveryDetail(); return; }
+            if (e.target.closest && e.target.closest('[data-rec-close]')) { recPicked = null; renderRecoveryDetail(); return; }
+            const add = e.target.closest && e.target.closest('[data-rec-ex]');
+            if (add) runMutation(() => recoveryAddExercise(add.dataset.recEx));
+        });
+        document.addEventListener('keydown', e => {
+            if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('#rec-figs .rec-part')) { e.preventDefault(); e.target.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+        });
 
         // A1 داخل خطة الجلسة: سطر واحد يقول وش جاهز ووش يرتاح
         function renderPlanRecovery() {
@@ -2927,26 +3105,53 @@
             showToast('جولات ' + prettyDate(date));
         }
 
+        // M4: الجولات بالأسبوع لكل مجموعة، والضغط يفتح عضلاتها. المساعدة نص جولة.
+        const musclesOpen = new Set();
         function renderMuscles() {
             const box = document.getElementById('muscle-bars');
             if (!box) return;
             const start = GymCalc.weekStart(getLocalDateString());
             const prev = new Date(start + 'T12:00:00'); prev.setDate(prev.getDate() - 7);
-            const now = GymCalc.weeklyMuscleSets(state.logs, state.exercises, start);
-            const last = GymCalc.weeklyMuscleSets(state.logs, state.exercises, getLocalDateString(prev));
-            const max = Math.max(10, ...Object.values(now), ...Object.values(last));
-            box.replaceChildren();
-            for (const [k, label] of Object.entries(GymCatalog.MUSCLE_NAMES)) {
-                const row = el('div', 'muscle-row' + (now[k] ? '' : ' zero'));
+            const now = GymCalc.weeklySets(state.logs, state.exercises, start);
+            const last = GymCalc.weeklySets(state.logs, state.exercises, getLocalDateString(prev));
+            const max = Math.max(10, ...Object.values(now.groups), ...Object.values(last.groups));
+            const fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
+            const row = (cls, label, a, b, extra) => {
+                const r = el(extra ? 'button' : 'div', cls + (a ? '' : ' zero'));
                 const bar = el('div', 'muscle-bar');
-                const fill = el('i'); fill.style.width = (now[k] / max * 100) + '%';
-                const ghost = el('s'); ghost.style.right = (last[k] / max * 100) + '%'; ghost.title = 'الأسبوع الماضي: ' + last[k];
+                const fill = el('i'); fill.style.width = (a / max * 100) + '%';
+                const ghost = el('s'); ghost.style.right = (b / max * 100) + '%'; ghost.title = 'الأسبوع الماضي: ' + fmt(b);
                 bar.append(fill, ghost);
-                row.append(el('span', 'muscle-name', label), bar, el('b', 'num-led', now[k] ? String(now[k]) : '0'));
-                row.setAttribute('aria-label', `${label}: ${now[k]} جولة هالأسبوع، ${last[k]} الأسبوع الماضي`);
-                box.appendChild(row);
+                const name = el('span', 'muscle-name', label);
+                r.append(name, bar, el('b', 'num-led', fmt(a)));
+                r.setAttribute('aria-label', `${label}: ${fmt(a)} جولة هالأسبوع، ${fmt(b)} الأسبوع الماضي`);
+                if (extra) extra(r, name);
+                return r;
+            };
+            box.replaceChildren();
+            const active = GymCalc.activeParts();
+            for (const [k, label] of Object.entries(GymCatalog.MUSCLE_NAMES)) {
+                const mine = active.filter(p => GymCatalog.PARTS[p].g === k);
+                const open = musclesOpen.has(k);
+                box.appendChild(row('muscle-row', label, now.groups[k], last.groups[k], mine.length > 1 ? (r, name) => {
+                    r.type = 'button'; r.dataset.muscleGroup = k; r.setAttribute('aria-expanded', String(open));
+                    name.append(el('em', 'muscle-caret', open ? '−' : '+'));
+                } : null));
+                if (open && mine.length > 1) for (const p of mine) {
+                    const sub = row('muscle-row muscle-sub', partName(p), now.parts[p] || 0, last.parts[p] || 0);
+                    sub.querySelector('.muscle-name').setAttribute('translate', 'no');
+                    box.appendChild(sub);
+                }
             }
         }
+        document.addEventListener('click', e => {
+            const b = e.target.closest && e.target.closest('[data-muscle-group]');
+            if (!b) return;
+            const k = b.dataset.muscleGroup;
+            if (musclesOpen.has(k)) musclesOpen.delete(k); else musclesOpen.add(k);
+            renderMuscles();
+            document.querySelector(`[data-muscle-group="${k}"]`)?.focus();
+        });
 
         let sessionsLimit = 10;
         function renderSessions() {

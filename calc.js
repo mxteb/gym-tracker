@@ -240,7 +240,9 @@ function suggestNext(logs, exerciseId, opts = {}) {
 /** العضلة الأساسية: من الجدول للتمارين الجاهزة، ومن الاسم للمخصصة، وإلا من الفئة. null للكارديو. */
 function muscleOf(ex) {
  if (!ex || ex.type !== 'weights' || ex.category === 'cardio') return null;
- // v11.7: العضلة اللي اخترتها بنفسك تغلب أي تخمين
+ // v12: العضلات اللي اخترتها بالتفصيل تغلب كل شي، وبعدها المجموعة اللي اخترتها (v11.7)
+ const chosen = ex.parts && Array.isArray(ex.parts.main) && ex.parts.main.find(p => GymCatalog.PARTS[p]);
+ if (chosen) return GymCatalog.PARTS[chosen].g;
  if (ex.muscle && GymCatalog.MUSCLE_NAMES[ex.muscle]) return ex.muscle;
  const known = GymCatalog.MUSCLE_BY_ID[ex.id];
  if (known && !ex.isCustom) return known;
@@ -308,14 +310,118 @@ function consistency(logs, today) {
 }
 /** جولات العمل لكل عضلة في أسبوع يبدأ من startDate (الأحد). */
 function weeklyMuscleSets(logs, exercises, startDate) {
+ return weeklySets(logs, exercises, startDate).groups;
+}
+/** v12 (M2/M4): جولات الأسبوع لكل مجموعة ولكل عضلة. الأساسية جولة كاملة والمساعدة نص.
+ * المجموعة تاخذ أعلى وزن من عضلاتها في نفس الجولة (البنش ما يعطي الصدر 1.5). */
+function weeklySets(logs, exercises, startDate) {
  const end = new Date(startDate + 'T12:00:00'); end.setDate(end.getDate() + 7);
  const endStr = isoDate(end);
  const byId = new Map(exercises.map(e => [e.id, e]));
- const out = Object.fromEntries(Object.keys(GymCatalog.MUSCLE_NAMES).map(k => [k, 0]));
+ const groups = Object.fromEntries(Object.keys(GymCatalog.MUSCLE_NAMES).map(k => [k, 0]));
+ const parts = Object.fromEntries(activeParts().map(k => [k, 0]));
+ const cache = new Map();
  for (const l of logs) {
   if (l.type !== 'weights' || l.setType === 'warmup' || !l.date || l.date < startDate || l.date >= endStr) continue;
-  const m = muscleOf(byId.get(l.exerciseId) || { id: l.exerciseId, name: l.exerciseName, category: l.category, type: 'weights' });
-  if (m) out[m]++;
+  if (!cache.has(l.exerciseId)) cache.set(l.exerciseId, partWeights(exOfLog(l, byId)));
+  const w = cache.get(l.exerciseId);
+  const g = {};
+  for (const [p, x] of Object.entries(w)) { parts[p] += x; const k = GymCatalog.PARTS[p].g; g[k] = Math.max(g[k] || 0, x); }
+  for (const [k, x] of Object.entries(g)) groups[k] += x;
+ }
+ return { groups, parts };
+}
+
+/* ---------- v12 (M1/M2/M5): العضلات بالتفصيل ---------- */
+function exOfLog(l, byId) { return byId.get(l.exerciseId) || { id: l.exerciseId, name: l.exerciseName, category: l.category, type: 'weights' }; }
+/** العضلات المرسومة الحين: الأساسية، والزيادة اللي انفعّلت (والعضلة الكبيرة تختفي لما تتفصّل) */
+function activeParts() {
+ const on = new Set(GymCatalog.EXTRA_PARTS);
+ return Object.keys(GymCatalog.PARTS).filter(p => GymCatalog.PARTS[p].extra ? on.has(p) : !(GymCatalog.PART_SPLIT[p] || []).some(x => on.has(x)));
+}
+/** عضلة مفصّلة → العضلات المرسومة الحين (ممكن تنضم لأكبر، أو تتفصّل، أو تنشال) */
+function resolvePart(p) {
+ const P = GymCatalog.PARTS[p];
+ if (!P) return [];
+ const on = new Set(GymCatalog.EXTRA_PARTS);
+ if (P.extra) return on.has(p) ? [p] : (GymCatalog.PART_MERGE[p] ? resolvePart(GymCatalog.PART_MERGE[p]) : []);
+ const split = (GymCatalog.PART_SPLIT[p] || []).filter(x => on.has(x));
+ return split.length ? split : [p];
+}
+const PART_GUESS = [
+ // [مجموعة, نمط الاسم, أساسية, مساعدة]
+ ['chest', /(مائل|incline|علوي)/i, 'chest_up', 'delt_f tri_lat'], ['chest', /(سفلي|decline)/i, 'chest_low', 'tri_lat'],
+ ['chest', /(تفتيح|فراشة|fly|flye|pec|crossover|متقاطع)/i, 'chest_low chest_up', 'delt_f'], ['chest', /(متوازي|dip)/i, 'chest_low tri_lat', 'delt_f'],
+ ['chest', /.*/, 'chest_low', 'chest_up delt_f tri_lat'],
+ ['shoulders', /(جانبي|lateral|side)/i, 'delt_s', 'traps'], ['shoulders', /(خلفي|rear|reverse|face ?pull|وجه)/i, 'delt_r', 'midback traps'],
+ ['shoulders', /(أمامي|امامي|front)/i, 'delt_f', 'chest_up'], ['shoulders', /(سحب للذقن|upright)/i, 'delt_s traps', 'delt_f'],
+ ['shoulders', /.*/, 'delt_f', 'delt_s tri_lat'],
+ ['back', /(ترابيس|هز|shrug)/i, 'traps', 'forearm'], ['back', /(ديدليفت|deadlift)/i, 'lowback glutes hams', 'traps lats forearm'],
+ ['back', /(ظهر سفلي|هايبر|hyper|back extension|good ?morning)/i, 'lowback', 'glutes hams'],
+ ['back', /(تجديف|row|أرضي|ارضي)/i, 'midback lats', 'delt_r bi_long brachialis'], ['back', /(بلوفر|pullover)/i, 'lats', 'chest_low serratus'],
+ ['back', /.*/, 'lats', 'midback bi_long bi_short brachialis'],
+ ['biceps', /(هامر|مطرقة|hammer|reverse)/i, 'brachialis', 'bi_long forearm'], ['biceps', /(مائل|incline|bayesian)/i, 'bi_long', 'bi_short brachialis'],
+ ['biceps', /(تركيز|preacher|concentration|بريتشر|spider)/i, 'bi_short', 'bi_long brachialis'], ['biceps', /(ساعد|wrist|forearm|رسغ)/i, 'forearm', ''],
+ ['biceps', /.*/, 'bi_long bi_short', 'brachialis forearm'],
+ ['triceps', /(خلف الرأس|خلف الراس|فوق الراس|overhead|فرنسي|french|skull)/i, 'tri_long', 'tri_lat'], ['triceps', /.*/, 'tri_lat', 'tri_long'],
+ ['legs', /(سمانة|calf|calves)/i, 'gastro', 'soleus'], ['legs', /(ثني|curl|خلفي|hamstring|روماني|rdl|romanian)/i, 'hams', 'glutes'],
+ ['legs', /(تمديد|extension)/i, 'quads', ''], ['legs', /(هيب|مقعدة|glute|hip thrust|bridge|جسر)/i, 'glutes', 'hams abductors'],
+ ['legs', /(إبعاد|ابعاد|abduct)/i, 'abductors', 'glutes'], ['legs', /(ضم|adduct)/i, 'adductors', ''],
+ ['legs', /(لانج|طعن|بلغاري|lunge|split|step)/i, 'quads glutes', 'adductors hams abductors'],
+ ['legs', /.*/, 'quads glutes', 'adductors hams'],
+ ['abs', /(رفع الأرجل|رفع الارجل|leg raise|سفلي|knee)/i, 'abs_low', 'abs_up obliques'], ['abs', /(جانبي|لف|twist|oblique|side|روسي|russian)/i, 'obliques', 'abs_up'],
+ ['abs', /.*/, 'abs_up abs_low', 'obliques']
+];
+/** تخمين العضلات من اسم التمرين ومجموعته (للتمارين اللي تضيفها) */
+function guessParts(ex) {
+ const g = muscleOf({ ...ex, parts: undefined });
+ if (!g) return null;
+ const n = String(ex.name || '');
+ const hit = PART_GUESS.find(([k, re]) => k === g && re.test(n));
+ const sp = s => s.split(/\s+/).filter(Boolean);
+ return { main: sp(hit[2]), help: sp(hit[3]) };
+}
+/** عضلات التمرين: اللي اخترتها، وإلا اللي في المكتبة، وإلا تخمين. كلها بالعضلات المرسومة الحين. guessed = ما تأكدت منها */
+function partsOf(ex) {
+ if (!ex || ex.type !== 'weights' || ex.category === 'cardio') return null;
+ let src = null, guessed = false;
+ if (ex.parts && Array.isArray(ex.parts.main) && ex.parts.main.some(p => GymCatalog.PARTS[p])) { src = ex.parts; guessed = !!ex.isCustom && ex.muscleConfirmed !== true; }
+ else if (!ex.isCustom && GymCatalog.PARTS_BY_ID[ex.id]) src = GymCatalog.PARTS_BY_ID[ex.id];
+ else { src = guessParts(ex); guessed = true; }
+ if (!src) return null;
+ const main = [...new Set(src.main.flatMap(resolvePart))];
+ const help = [...new Set((src.help || []).flatMap(resolvePart))].filter(p => !main.includes(p));
+ return { main, help, guessed };
+}
+/** وزن كل عضلة في جولة وحدة من هذا التمرين: أساسية 1، مساعدة 0.5 */
+function partWeights(ex) {
+ const p = partsOf(ex), out = {};
+ if (!p) return out;
+ for (const x of p.help) out[x] = 0.5;
+ for (const x of p.main) out[x] = 1;
+ return out;
+}
+/** A1 بالتفصيل: لكل عضلة مرسومة، آخر تمرين لها وكم جولة (المساعدة نص) وكم باقي راحة */
+function recoveryParts(logs, exercises, now = Date.now()) {
+ const byId = new Map(exercises.map(e => [e.id, e]));
+ const hits = {}, cache = new Map();
+ for (const l of logs) {
+  if (l.type !== 'weights' || l.setType === 'warmup') continue;
+  const t = Number.isFinite(l.timestamp) ? l.timestamp : Date.parse(l.date + 'T18:00:00');
+  if (!Number.isFinite(t) || t > now + 60000) continue;
+  if (!cache.has(l.exerciseId)) cache.set(l.exerciseId, partWeights(exOfLog(l, byId)));
+  for (const [p, w] of Object.entries(cache.get(l.exerciseId))) (hits[p] = hits[p] || []).push([t, w]);
+ }
+ const out = {};
+ for (const p of activeParts()) {
+  const h = hits[p];
+  if (!h) { out[p] = null; continue; }
+  const top = Math.max(...h.map(x => x[0]));
+  // آخر تمرين للعضلة = آخر جولة وكل جولة قبلها بـ 6 ساعات
+  const sets = h.filter(x => x[0] >= top - 6 * 3600000).reduce((n, x) => n + x[1], 0);
+  const need = sets >= 10 ? 72 : sets >= 5 ? 48 : 36;
+  const hours = Math.max(0, (now - top) / 3600000);
+  out[p] = { sets, hours: Math.round(hours), need, pct: Math.min(1, hours / need), left: Math.max(0, Math.ceil(need - hours)) };
  }
  return out;
 }
@@ -457,26 +563,11 @@ function prevMonth(month) { const [y, m] = month.split('-').map(Number); return 
 /** A1: استشفاء العضلات. لكل عضلة: آخر مرة اشتغلت عليها وكم جولة. الراحة اللازمة تقريبًا:
  * 1–4 جولات = 36 ساعة، 5–9 = 48، 10+ = 72. pct من 0 (تو خلصت) إلى 1 (جاهزة). */
 function recovery(logs, exercises, now = Date.now()) {
- const byId = new Map(exercises.map(e => [e.id, e]));
- const times = {};
- for (const l of logs) {
-  if (l.type !== 'weights' || l.setType === 'warmup') continue;
-  const m = muscleOf(byId.get(l.exerciseId));
-  if (!m) continue;
-  const t = Number.isFinite(l.timestamp) ? l.timestamp : Date.parse(l.date + 'T18:00:00');
-  if (!Number.isFinite(t) || t > now + 60000) continue;
-  (times[m] = times[m] || []).push(t);
- }
- const last = {};
- // the last workout for a muscle = its latest set and every set in the 6 hours before it
- for (const [m, ts] of Object.entries(times)) { const top = Math.max(...ts); last[m] = { time: top, sets: ts.filter(t => t >= top - 6 * 3600000).length }; }
- const out = {};
+ // v12: المجموعة تاخذ حالة أتعب عضلة فيها (بعد البنش: التراي يرتاح حتى لو ما سويت تمرين تراي)
+ const parts = recoveryParts(logs, exercises, now), out = {};
  for (const m of Object.keys(GymCatalog.MUSCLE_NAMES)) {
-  const r = last[m];
-  if (!r) { out[m] = null; continue; }
-  const need = r.sets >= 10 ? 72 : r.sets >= 5 ? 48 : 36;
-  const hours = Math.max(0, (now - r.time) / 3600000);
-  out[m] = { sets: r.sets, hours: Math.round(hours), need, pct: Math.min(1, hours / need), left: Math.max(0, Math.ceil(need - hours)) };
+  const mine = Object.entries(parts).filter(([p, r]) => r && GymCatalog.PARTS[p].g === m).map(([, r]) => r);
+  out[m] = mine.length ? mine.reduce((a, b) => (b.pct < a.pct || (b.pct === a.pct && b.sets > a.sets) ? b : a)) : null;
  }
  return out;
 }
@@ -542,5 +633,5 @@ function sideBalance(logs, exerciseId) {
  if (!weak || !last.every(x => (weak === 'left' ? x.L < x.R : x.R < x.L) && gap(x) > 0.1)) return null;
  return { weak, pct: Math.round(last.reduce((s, x) => s + gap(x), 0) / 3 * 100) };
 }
-window.GymCalc = { LBS_PER_KG, sideBalance, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
+window.GymCalc = { weeklySets, activeParts, resolvePart, guessParts, partsOf, partWeights, recoveryParts, LBS_PER_KG, sideBalance, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();

@@ -882,4 +882,22 @@
     [/^انضاف «(.+)» واخترناه لك$/, function (n) { return 'Added "' + n + '" and selected it for you'; }]
   ]);
 
+  /* ---------- v12 (muscle map) ---------- */
+  GymI18n.add({
+    'اضغط أي عضلة تشوف حالتها والتمارين اللي تشغّلها.': 'Tap any muscle to see how it is doing and the exercises that work it.',
+    'تقدير من آخر جلسة لكل عضلة وكم جولة سويت: 1–4 جولات تحتاج يوم ونص، 5–9 يومين، و10 أو أكثر 3 أيام. العضلة المساعدة في التمرين تنحسب نص جولة. النوم والأكل يفرقون.': 'Estimated from the last workout of each muscle and how many sets you did: 1–4 sets need a day and a half, 5–9 two days, 10 or more three days. A helper muscle counts as half a set. Sleep and food make a difference.',
+    'جولات العمل بدون التسخين. العضلة الأساسية في التمرين تاخذ جولة كاملة، والمساعدة نص جولة (البنش: جولة للصدر، ونص للتراي والكتف الأمامي). اضغط المجموعة تشوف عضلاتها. الخط الرمادي = الأسبوع الماضي.': 'Working sets, no warm-ups. The main muscle of an exercise gets a full set and a helper muscle half (bench: one set for chest, half for triceps and front delts). Tap a group to see its muscles. The grey line is last week.',
+    'سكّر': 'Close', 'أساسية': 'Main', 'مساعدة': 'Helper', 'في الخطة': 'In plan', '+ للخطة': '+ To plan', 'اختره': 'Pick it',
+    'ما فيه تمرين في مكتبتك يشغّلها.': 'No exercise in your library works it.',
+    'انضاف للخطة': 'Added to the plan', 'اخترناه لك. ابدأ الجلسة متى ما جهزت': 'Picked for you. Start the session when you are ready',
+    'العضلات اللي يشغّلها': 'Muscles it works', 'متخمّنة': 'Guessed',
+    'الضغطة الأولى تخليها أساسية، الثانية مساعدة، والثالثة تشيلها. والمجسم يتلون معك عشان تتأكد.': 'First tap makes it a main muscle, second a helper, third removes it. The figure colors as you go so you can check.',
+    'اختر عضلة أساسية وحدة على الأقل.': 'Pick at least one main muscle.',
+    'اختر العضلة الأساسية للتمرين: اضغطها مرة وحدة تحت «العضلات اللي يشغّلها»': 'Pick the main muscle for the exercise: tap it once under "Muscles it works"'
+  }, [
+    [/^من مجموعة (.+)$/, function (g) { return 'Group: ' + t(g); }],
+    [/^و(\d+) تمارين ثانية\.$/, function (n) { return 'and ' + n + ' more.'; }],
+    [/^أساسية \(أحمر\): (.+?)(?: · مساعدة \(أصفر\): (.+))?$/, function (a, b) { return 'Main (red): ' + a + (b ? ' · Helper (yellow): ' + b : ''); }]
+  ]);
+
 })();

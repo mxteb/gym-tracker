@@ -869,3 +869,59 @@ h3 .help-q{margin-inline-start:auto}
 .glass-card.danger-card{border-color:var(--bad-line)!important;background:transparent!important}
 .custom-ex-del{min-height:44px;min-width:56px;padding:0 .75rem;border:1px solid var(--bad-line);border-radius:var(--r-sm);background:transparent;color:var(--bad);font-size:.8rem;font-weight:700}
 .custom-ex-del:active{background:var(--bad-bg)}
+
+/* ---------- v12 (M1/M3): مجسم العضلات المفصّل ---------- */
+.rec-figs{max-width:22rem}
+.rec-body{fill:var(--panel-2);stroke:var(--line);stroke-width:1}
+.rec-part{stroke:var(--panel);stroke-width:1.2;cursor:pointer}
+.rec-part:focus-visible{outline:none;stroke:var(--ink);stroke-width:2.4}
+.rec-part.on{stroke:var(--ink);stroke-width:2.6}
+.rec-figs.picking .rec-part:not(.on){opacity:.5}
+.rec-cap{font-size:12px}
+.rec-tip{text-align:center;margin:.25rem 0 0}
+.rec-detail{border-top:1px solid var(--line-soft);padding-top:.75rem;margin-top:.5rem;display:grid;gap:.5rem}
+.rec-detail[hidden]{display:none}
+.rec-detail-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:.4rem .6rem}
+.rec-detail-head b{font-size:1rem;font-weight:800;color:var(--ink)}
+.rec-detail-head small{color:var(--mute);font-size:.75rem}
+.rec-pill{font-size:.72rem;font-weight:700;padding:1px 8px;border-radius:3px;background:var(--track);color:var(--mute)}
+.rec-pill[data-state="ready"]{color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,transparent)}
+.rec-pill[data-state="mid"]{color:var(--accent-ink);background:color-mix(in srgb,var(--accent-ink) 18%,transparent)}
+.rec-pill[data-state="tired"]{color:var(--primary);background:color-mix(in srgb,var(--primary) 18%,transparent)}
+.rec-close{margin-inline-start:auto;width:40px;height:40px;border:1px solid var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink-2);font-size:1.1rem;line-height:1}
+.rec-ex{list-style:none;margin:0;padding:0;display:grid}
+.rec-ex li{display:flex;align-items:center;gap:.5rem;min-height:48px;border-bottom:1px solid var(--line-soft);font-size:.82rem}
+.rec-ex-name{flex:1;min-width:0;color:var(--ink)}
+.rec-ex small{color:var(--mute);font-size:.7rem;white-space:nowrap}
+.rec-add{flex:none;min-height:40px;padding:0 .7rem;border:1px solid var(--accent-ink);border-radius:var(--r-sm);background:transparent;color:var(--accent-ink);font-size:.75rem;font-weight:800;white-space:nowrap}
+.rec-add:disabled{border-color:var(--line);color:var(--mute)}
+:root[data-theme="logbook"] .rec-body{fill:var(--panel-3)}
+:root[data-theme="clock"] .rec-part.on{stroke:#fff}
+button.muscle-row{width:100%;font:inherit;background:transparent;border:0;padding:0;min-height:40px;color:inherit;text-align:start;cursor:pointer}
+.muscle-row{grid-template-columns:minmax(4.5rem,auto) 1fr 2.4rem}
+.muscle-caret{font-style:normal;color:var(--mute);margin-inline-start:.35rem;font-weight:700}
+.muscle-sub{padding-inline-start:.9rem;min-height:32px}
+.muscle-sub .muscle-name{font-size:.75rem;color:var(--ink-2)}
+.muscle-sub b{font-size:1rem}
+.muscle-sub .muscle-bar{height:10px}
+.muscle-pick{display:grid;gap:.5rem;padding-top:.75rem;border-top:1px solid var(--line-soft)}
+.muscle-pick[hidden]{display:none}
+.muscle-pick-head{display:flex;align-items:center;gap:.5rem;font-size:.82rem;font-weight:700;color:var(--ink)}
+.guess-badge{font-style:normal;font-size:.68rem;font-weight:700;color:var(--accent-ink);border:1px solid var(--accent-ink);border-radius:3px;padding:0 6px}
+.guess-badge[hidden]{display:none}
+.muscle-chips{display:grid;gap:.55rem}
+.muscle-chip-row{display:grid;gap:.25rem}
+.muscle-chip-group{font-size:.7rem;color:var(--mute)}
+.muscle-chip-wrap{display:flex;flex-wrap:wrap;gap:.35rem}
+.muscle-chip{min-height:40px;padding:0 .7rem;border:1px solid var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink-2);font-size:.78rem;font-weight:600}
+.muscle-chip[data-role="main"]{background:var(--primary);border-color:var(--primary);color:var(--on-primary);font-weight:800}
+.muscle-chip[data-role="help"]{border-color:var(--accent-ink);border-style:dashed;color:var(--accent-ink)}
+.pick-figs{display:flex;justify-content:center;gap:.5rem}
+.pick-figs svg{width:42%;max-width:9rem;height:auto}
+.pick-figs .rec-part{cursor:default}
+.custom-ex-muscles{font-size:.7rem;color:var(--ink-2);margin-top:.15rem}
+.custom-ex-muscles small{color:var(--mute)}
+.rec-detail{position:relative}
+.rec-detail-head{padding-inline-end:48px}
+.rec-close{position:absolute;top:.6rem;inset-inline-end:0;margin:0}
+.rec-detail-head small{flex-basis:100%}
