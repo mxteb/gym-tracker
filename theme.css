@@ -223,7 +223,7 @@ label.text-slate-300,.text-slate-300.font-medium{color:var(--mute)}
 
 /* ---------- القائمة السفلية ---------- */
 .floating-dock{left:0;right:0;bottom:0;transform:none;width:100%;max-width:none;border-radius:0;border:0;border-top:1px solid var(--line);background:var(--nav-bg);backdrop-filter:none;box-shadow:none;padding:0 0 env(safe-area-inset-bottom)!important}
-.floating-dock > div{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-width:36rem;margin:0 auto}
+.floating-dock > div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-width:36rem;margin:0 auto}
 .dock-item{color:var(--mute);height:64px;justify-content:center;transform:none!important;text-shadow:none!important;transition:none;position:relative}
 .dock-item span{font-size:.7rem!important;font-weight:600}
 .dock-item.active{color:var(--ink)}
