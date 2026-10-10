@@ -867,3 +867,5 @@ h3 .help-q{margin-inline-start:auto}
 :root[data-theme="logbook"] .help-item{border-radius:0;border-width:0 0 1px;background:transparent}
 :root[data-theme="logbook"] .help-item[open]{border-color:var(--primary)}
 .glass-card.danger-card{border-color:var(--bad-line)!important;background:transparent!important}
+.custom-ex-del{min-height:44px;min-width:56px;padding:0 .75rem;border:1px solid var(--bad-line);border-radius:var(--r-sm);background:transparent;color:var(--bad);font-size:.8rem;font-weight:700}
+.custom-ex-del:active{background:var(--bad-bg)}

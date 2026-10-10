@@ -1263,8 +1263,8 @@
                         <div class="font-bold text-xs text-slate-200">${escapeHTML(ex.name)}</div>
                         <div class="text-[10px] text-slate-400 mt-0.5">الفئة: ${escapeHTML(CATEGORY_NAMES[ex.category] || '')} | الأداة: ${escapeHTML(EQUIP_NAMES[ex.equip] || 'مخصص')}</div>
                     </div>
-                    <button data-action="delete-custom-ex" data-id="${escapeHTML(ex.id)}" aria-label="حذف هذا التمرين المخصص" class="text-slate-500 hover:text-red-400 p-1.5 transition">
-                        <i class="fa-solid fa-trash-can text-sm"></i>
+                    <button data-action="delete-custom-ex" data-id="${escapeHTML(ex.id)}" aria-label="حذف هذا التمرين المخصص" class="custom-ex-del">
+                        <i class="fa-solid fa-trash-can text-sm"></i><span data-added>حذف</span>
                     </button>
                 `;
                 fragment.appendChild(item);
