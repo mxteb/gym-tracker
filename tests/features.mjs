@@ -265,7 +265,7 @@ async function run(lang) {
   await ev(`document.getElementById('nav-bento').click()`); await sleep(300);
   const rec = await ev(`return {parts:[...document.querySelectorAll('#bento-recovery .rec-part')].map(p=>p.dataset.state), list:[...document.querySelectorAll('#bento-recovery .rec-list li')].map(l=>l.innerText.replace(/\\n/g,' '))}`);
   check(lang, 'A1 body map coloured', rec.parts.length >= 10 && rec.parts.some(x => x === 'tired' || x === 'mid'), rec.parts.join(','));
-  check(lang, 'A1 list of 6 muscles', rec.list.length === 6, rec.list.join(' | '));
+  check(lang, 'A1 list of 7 muscles (biceps and triceps apart)', rec.list.length === 7, rec.list.join(' | '));
   await p.shotEl('a1-recovery', '#bento-recovery');
 
   // I2 time I have
@@ -381,6 +381,40 @@ async function run(lang) {
   await p.shotEl('i1-calories', '#bento-ramadan');
   await ev(`document.getElementById('nav-profile').click(); document.getElementById('set-ramadan').click()`); await sleep(400);
   check(lang, 'I1 off again', await ev(`return JSON.parse(localStorage.getItem('gym_ramadan')).on === false`));
+
+  /* ---------- v11.7 stage 1 ---------- */
+  await ev(`document.getElementById('nav-workout').click()`);
+  // G5 search without hamza and in English
+  for (const [q, id] of [['اكتاف', 'ex_11'], ['bench', 'ex_1'], ['سكوت', 'ex_44']]) {
+    await ev(`const i=document.getElementById('exercise-search-input'); i.value=${JSON.stringify(q)}; i.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(300);
+    check(lang, `G5 search «${q}» finds ${id}`, await ev(`return [...document.getElementById('exercise-dropdown').options].some(o=>o.value===${JSON.stringify(id)})`));
+  }
+  await ev(`const i=document.getElementById('exercise-search-input'); i.value=''; i.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(300);
+  // G8 one toast at a time
+  await ev(`document.getElementById('nav-profile').click(); document.getElementById('set-haptics').click()`); await sleep(200);
+  await ev(`document.getElementById('set-haptics').click()`); await sleep(400);
+  check(lang, 'G8 one toast at a time', await ev(`return document.querySelectorAll('#toast-container > div').length`) === 1);
+  // G10 text size
+  await ev(`document.querySelector('[data-font-pick="large"]').click()`); await sleep(400);
+  check(lang, 'G10 large text', await ev(`return document.documentElement.dataset.font==='large' && getComputedStyle(document.documentElement).fontSize==='18px' && localStorage.getItem('gym_font')==='large'`));
+  await p.shotEl('g10-font', '#app-settings');
+  await ev(`document.querySelector('[data-font-pick="normal"]').click()`); await sleep(400);
+  check(lang, 'G10 back to normal', await ev(`return !document.documentElement.dataset.font`));
+  // unit remembered per exercise
+  await ev(`document.getElementById('nav-workout').click()`);
+  await select('ex_7');
+  await ev(`document.getElementById('unit-btn-lbs').click(); document.getElementById('input-weight').value='100'; document.getElementById('input-reps').value='10'; const s=document.getElementById('rest-timer-duration'); s.value='0'; s.dispatchEvent(new Event('change',{bubbles:true}))`); await sleep(300);
+  await ev(`document.getElementById('btn-save-weights').click()`); await sleep(700);
+  await select('ex_1');
+  const u1 = await ev(`return document.getElementById('unit-btn-kg').className.includes('bg-cyan-500') ? 'kg' : 'lbs'`);
+  await select('ex_7');
+  const u2 = await ev(`return document.getElementById('unit-btn-lbs').className.includes('bg-cyan-500') ? 'lbs' : 'kg'`);
+  check(lang, 'unit per exercise: bench stays kg, chest machine opens in lb', u1 === 'kg' && u2 === 'lbs', u1 + ' / ' + u2);
+  await ev(`document.getElementById('unit-btn-kg').click()`);
+  // G7 friendly dates in progress history
+  await ev(`document.getElementById('nav-progress').click()`); await sleep(400);
+  const hist = await ev(`return document.getElementById('exercise-progression-history-list').innerText`);
+  check(lang, 'G7 dates in words', !/\d{4}-\d{2}-\d{2}/.test(hist) && /(اليوم|Today|سبتمبر|September|أكتوبر|October)/.test(hist), hist.slice(0, 80));
 
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);

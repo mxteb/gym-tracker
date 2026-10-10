@@ -760,6 +760,16 @@ button.cal-day{min-height:0;padding:0}
 :root[data-theme="logbook"] .ex-guide{border-width:0 0 1px;border-radius:0}
 :root[data-theme="clock"] .program-target{font-family:var(--font);font-size:.9rem}
 
+/* ---------- v11.7 (المرحلة 1): رسالة وحدة تحت، وحجم الخط ---------- */
+#toast-container{top:auto!important;bottom:calc(140px + env(safe-area-inset-bottom))}
+#toast-container > *{border-inline-start:3px solid var(--ok)!important;text-align:start!important;font-size:.85rem!important}
+:root[data-font="large"]{font-size:18px}
+:root[data-font="xlarge"]{font-size:20px}
+.seg-picker{display:inline-grid;grid-auto-flow:column;flex:none;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.seg-picker button{min-height:40px;padding:0 .7rem;border:0;background:transparent;color:var(--ink-2);font-size:.8rem;font-weight:600}
+.seg-picker button + button{border-inline-start:1px solid var(--line)}
+.seg-picker button.on{background:var(--accent);color:var(--on-accent);font-weight:800}
+
 /* ===================== v11.1: English (من اليسار لليمين) =====================
  * العربي ما يتأثر: كل القواعد هنا على :root[dir="ltr"] بس.
  * مولّدة بقلب left/right للقواعد اللي فوق (styles.css ثم theme.css بنفس الترتيب)،

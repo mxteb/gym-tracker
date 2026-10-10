@@ -579,6 +579,12 @@
                 }
             }
 
+            if (ex.type === 'weights') {
+                // the unit this exercise was last logged in (a machine in lb, the bench in kg)
+                const lastLog = ex.unit ? null : state.logs.filter(l => l.exerciseId === ex.id && l.type === 'weights' && l.unit).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
+                const unit = ex.unit || lastLog?.unit;
+                if ((unit === 'kg' || unit === 'lbs') && unit !== activeWeightUnit) setWeightUnit(unit);
+            }
             if (ex.type === 'weights') formWeights.classList.remove('hidden');
             else if (ex.type === 'treadmill') formTm.classList.remove('hidden');
             else if (ex.type === 'bike_elliptical') formBe.classList.remove('hidden');
@@ -814,6 +820,11 @@
             Object.assign(logEntry,GymData.validateLog(logEntry));
             const record = GymCalc.newRecord(state.logs, logEntry);
             state.logs.push(logEntry);
+            // v11.7: the unit is remembered per exercise (one machine in lb, another in kg)
+            if (activeLoadMode !== 'timed' && ex.unit !== activeWeightUnit) {
+                const ei = state.exercises.findIndex(e => e.id === ex.id);
+                if (ei >= 0) state.exercises[ei] = { ...state.exercises[ei], unit: activeWeightUnit, editedAt: Date.now() };
+            }
             await dbSaveAll('logs', state.logs);
 
             renderTodayLogs();
@@ -1352,7 +1363,7 @@
                 const plate=plateColored&&window.GymVisual?GymVisual.heaviestPlateColor(row.weight,barKg):null;
                 const pct=maxW>0?Math.max(2,Math.round(row.weight/maxW*1000)/10):0;
                 const record=maxW>0&&row.weight===maxW;
-                return `<div class="glass-card p-3 text-xs progress-row${record?' is-record':''}"><div class="text-slate-400">${escapeHTML(row.date)}</div><strong>${Number(row.weight.toFixed(1))} ${unit}${mode==='timed'?'':` × ${row.reps} عدات`}</strong><div class="pbar" data-added aria-hidden="true"><i style="width:${pct}%;--plate:${plate?plate.color:'#8C8A84'}"></i></div><div class="text-cyan-300">${escapeHTML(delta)}</div>${mode==='timed'?'':`<small>أعلى 1RM تقديري: ${row.oneRm??'غير متاح'} | RIR: ${row.rir??'غير محدد'}</small>`}</div>`;
+                return `<div class="glass-card p-3 text-xs progress-row${record?' is-record':''}"><div class="text-slate-400">${escapeHTML(friendlyDate(row.date))}</div><strong>${Number(row.weight.toFixed(1))} ${unit}${mode==='timed'?'':` × ${row.reps} عدات`}</strong><div class="pbar" data-added aria-hidden="true"><i style="width:${pct}%;--plate:${plate?plate.color:'#8C8A84'}"></i></div><div class="text-cyan-300">${escapeHTML(delta)}</div>${mode==='timed'?'':`<small>أعلى 1RM تقديري: ${row.oneRm??'غير متاح'} | RIR: ${row.rir??'غير محدد'}</small>`}</div>`;
             }).reverse().join('') || 'لا توجد جولات عمل بهذه الطريقة';
             renderProgressHero(groups,mode,unit,plateColored,barKg);
         }
@@ -1362,14 +1373,14 @@
             const top=groups.reduce((a,b)=>b.weight>a.weight||(b.weight===a.weight&&b.reps>a.reps)?b:a);
             const fmt=n=>String(Math.round(n*10)/10);
             set('hero-top',fmt(top.weight));
-            set('hero-top-sub',mode==='timed'?'ثانية':`${unit} × ${top.reps} · ${top.date}`);
+            set('hero-top-sub',mode==='timed'?'ثانية':`${unit} × ${top.reps} · ${friendlyDate(top.date)}`);
             const sub=document.getElementById('hero-top-sub');
             const plate=plateColored&&window.GymVisual?GymVisual.heaviestPlateColor(top.weight,barKg):null;
             if(sub&&plate){const chip=document.createElement('span');chip.className='plate-chip';chip.style.background=plate.color;chip.textContent=fmt(plate.kg);chip.title='أكبر قرص';sub.prepend(chip);}
             const withRm=groups.filter(g=>Number.isFinite(g.oneRm));
             if(mode==='timed'||!withRm.length){set('hero-1rm','—');set('hero-1rm-sub',mode==='timed'?'ما ينطبق على التمرين الزمني':'يظهر حتى 15 عدة');return;}
             const best=withRm.reduce((a,b)=>b.oneRm>a.oneRm?b:a);
-            set('hero-1rm',fmt(best.oneRm));set('hero-1rm-sub',`${unit} · ${best.date}`);
+            set('hero-1rm',fmt(best.oneRm));set('hero-1rm-sub',`${unit} · ${friendlyDate(best.date)}`);
         }
         function updateProgressChart() {
             const selectedExId=document.getElementById('chart-exercise-select').value;
@@ -1548,7 +1559,7 @@
                 const el = document.createElement('div');
                 el.className = 'flex justify-between items-center text-xs py-1.5 px-2 bg-slate-900/60 rounded-lg border border-slate-800';
                 el.innerHTML = `
-                    <span class="text-slate-400 text-[10px]">${escapeHTML(item.date)}</span>
+                    <span class="text-slate-400 text-[10px]">${escapeHTML(friendlyDate(item.date))}</span>
                     <div class="space-x-3 space-x-reverse font-medium">
                         <span class="text-cyan-300">${escapeHTML(String(item.weight))} كجم</span>
                         ${item.waist ? `<span class="text-blue-300">خصر: ${escapeHTML(String(item.waist))} سم</span>` : ''}
@@ -1715,13 +1726,17 @@
             cancelBtn.focus();
         }
 
+        // v11.7 (G8): one message at a time: a new one takes the old one's place instead of stacking.
+        let toastTimer = null;
         function showToast(msg) {
+            if (!msg) return;
             const container = document.getElementById('toast-container');
+            clearTimeout(toastTimer);
             const toast = document.createElement('div');
             toast.className = 'glass p-3 rounded-xl border border-cyan-500/40 text-xs font-bold text-center text-cyan-200 shadow-2xl animate-fade-in pointer-events-auto';
-            toast.textContent = msg;
-            container.appendChild(toast);
-            setTimeout(() => { toast.remove(); }, 6500);
+            toast.textContent = String(msg);
+            container.replaceChildren(toast);
+            toastTimer = setTimeout(() => toast.remove(), 5000);
         }
 
         function switchTab(tabId) {
@@ -1830,6 +1845,7 @@
             document.getElementById('month-select')?.addEventListener('change', renderMonthReport);
             document.getElementById('btn-sides')?.addEventListener('click', () => runMutation(toggleSides));
             document.getElementById('plan-program')?.addEventListener('change', () => runMutation(chooseProgram));
+            document.getElementById('font-picker')?.addEventListener('click', e => { const b = e.target.closest('[data-font-pick]'); if (b) runMutation(() => saveFont(b.dataset.fontPick)); });
             document.getElementById('plan-days')?.addEventListener('click', e => { const b = e.target.closest('[data-day]'); if (b) runMutation(() => chooseProgramDay(Number(b.dataset.day))); });
             document.getElementById('set-ramadan')?.addEventListener('change', e => runMutation(() => saveRamadan(e.target.checked)));
             document.getElementById('ramadan-iftar')?.addEventListener('change', () => runMutation(saveIftar));
@@ -1940,6 +1956,20 @@
             if (feel) feel.checked = state.profile.effortMode === 'feel';
             renderFeel();
             renderRamadan();
+            renderFont();
+        }
+        // v11.7 (G10): حجم الخط
+        function renderFont() {
+            const f = ['large', 'xlarge'].includes(state.profile.fontScale) ? state.profile.fontScale : 'normal';
+            if (f === 'normal') delete document.documentElement.dataset.font; else document.documentElement.dataset.font = f;
+            try { localStorage.setItem('gym_font', f); } catch {}
+            document.querySelectorAll('[data-font-pick]').forEach(b => { const on = b.dataset.fontPick === f; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
+        }
+        async function saveFont(f) {
+            state.profile = { ...state.profile, fontScale: f };
+            await GymStorage.save(state);
+            renderFont();
+            showToast(f === 'normal' ? 'رجع الخط لحجمه العادي' : f === 'large' ? 'كبّرت الخط' : 'كبّرت الخط أكثر');
         }
         async function saveSetting(key, value) {
             state.profile = { ...state.profile, [key]: value };
@@ -2023,7 +2053,7 @@
                 : sg.mode === 'bodyweight' ? `وزن الجسم × ${sg.reps}`
                 : sg.mode === 'assisted' ? `مساعدة ${sg.weight} ${u} × ${sg.reps}`
                 : `${sg.weight} ${u} × ${sg.reps}`;
-            document.getElementById('sugg-reason').textContent = sg.reason;
+            document.getElementById('sugg-reason').textContent = sg.date ? sg.reason.replace(`(${sg.date})`, `(${friendlyDate(sg.date)})`) : sg.reason;
             box.dataset.kind = sg.kind;
         }
         function applySuggestion() {
@@ -2423,7 +2453,7 @@
             [null, 'circle', { cx: 60, cy: 18, r: 12 }], [null, 'rect', { x: 54, y: 30, width: 12, height: 8 }],
             ['shoulders', 'circle', { cx: 33, cy: 46, r: 10 }], ['shoulders', 'circle', { cx: 87, cy: 46, r: 10 }],
             ['chest', 'rect', { x: 40, y: 40, width: 19, height: 24, rx: 4 }], ['chest', 'rect', { x: 61, y: 40, width: 19, height: 24, rx: 4 }],
-            ['arms', 'rect', { x: 20, y: 58, width: 12, height: 30, rx: 5 }], ['arms', 'rect', { x: 88, y: 58, width: 12, height: 30, rx: 5 }],
+            ['biceps', 'rect', { x: 20, y: 58, width: 12, height: 30, rx: 5 }], ['biceps', 'rect', { x: 88, y: 58, width: 12, height: 30, rx: 5 }],
             [null, 'rect', { x: 16, y: 91, width: 11, height: 32, rx: 5 }], [null, 'rect', { x: 93, y: 91, width: 11, height: 32, rx: 5 }],
             ['abs', 'rect', { x: 46, y: 67, width: 28, height: 40, rx: 4 }],
             [null, 'rect', { x: 42, y: 109, width: 36, height: 14, rx: 4 }],
@@ -2434,7 +2464,7 @@
             [null, 'circle', { cx: 60, cy: 18, r: 12 }], [null, 'rect', { x: 54, y: 30, width: 12, height: 8 }],
             ['shoulders', 'circle', { cx: 33, cy: 46, r: 10 }], ['shoulders', 'circle', { cx: 87, cy: 46, r: 10 }],
             ['back', 'path', { d: 'M40 38 H80 L78 70 L68 104 H52 L42 70 Z' }],
-            ['arms', 'rect', { x: 20, y: 58, width: 12, height: 30, rx: 5 }], ['arms', 'rect', { x: 88, y: 58, width: 12, height: 30, rx: 5 }],
+            ['triceps', 'rect', { x: 20, y: 58, width: 12, height: 30, rx: 5 }], ['triceps', 'rect', { x: 88, y: 58, width: 12, height: 30, rx: 5 }],
             [null, 'rect', { x: 16, y: 91, width: 11, height: 32, rx: 5 }], [null, 'rect', { x: 93, y: 91, width: 11, height: 32, rx: 5 }],
             ['legs', 'rect', { x: 42, y: 106, width: 36, height: 20, rx: 6 }],
             ['legs', 'rect', { x: 41, y: 128, width: 18, height: 50, rx: 7 }], ['legs', 'rect', { x: 61, y: 128, width: 18, height: 50, rx: 7 }],
@@ -2721,7 +2751,7 @@
             const q = document.getElementById('plan-search').value.trim().toLowerCase();
             const list = document.getElementById('plan-list');
             list.replaceChildren();
-            const pool = state.exercises.filter(e => !e.archived && (!q || e.name.toLowerCase().includes(q)));
+            const pool = state.exercises.filter(e => !e.archived && (!q || GymData.matchScore(e.name, q) > 0));
             for (const cat of ['push', 'pull', 'legs', 'abs', 'cardio']) {
                 const items = pool.filter(e => e.category === cat).sort((a, b) => a.id.localeCompare(b.id, 'en', { numeric: true }));
                 if (!items.length) continue;
@@ -2801,6 +2831,15 @@
         const modeUnit = mode => mode === 'timed' ? 'ثانية' : mode === 'per_hand' ? 'كجم لكل يد' : 'كجم';
         const MODE_NOTE = { per_hand: 'لكل يد', bodyweight: 'وزن الجسم', added: 'وزن جسم + إضافي', assisted: 'بمساعدة', timed: 'بالوقت' };
         function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+        /** v11.7 (G7): «اليوم»، «أمس»، «الثلاثاء 29 سبتمبر»، ولسنة ثانية يضيف السنة. ملف Excel يبقى بالأرقام. */
+        function friendlyDate(d) {
+            if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) return d || '';
+            const today = getLocalDateString();
+            const y = new Date(today + 'T12:00:00'); y.setDate(y.getDate() - 1);
+            if (d === today) return 'اليوم';
+            if (d === `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`) return 'أمس';
+            return prettyDate(d) + (d.slice(0, 4) === today.slice(0, 4) ? '' : ' ' + d.slice(0, 4));
+        }
         function prettyDate(d) { const x = new Date(d + 'T12:00:00'); return Number.isFinite(x.getTime()) ? `${AR_DAYS[x.getDay()]} ${x.getDate()} ${AR_MONTHS[x.getMonth()]}` : d; }
 
         function renderRecords() {
@@ -2817,9 +2856,9 @@
                 const name = el('span', 'record-name', shortName(ex?.name || r.exerciseName || ''));
                 if (MODE_NOTE[r.mode]) name.appendChild(el('small', 'record-mode', ' · ' + MODE_NOTE[r.mode]));
                 const top = el('span', 'record-cell');
-                top.append(el('b', 'num-led', r.mode === 'timed' ? fmt1(r.top.value) + 'ث' : `${fmt1(r.top.value)}×${r.top.reps}`), el('small', '', r.top.date));
+                top.append(el('b', 'num-led', r.mode === 'timed' ? fmt1(r.top.value) + 'ث' : `${fmt1(r.top.value)}×${r.top.reps}`), el('small', '', friendlyDate(r.top.date)));
                 const rm = el('span', 'record-cell');
-                if (r.best1rm) rm.append(el('b', 'num-led led-red', fmt1(r.best1rm.value)), el('small', '', r.best1rm.date));
+                if (r.best1rm) rm.append(el('b', 'num-led led-red', fmt1(r.best1rm.value)), el('small', '', friendlyDate(r.best1rm.date)));
                 else rm.append(el('b', 'num-led', '—'), el('small', '', r.mode === 'timed' ? 'ما ينطبق' : '1RM حتى 15 عدة'));
                 row.append(name, top, rm);
                 box.appendChild(row);
@@ -2908,7 +2947,7 @@
                 const d = el('details', 'session-item');
                 const sum = el('summary');
                 const head = el('span', 'session-head');
-                head.append(el('b', '', it.name), el('small', '', prettyDate(it.date) + ' · ' + it.date));
+                head.append(el('b', '', it.name), el('small', '', friendlyDate(it.date)));
                 const stats = el('span', 'session-stats');
                 if (mins) stats.append(el('span', '', mins + ' د'));
                 stats.append(el('span', '', working.length + ' جولة'), el('span', '', tons.toFixed(2) + ' طن'));

@@ -211,9 +211,12 @@ test('v10.8: muscles, records, streaks, weekly sets', () => {
   // every default weight exercise has a muscle; cardio has none
   for (const e of ex) assert.equal(GymCalc.muscleOf(e) === null, e.type !== 'weights', e.id);
   assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_1')), 'chest');
-  assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_20')), 'arms');
+  assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_20')), 'triceps');
+  assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_38')), 'biceps');
   assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_36')), 'shoulders');
-  assert.equal(GymCalc.muscleOf({ id: 'c1', isCustom: true, type: 'weights', category: 'pull', name: 'Preacher curl' }), 'arms');
+  assert.equal(GymCalc.muscleOf({ id: 'c1', isCustom: true, type: 'weights', category: 'pull', name: 'Preacher curl' }), 'biceps');
+  assert.equal(GymCalc.muscleOf({ id: 'c2', isCustom: true, type: 'weights', category: 'push', name: 'تراي حبل' }), 'triceps');
+  assert.equal(GymCalc.muscleOf({ id: 'c3', isCustom: true, type: 'weights', category: 'push', name: 'تراي حبل', muscle: 'chest' }), 'chest');
   assert.equal(GymCalc.muscleOf({ id: 'c2', isCustom: true, type: 'weights', category: 'push', name: 'شي غريب' }), 'chest');
   assert.equal(GymCalc.muscleOf({ id: 'c3', isCustom: true, type: 'weights', category: 'legs', name: 'leg curl' }), 'legs');
   // records
@@ -330,7 +333,7 @@ test('I2 plan time: estimate from your sets and rest, trim isolation first, keep
   const est = plain(GymCalc.planMinutes(['ex_1', 'ex_44', 'ex_37'], ex, []));
   assert.equal(est.per.ex_1, Math.round(((3 + 1) * 130 + 60) / 6) / 10); // 3 sets + 1 warm-up, 90 s rest
   assert.equal(est.per.ex_44, Math.round(((3 + 1) * 220 + 60) / 6) / 10);
-  const isoId = ex.find(e => GymCalc.muscleOf(e) === 'arms').id;
+  const isoId = ex.find(e => GymCalc.muscleOf(e) === 'biceps').id;
   const plan = ['ex_1', isoId, 'ex_44', 'ex_3'];
   const t = plain(GymCalc.trimPlan(plan, ex, [], 25));
   assert.ok(t.drop.includes(isoId) && t.total <= 25, JSON.stringify(t));
@@ -385,4 +388,19 @@ test('D1 programs: every exercise exists, next day follows the last finished ses
   assert.equal(ctx.P.nextDay('5x5', ses.slice(0, 1)), 1);
   assert.equal(ctx.P.nextDay('ppl', ses), 0);
   assert.deepEqual(JSON.parse(JSON.stringify(ctx.P.target('5x5', 1, 'ex_70'))), { sets: 1, reps: '5' });
+});
+
+// ---------- v11.7 (المرحلة 1) ----------
+test('G5 smart search: hamza, taa marbuta, English, one typo', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const find = q => GymData.filterExercises(ex, { search: q }).map(e => e.id);
+  assert.ok(find('اكتاف').includes('ex_11'));
+  assert.ok(find('bench').includes('ex_1'));
+  assert.ok(find('Bench Press').includes('ex_1'));
+  assert.ok(find('مرجحه').includes('ex_38'));
+  assert.ok(find('سكوت').includes('ex_44'), 'one letter missing');
+  assert.ok(find('squat').includes('ex_44'));
+  assert.equal(find('zzzz').length, 0);
+  assert.ok(GymData.matchScore('بنش بريس مستوي بالبار', 'بنش') > GymData.matchScore('بنش بريس مستوي بالبار', 'بالبا'));
+  assert.equal(GymData.filterExercises(ex, { search: '' }).length, ex.filter(e => !e.archived).length);
 });

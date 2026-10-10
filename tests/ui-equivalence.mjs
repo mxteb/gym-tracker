@@ -12,7 +12,10 @@ const [oldUrl, newUrl, chrome = '/opt/pw-browsers/chromium-1194/chrome-linux/chr
 const HERE = path.dirname(new URL(import.meta.url).pathname);
 const VIS = `(root => { const c = root.cloneNode(true); c.querySelectorAll('[data-added],.hidden,[hidden],script,style,svg').forEach(e => e.remove()); c.querySelectorAll('#active-session-timer,#active-session-meta').forEach(e=>e.remove()); const parts=[]; const walk=n=>{ if(n.nodeType===3){parts.push(n.nodeValue);return;} if(n.nodeType!==1)return; const block=/^(DIV|P|SECTION|H1|H2|H3|LI|BUTTON|LABEL|OPTION|SUMMARY|STRONG|SMALL|SPAN)$/.test(n.tagName); if(n.tagName==='SELECT'){parts.push(' '+[...n.options].map(o=>o.textContent).join(' / ')+' ');return;} if(block)parts.push(' '); n.childNodes.forEach(walk); if(block)parts.push(' '); }; walk(c); return parts.join(''); })`;
 const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{2712}\u{2714}-\u{27BF}\u{2B00}-\u{2BFF}\u{23E9}-\u{23FA}\u{FE0F}\u{200D}]/gu;
-const norm = t => String(t).replace(EMOJI, '').replace(/\d\d:\d\d(:\d\d)?/g, '<time>').replace(/\s+/g, ' ').replace(/ \)/g, ')').trim();
+// v11.7 (G7): dates are shown as words now («اليوم»، «الثلاثاء 29 سبتمبر») where they were 2026-09-29. Both forms count as one <date>.
+const AR_DAY = '(?:الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|السبت)', AR_MON = '(?:يناير|فبراير|مارس|أبريل|مايو|يونيو|يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)';
+const DATE_RE = new RegExp(`(?:${AR_DAY} \\d{1,2} ${AR_MON}(?: \\d{4})?(?: · \\d{4}-\\d{2}-\\d{2})?|\\d{4}-\\d{2}-\\d{2}|\\d{2}-\\d{2}-\\d{4}|(?<![\\u0600-\\u06FF])(?:اليوم|أمس)(?![\\u0600-\\u06FF]))`, 'g');
+const norm = t => String(t).replace(EMOJI, '').replace(DATE_RE, '<date>').replace(/\d\d:\d\d(:\d\d)?/g, '<time>').replace(/\s+/g, ' ').replace(/ \)/g, ')').trim();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 function fixture() {

@@ -26,11 +26,39 @@ function oneRepMax(weight,reps) {
  const w=Number(weight),r=Number(reps);
  return !Number.isFinite(w)||w<=0||!Number.isInteger(r)||r<1||r>15?null:r===1?w:Math.round(w*(1+r/30)*10)/10;
 }
+/* v11.7 (G5) البحث الذكي: الهمزات والتاء المربوطة والياء والتشكيل ما تفرق، والإنجليزي ينفع، وغلطة حرف وحدة تعدي. */
+const AR_SYN={bench:'بنش',squat:'سكوات',deadlift:'ديدليفت',curl:'مرجحه',biceps:'بايسبس',triceps:'ترايسيبس',shoulder:'اكتاف',chest:'صدر',back:'ظهر',legs:'ارجل',leg:'ارجل',row:'سحب',press:'ضغط',fly:'تفتيح',plank:'بلانك',dips:'متوازي',lunge:'طعن',calf:'سمانه'};
+function normalizeText(s){
+ return String(s||'').toLowerCase().replace(/[\u064B-\u0652\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
+  .replace(/[()\-_/.,،]+/g,' ').replace(/\s+/g,' ').trim();
+}
+function oneEdit(a,b){
+ if(a===b)return true; if(Math.abs(a.length-b.length)>1)return false;
+ let i=0,j=0,edits=0;
+ while(i<a.length&&j<b.length){ if(a[i]===b[j]){i++;j++;continue;} if(++edits>1)return false; if(a.length>b.length)i++; else if(b.length>a.length)j++; else {i++;j++;} }
+ return edits+(a.length-i)+(b.length-j)<=1;
+}
+/** 0 = ما يطابق. أعلى = أقرب: الاسم كامل > بداية كلمة > جزء > كلمة إنجليزية مرادفة > غلطة حرف. */
+function matchScore(name,query){
+ const q=normalizeText(query); if(!q)return 1;
+ const n=normalizeText(name), words=n.split(' ');
+ if(n===q)return 100; if(n.startsWith(q))return 80;
+ const qw=q.split(' ').filter(Boolean);
+ const each=qw.map(t=>{
+  const syn=AR_SYN[t];
+  if(words.some(w=>w.startsWith(t)))return 60;
+  if(n.includes(t))return 40;
+  if(syn&&n.includes(syn))return 35;
+  if(t.length>=4&&words.some(w=>oneEdit(w.slice(0,t.length+1),t)||oneEdit(w,t)))return 20;
+  return 0;
+ });
+ return each.every(x=>x>0)?Math.min(...each):0;
+}
 function filterExercises(exercises,{presetIds=null,category='all',equipment:tool='all',search=''}={}) {
- const query=search.trim().toLowerCase();
+ const query=search.trim();
  return exercises.filter(e=>!e.archived&&(!presetIds||presetIds.includes(e.id))&&
   (category==='all'||(category==='upper'?['push','pull'].includes(e.category):category==='lower'?['legs','abs'].includes(e.category):e.category===category))&&
-  (tool==='all'||e.equip===tool)&&(!query||e.name.toLowerCase().includes(query)))
+  (tool==='all'||e.equip===tool)&&(!query||matchScore(e.name,query)>0))
   .sort((a,b)=>presetIds?presetIds.indexOf(a.id)-presetIds.indexOf(b.id):a.id.localeCompare(b.id,'en',{numeric:true}));
 }
 const date=x=>{str(x,'التاريخ',10);if(!/^\d{4}-\d{2}-\d{2}$/.test(x)||!Number.isFinite(Date.parse(x))||new Date(x+'T00:00:00Z').toISOString().slice(0,10)!==x)fail('التاريخ');return x;};
@@ -48,6 +76,7 @@ function profile(x) {
  if(x.program!==undefined)out.program=x.program===''?'':choice(x.program,['ppl','ul','5x5','gzclp','fb3'],'البرنامج');
  if(x.ramadan!==undefined){if(typeof x.ramadan!=='boolean')fail('وضع رمضان');out.ramadan=x.ramadan;}
  if(x.iftar!==undefined){if(typeof x.iftar!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(x.iftar))fail('وقت الفطور');out.iftar=x.iftar;}
+ if(x.fontScale!==undefined)out.fontScale=choice(x.fontScale,['normal','large','xlarge'],'حجم الخط');
  if(x.effortMode!==undefined)out.effortMode=choice(x.effortMode,['rir','feel'],'طريقة تقييم الجولة');
  for(const key of ['keepAwake','haptics'])if(x[key]!==undefined){if(typeof x[key]!=='boolean')fail('الإعدادات');out[key]=x[key];}
  if(x.updatedAt!==undefined)out.updatedAt=num(x.updatedAt,'وقت البروفايل');
@@ -55,7 +84,7 @@ function profile(x) {
  return out;
 }
 function array(x,max,label){if(!Array.isArray(x)||x.length>max)fail(label);return x;}
-function exercise(x){object(x,'تمرين');return {id:id(x.id),name:str(x.name,'اسم التمرين'),category:choice(x.category,categories,'الفئة'),type:choice(x.type,types,'نوع التمرين'),equip:choice(x.equip||'machine',equipment,'الأداة'),...(x.machine?{machine:choice(x.machine,machines,'الجهاز')}:{}),...optionalNumber(x,'machineKg',0,500),...(x.rig?{rig:choice(x.rig,['pin','plates'],'نوع الجهاز')}:{}),...optionalNumber(x,'barKg',0,50),...(x.note?{note:str(x.note,'ملاحظة التمرين',200)}:{}),...optionalNumber(x,'restSec',0,600),...(x.sidesOn===true?{sidesOn:true}:{}),isCustom:!!x.isCustom,archived:!!x.archived,...optionalNumber(x,'editedAt',0,1e15)};}
+function exercise(x){object(x,'تمرين');return {id:id(x.id),name:str(x.name,'اسم التمرين'),category:choice(x.category,categories,'الفئة'),type:choice(x.type,types,'نوع التمرين'),equip:choice(x.equip||'machine',equipment,'الأداة'),...(x.machine?{machine:choice(x.machine,machines,'الجهاز')}:{}),...optionalNumber(x,'machineKg',0,500),...(x.rig?{rig:choice(x.rig,['pin','plates'],'نوع الجهاز')}:{}),...optionalNumber(x,'barKg',0,50),...(x.note?{note:str(x.note,'ملاحظة التمرين',200)}:{}),...optionalNumber(x,'restSec',0,600),...(x.sidesOn===true?{sidesOn:true}:{}),...(x.muscle?{muscle:choice(x.muscle,['chest','back','shoulders','biceps','triceps','legs','abs'],'العضلة')}:{}),...(x.unit?{unit:choice(x.unit,['kg','lbs'],'وحدة التمرين')}:{}),...(x.muscleConfirmed===true?{muscleConfirmed:true}:{}),isCustom:!!x.isCustom,archived:!!x.archived,...optionalNumber(x,'editedAt',0,1e15)};}
 function log(x, allowLegacyFractions=false){
  object(x,'جولة');const out={id:id(x.id),date:date(x.date),exerciseId:id(x.exerciseId),exerciseName:str(x.exerciseName,'اسم التمرين'),type:choice(x.type,types,'نوع الجولة'),category:choice(x.category,categories,'الفئة')};
  for(const key of ['timestamp','editedAt'])Object.assign(out,optionalNumber(x,key,0,1e15));
@@ -134,5 +163,5 @@ function merge(current,incoming) {
  return next;
 }
 function validateLog(value) {return recalculateWeightLog(log(value));}
-window.GymData={validate,merge,recalculateWeightLog,validateLog,inputNumber,oneRepMax,filterExercises};
+window.GymData={validate,merge,recalculateWeightLog,validateLog,inputNumber,oneRepMax,filterExercises,normalizeText,matchScore};
 })();

@@ -236,12 +236,15 @@ function suggestNext(logs, exerciseId, opts = {}) {
 /** العضلة الأساسية: من الجدول للتمارين الجاهزة، ومن الاسم للمخصصة، وإلا من الفئة. null للكارديو. */
 function muscleOf(ex) {
  if (!ex || ex.type !== 'weights' || ex.category === 'cardio') return null;
+ // v11.7: العضلة اللي اخترتها بنفسك تغلب أي تخمين
+ if (ex.muscle && GymCatalog.MUSCLE_NAMES[ex.muscle]) return ex.muscle;
  const known = GymCatalog.MUSCLE_BY_ID[ex.id];
  if (known && !ex.isCustom) return known;
  if (ex.category === 'legs') return 'legs';
  if (ex.category === 'abs') return 'abs';
  const n = String(ex.name || '').toLowerCase();
- if (/(ترايسيبس|تراي|بايسبس|بايسيبس|باي |مرجحة|هامر|مطرقة|tricep|bicep|curl|pushdown|kickback|skull)/i.test(n)) return 'arms';
+ if (/(ترايسيبس|ترايسبس|تراي|pushdown|kickback|skull|tricep)/i.test(n)) return 'triceps';
+ if (/(بايسبس|بايسيبس|باي |مرجحة|هامر|مطرقة|bicep|curl)/i.test(n)) return 'biceps';
  if (/(أكتاف|اكتاف|كتف|رفرفة|shoulder|lateral|delt|overhead|arnold|face ?pull|military)/i.test(n)) return 'shoulders';
  if (/(صدر|بنش|متوازي|bench|chest|fly|flye|pec|dip|crossover)/i.test(n)) return 'chest';
  if (/(ظهر|سحب|عقلة|عقله|ترابيس|row|pull|lat|shrug|deadlift)/i.test(n)) return 'back';
@@ -304,7 +307,7 @@ function weeklyMuscleSets(logs, exercises, startDate) {
  const end = new Date(startDate + 'T12:00:00'); end.setDate(end.getDate() + 7);
  const endStr = isoDate(end);
  const byId = new Map(exercises.map(e => [e.id, e]));
- const out = { chest: 0, back: 0, shoulders: 0, arms: 0, legs: 0, abs: 0 };
+ const out = Object.fromEntries(Object.keys(GymCatalog.MUSCLE_NAMES).map(k => [k, 0]));
  for (const l of logs) {
   if (l.type !== 'weights' || l.setType === 'warmup' || !l.date || l.date < startDate || l.date >= endStr) continue;
   const m = muscleOf(byId.get(l.exerciseId) || { id: l.exerciseId, name: l.exerciseName, category: l.category, type: 'weights' });
@@ -501,7 +504,7 @@ function planMinutes(ids, exercises, logs) {
 function trimPlan(ids, exercises, logs, minutes) {
  const { per } = planMinutes(ids, exercises, logs);
  const keep = ids.filter(id => per[id] != null);
- const order = keep.map((id, i) => ({ id, i, iso: ['arms', 'abs'].includes(muscleOf(exercises.find(e => e.id === id))) ? 1 : 0 }))
+ const order = keep.map((id, i) => ({ id, i, iso: ['biceps', 'triceps', 'abs'].includes(muscleOf(exercises.find(e => e.id === id))) ? 1 : 0 }))
   .sort((a, b) => b.iso - a.iso || b.i - a.i);
  const drop = [];
  let total = keep.reduce((s, id) => s + per[id], 0);

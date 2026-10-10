@@ -14,6 +14,7 @@
  */
 // the saved theme before the page paints (was an inline script; the page now runs only its own files)
 try { var gtTheme = localStorage.getItem('gym_theme'); if (gtTheme && gtTheme !== 'plates') document.documentElement.dataset.theme = gtTheme; } catch (e) {}
+try { var gtFont = localStorage.getItem('gym_font'); if (gtFont === 'large' || gtFont === 'xlarge') document.documentElement.dataset.font = gtFont; } catch (e) {}
 
 (function () {
   'use strict';

@@ -388,7 +388,7 @@
     'صدر': 'Chest',
     'ظهر': 'Back',
     'أكتاف': 'Shoulders',
-    'ذراع': 'Arms',
+    'ذراع': 'Arms', 'باي': 'Biceps', 'تراي': 'Triceps',
     'بطن': 'Core',
     'أجهزة': 'Machines',
     'بار': 'Barbell',
@@ -660,7 +660,7 @@
     [/^المدة: (.+?) دقيقة \| الجولات الفعلية: (.+?) \| الحجم الفعلي: (.+?) طن \| متوسط RIR: (.+?) \| أعلى 1RM مسجل بين التمارين: (.+?) \| السعرات التقديرية للحديد والكارديو: (.+)$/,
       function (d, s, v, r, o, c) { return 'Duration: ' + d + ' min | Working sets: ' + s + ' | Working volume: ' + v + ' t | Average RIR: ' + t(r) + ' | Best 1RM: ' + t(o) + ' | Estimated calories (weights and cardio): ' + t(c); }],
     [/^آخر جلسة \((.+?)\): (.+?) × ([\d.,]+)(?: وRIR (\S+)| (بدون) RIR)\.(?: (.*))?$/, function (d, w, r, rir, none, rest) {
-      return 'Last session (' + d + '): ' + t(w) + ' × ' + r + (none ? ', no RIR' : ' at RIR ' + rir) + '.' + (rest ? ' ' + t(rest) : ''); }],
+      return 'Last session (' + t(d) + '): ' + t(w) + ' × ' + r + (none ? ', no RIR' : ' at RIR ' + rir) + '.' + (rest ? ' ' + t(rest) : ''); }],
     [/^آخر مرة ([\d.,]+) ثانية(?: وRIR (\S+))?\.(?: (.*))?$/, function (s, rir, rest) { return 'Last time ' + s + ' s' + (rir ? ' at RIR ' + rir : '') + '.' + (rest ? ' ' + t(rest) : ''); }],
     [/^باقي فيك (عدة|عدتين): ثبّت الوزن وزد عدة\.$/, function (a) { return (a === 'عدة' ? 'You had 1 rep left' : 'You had 2 reps left') + ': keep the weight and add a rep.'; }],
     [/^وصلت ([\d.,]+) عدة( وفيك عدات باقية)?\. زد (.+?) وارجع ([\d.,]+) عدات وابنِ عليها\.$/, function (r, left, a, b) { return 'You reached ' + r + ' reps' + (left ? ' with reps to spare' : '') + '. Add ' + t(a) + ', drop back to ' + b + ' reps and build up again.'; }],
@@ -853,5 +853,15 @@
     [/^في رمضان: قسّم سعرات المحافظة \(([\d.,]+)\) على وجبتين: الفطور حوالي ([\d.,]+) سعرة، والسحور حوالي ([\d.,]+)\. خل البروتين في الوجبتين\.$/, function (a, b, c) { return 'In Ramadan: split your maintenance calories (' + a + ') over two meals: about ' + b + ' kcal at iftar and ' + c + ' at suhoor. Keep protein in both.'; }],
     [/^(.+?) ((?:\d+ جولات|جولة وحدة) × [\d-]+ (?:عدات|ثانية))$/, function (n, x) { return t(n) + ' ' + t(x); }]
   ]);
+
+  /* ---------- v11.7 (stage 1) ---------- */
+  GymI18n.add({
+    'اليوم': 'Today', 'أمس': 'Yesterday',
+    '({0} ما له قرص)': '({0} with no plate)', '{0} ({1} ما له قرص)': '{0} ({1} with no plate)',
+    'حجم الخط': 'Text size', 'يكبّر كل النصوص والأرقام': 'Makes all text and numbers bigger',
+    'عادي': 'Normal', 'كبير': 'Large', 'أكبر': 'Larger',
+    'رجع الخط لحجمه العادي': 'Text back to normal size', 'كبّرت الخط': 'Text is larger', 'كبّرت الخط أكثر': 'Text is even larger',
+    'العضلة': 'Muscle', 'وحدة التمرين': 'Exercise unit'
+  });
 
 })();

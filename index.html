@@ -694,6 +694,13 @@
 
             <div id="app-settings" class="glass-card p-4 space-y-2" data-added>
                 <h3 class="font-bold text-xs text-slate-300">أثناء الجلسة</h3>
+                <div class="setting-row" data-added><span><strong>حجم الخط</strong><small>يكبّر كل النصوص والأرقام</small></span>
+                    <div id="font-picker" class="seg-picker" role="radiogroup" aria-label="حجم الخط">
+                        <button type="button" role="radio" data-font-pick="normal">عادي</button>
+                        <button type="button" role="radio" data-font-pick="large">كبير</button>
+                        <button type="button" role="radio" data-font-pick="xlarge">أكبر</button>
+                    </div>
+                </div>
                 <label class="setting-row"><span><strong>خلّ الشاشة شغالة</strong><small>ما تنطفي بين الجولات، وترجع طبيعية لما تنهي الجلسة</small></span><input type="checkbox" id="set-keep-awake" role="switch"></label>
                 <label class="setting-row"><span><strong>قيّم الجولة بسهل / مناسب / صعب</strong><small>ثلاث أزرار بدل أرقام RIR، والتطبيق يحوّلها لـ RIR من ورا</small></span><input type="checkbox" id="set-feel" role="switch"></label>
                 <label class="setting-row" data-added><span><strong>وضع رمضان</strong><small>الاقتراح يثبّت الوزن بدل ما يزيده، تذكير بالماء بعد الفطور، والسعرات تنقسم على الفطور والسحور</small></span><input type="checkbox" id="set-ramadan" role="switch"></label>
