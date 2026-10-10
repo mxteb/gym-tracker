@@ -398,7 +398,9 @@
                     const txt = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
                     document.getElementById('active-session-timer').textContent = txt;
                     const nt = document.getElementById('nav-workout-timer');
-                    if (nt) { nt.textContent = txt; nt.hidden = false; }
+                    // على التبويب: دقائق:ثواني، وبعد ساعة س:دد:ثث، وجلسة منسية من أكثر من يوم «+24h» بدل رقم طويل
+                    if (nt) { const h = Math.floor(seconds / 3600), m = Math.floor(seconds / 60) % 60, sec = seconds % 60, p2 = n => String(n).padStart(2, '0');
+                        nt.textContent = h >= 24 ? '+24h' : h ? `${h}:${p2(m)}:${p2(sec)}` : txt; nt.hidden = false; }
                 };
                 tick();
                 sessionTimerInterval = setInterval(tick, 1000);

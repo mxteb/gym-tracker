@@ -404,3 +404,14 @@ test('G5 smart search: hamza, taa marbuta, English, one typo', () => {
   assert.ok(GymData.matchScore('بنش بريس مستوي بالبار', 'بنش') > GymData.matchScore('بنش بريس مستوي بالبار', 'بالبا'));
   assert.equal(GymData.filterExercises(ex, { search: '' }).length, ex.filter(e => !e.archived).length);
 });
+
+test('v11.8: a session left open counts only up to 10 minutes after its last set', () => {
+  const start = Date.parse('2026-10-01T18:00:00');
+  const logs = [{ type: 'weights', setType: 'normal', rir: 2, timestamp: start + 50 * 60000 }];
+  const normal = GymCalc.weightSessionCalories({ startedAt: start, endedAt: start + 60 * 60000, bodyWeightKgAtStart: 80 }, logs);
+  const forgotten = GymCalc.weightSessionCalories({ startedAt: start, endedAt: start + 20 * 3600000, bodyWeightKgAtStart: 80 }, logs);
+  assert.equal(normal, 4 * 80 * 1);           // 60 minutes, MET 5 − 1
+  assert.equal(forgotten, normal);            // 20 hours open, still 60 minutes (last set + 10)
+  const short = GymCalc.weightSessionCalories({ startedAt: start, endedAt: start + 30 * 60000, bodyWeightKgAtStart: 80 }, [{ ...logs[0], timestamp: start + 25 * 60000 }]);
+  assert.equal(short, 4 * 80 * 0.5);          // finished on time: unchanged
+});
