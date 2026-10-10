@@ -1929,7 +1929,7 @@
             document.getElementById('gender-toggle-btn').addEventListener('click', () => runMutation(toggleGender));
             document.getElementById('btn-save-profile').addEventListener('click', () => runMutation(saveProfile));
             document.getElementById('btn-save-body').addEventListener('click', () => runMutation(saveProfile));
-            document.getElementById('btn-new-exercise').addEventListener('click', () => { addFromWorkout = true; switchTab('exercises'); const n = document.getElementById('new-ex-name'); if (n) n.focus(); });
+            document.getElementById('btn-new-exercise').addEventListener('click', () => { addFromWorkout = true; switchTab('exercises'); scrollTo(0, 0); });
             document.getElementById('exercises-back').addEventListener('click', () => switchTab('workout'));
             document.getElementById('btn-export-json').addEventListener('click', exportDataJSON);
             document.getElementById('btn-download-safety-backup').addEventListener('click', downloadSafetyBackup);
