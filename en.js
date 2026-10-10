@@ -864,4 +864,22 @@
     'العضلة': 'Muscle', 'وحدة التمرين': 'Exercise unit'
   });
 
+  /* ---------- v11.8 (stage 2) ---------- */
+  GymI18n.add({
+    'جسمك': 'Body', '؟': '?', '+ تمرين جديد': '+ New exercise', 'رجوع للتمرين': 'Back to workout', 'رجوع': 'Back',
+    'وش يعني طريقة تسجيل الحمل': 'What load mode means', 'وش يعني RIR': 'What RIR means', 'وش يعني أنواع الجولات': 'What the set types mean',
+    'وش يعني مستوى القوة': 'What strength level means', 'وش يعني سعرات المحافظة': 'What maintenance calories mean',
+    'وش يعني مؤشر كتلة الجسم': 'What BMI means', 'وش يعني مؤشر العضل': 'What FFMI means', 'وش يعني الاستشفاء': 'What recovery means',
+    'قياساتك وصورك وسعراتك. الأرقام تقديرية، وليست تشخيصًا طبيًا': 'Your measurements, photos and calories. Numbers are estimates, not a medical diagnosis',
+    'سجّل قياس اليوم': "Log today's measurements", 'احفظ القياس': 'Save measurements',
+    'وش يعني': 'What it means',
+    'كل كلمة تشوفها في التطبيق، بشرح بسيط ومثال من الجيم. زر «؟» في أي صفحة يفتحك هنا على الكلمة نفسها.': 'Every term you see in the app, explained simply with a gym example. The "?" button on any page opens this page on that term.',
+    'ابحث: RIR، الحجم، BMI…': 'Search: RIR, volume, BMI…', 'ابحث في المصطلحات': 'Search the terms',
+    'حسابك': 'Your account', 'البيانات الشخصية': 'Personal details', 'احفظ بياناتك': 'Save your details',
+    'التطبيق': 'App', 'وش يعني (شرح المصطلحات)': 'What it means (glossary)', 'بياناتك': 'Your data',
+    'منطقة الحذف': 'Delete zone', 'الحذف ما يرجع. صدّر نسخة قبله.': 'Deleting cannot be undone. Export a backup first.'
+  }, [
+    [/^انضاف «(.+)» واخترناه لك$/, function (n) { return 'Added "' + n + '" and selected it for you'; }]
+  ]);
+
 })();

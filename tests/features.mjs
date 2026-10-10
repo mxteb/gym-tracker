@@ -416,6 +416,51 @@ async function run(lang) {
   const hist = await ev(`return document.getElementById('exercise-progression-history-list').innerText`);
   check(lang, 'G7 dates in words', !/\d{4}-\d{2}-\d{2}/.test(hist) && /(اليوم|Today|سبتمبر|September|أكتوبر|October)/.test(hist), hist.slice(0, 80));
 
+  /* ---------- v11.8 stage 2 ---------- */
+  // G1 four tabs; the add-exercise page is reached from the workout screen and returns to it
+  check(lang, 'G1 four visible tabs', await ev(`return [...document.querySelectorAll('#floating-dock .dock-item')].filter(b=>b.getClientRects().length).length`) === 4);
+  await ev(`document.getElementById('nav-workout').click(); document.getElementById('btn-new-exercise').click()`); await sleep(300);
+  check(lang, 'G1 + New exercise opens the add page', await ev(`return !document.getElementById('screen-exercises').classList.contains('hidden')`));
+  await ev(`const n=document.getElementById('new-ex-name'); n.value='Stage2 Curl Test'; n.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(300);
+  await ev(`document.getElementById('add-ex-submit-btn').click()`); await sleep(800);
+  check(lang, 'G1 after adding: back on workout with the new exercise picked', await ev(`const d=document.getElementById('exercise-dropdown'); return !document.getElementById('screen-workout').classList.contains('hidden') && d.options[d.selectedIndex]?.textContent.includes('Stage2 Curl Test')`));
+  await ev(`document.getElementById('nav-exercises').click()`); await sleep(200);
+  await ev(`document.getElementById('exercises-back').click()`); await sleep(200);
+  check(lang, 'G1 back button returns to workout', await ev(`return !document.getElementById('screen-workout').classList.contains('hidden')`));
+  // body tab saves measurements
+  await ev(`document.getElementById('nav-bento').click(); document.getElementById('prof-weight').value='81.5'`);
+  await ev(`document.getElementById('btn-save-body').click()`); await sleep(700);
+  const bodyToast = await ev(`return document.getElementById('toast-container').innerText`);
+  check(lang, 'body tab saves the weight', /حفظ القياسات|saved/i.test(bodyToast), bodyToast);
+  await ev(`document.getElementById('nav-profile').click(); document.getElementById('prof-weight').value='999'`); await sleep(200);
+  await ev(`document.getElementById('btn-save-profile').click()`); await sleep(600);
+  check(lang, 'wrong weight saved from profile: opens Body on the field with the error', await ev(`return !document.getElementById('screen-bento').classList.contains('hidden') && document.getElementById('prof-weight').getAttribute('aria-invalid')==='true'`));
+  await ev(`document.getElementById('prof-weight').value='81.5'`);
+  check(lang, 'strength and month report moved to progress', await ev(`return !!document.querySelector('#screen-progress #bento-strength') && !!document.querySelector('#screen-progress #bento-month')`));
+  check(lang, 'delete buttons sit in the delete zone', await ev(`return !!document.querySelector('.danger-card #btn-wipe-all-data') && !!document.querySelector('.danger-card #btn-clear-today-logs')`));
+  // G6 glossary
+  await ev(`document.getElementById('nav-workout').click()`); await sleep(200);
+  await ev(`document.querySelector('[data-help="rir"]').click()`); await sleep(400);
+  check(lang, 'G6 «?» opens the glossary on RIR', await ev(`return !document.getElementById('screen-help').classList.contains('hidden') && document.getElementById('help-rir').open`));
+  const helpTxt = await ev(`return document.getElementById('help-list').innerText`);
+  check(lang, 'G6 glossary in the page language', lang === 'en' ? !/[؀-ۿ]/.test(helpTxt) : /[؀-ۿ]/.test(helpTxt), helpTxt.slice(0, 60));
+  check(lang, 'G6 all 17 terms listed', await ev(`return document.querySelectorAll('#help-list .help-item').length`) === 17);
+  await p.shot('help');
+  await ev(`const s=document.getElementById('help-search'); s.value='BMI'; s.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(200);
+  check(lang, 'G6 search narrows the list', await ev(`const n=document.querySelectorAll('#help-list .help-item').length; return n>=1 && n<5`));
+  await ev(`document.getElementById('help-back').click()`); await sleep(300);
+  check(lang, 'G6 back returns to where you were', await ev(`return !document.getElementById('screen-workout').classList.contains('hidden')`));
+  // G12 session timer on the workout tab
+  await ev(`document.getElementById('btn-start-session').click()`); await sleep(1300);
+  await ev(`document.getElementById('nav-progress').click()`); await sleep(300);
+  check(lang, 'G12 timer shows on the workout tab', await ev(`const t=document.getElementById('nav-workout-timer'); return !t.hidden && /[0-9][0-9]:[0-9][0-9]/.test(t.textContent)`));
+  await p.shotEl('g12-dock', '#floating-dock');
+  await ev(`document.getElementById('nav-workout').click(); document.getElementById('btn-finish-session').click()`); await sleep(400);
+  await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(800);
+  await ev(`const m=document.getElementById('custom-modal'); if(!m.classList.contains('hidden')) document.getElementById('modal-cancel-btn').click()`); await sleep(300);
+  check(lang, 'G12 timer hides after the session ends', await ev(`return document.getElementById('nav-workout-timer').hidden`));
+  for (const tab of ['profile', 'bento']) { await ev(`document.getElementById('nav-${tab}').click(); scrollTo(0,0)`); await sleep(300); await p.shot('tab-' + tab); }
+
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);
   await select(ex);

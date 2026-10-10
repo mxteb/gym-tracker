@@ -67,6 +67,17 @@ async function snapshot(page, data) {
     // the order of the progress exercise list follows storage order (it changes after any reload), so compare it sorted
     out[tab] = norm(await page.ev(`const s=document.getElementById('screen-${tab}'); const c=s.cloneNode(true); c.classList.remove('hidden'); const sel=c.querySelector('#chart-exercise-select'); if(sel){ const o=[...sel.options].sort((a,b)=>a.textContent.localeCompare(b.textContent)); sel.replaceChildren(...o); } return ${VIS}(c)`));
   }
+  // v11.8: sections move between progress, body and profile on purpose, so those three tabs are compared
+  // together as a sorted word list (same text, any place). workout and exercises stay exact.
+  // intentional renames (old text → new text), applied to the old app only so a rename is not a diff
+  const RENAMED = [
+    ['تحليل القياسات والسعرات التقديرية', 'جسمك'],
+    ['تحليل رياضي تقريبي يعتمد على مدخلات بروفايلك، وليس تشخيصًا طبيًا', 'قياساتك وصورك وسعراتك. الأرقام تقديرية، وليست تشخيصًا طبيًا'],
+    ['البيانات الشخصية والقياسات', 'البيانات الشخصية'],
+    ['حفظ القياسات وتحليل النتائج', 'احفظ بياناتك'],
+  ];
+  out['progress+bento+profile (words)'] = ['progress', 'bento', 'profile'].map(t => RENAMED.reduce((x, [o, n]) => x.split(o).join(n), out[t])).join(' ').split(/\s+/).filter(Boolean).sort().join(' ');
+  for (const t of ['progress', 'bento', 'profile']) delete out[t];
   // every progress chart: each exercise × each load mode × both metrics
   await page.ev(`document.getElementById('nav-progress').click();`);
   const exIds = await page.ev(`return [...document.querySelectorAll('#chart-exercise-select option')].map(o=>o.value)`);
@@ -99,6 +110,7 @@ for (const k of new Set([...Object.keys(A), ...Object.keys(B)])) {
   if (A[k] !== B[k]) {
     diffs++;
     const x = A[k] || '', y = B[k] || ''; let i = 0; while (i < x.length && x[i] === y[i]) i++;
+    if (k.endsWith('(words)')) { const ca = {}; for (const w of x.split(' ')) ca[w] = (ca[w] || 0) + 1; for (const w of y.split(' ')) ca[w] = (ca[w] || 0) - 1; console.log('   words only in old: ' + Object.entries(ca).filter(e => e[1] > 0).map(e => e[0] + '×' + e[1]).join(' ') + '\n   words only in new: ' + Object.entries(ca).filter(e => e[1] < 0).map(e => e[0] + '×' + -e[1]).join(' ')); }
     console.log(`✘ ${k}\n   old: …${x.slice(Math.max(0, i - 60), i + 80)}\n   new: …${y.slice(Math.max(0, i - 60), i + 80)}`);
   }
 }

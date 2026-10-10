@@ -152,6 +152,7 @@
                     <div class="flex items-center justify-between">
                         <label for="exercise-dropdown" class="text-xs font-bold text-cyan-300">اختر التمرين:</label>
                         <button type="button" id="btn-busy" class="busy-btn hidden" data-added>الجهاز مشغول؟</button>
+                        <button type="button" id="btn-new-exercise" class="new-ex-btn" data-added>+ تمرين جديد</button>
                         <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">أوزان حرة (بار)</span>
                     </div>
 
@@ -235,7 +236,7 @@
                         </div>
 
                         <div class="space-y-1.5">
-                            <label for="load-mode-select" class="block text-xs font-medium text-slate-300">طريقة تسجيل الحمل:</label>
+                            <div class="help-line"><label for="load-mode-select" class="block text-xs font-medium text-slate-300">طريقة تسجيل الحمل:</label><button type="button" class="help-q" data-help="loadmode" aria-label="وش يعني طريقة تسجيل الحمل" data-added>؟</button></div>
                             <select id="load-mode-select" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
                                 <option value="external">وزن خارجي / بار / جهاز</option>
                                 <option value="per_hand">دمبل — الوزن لكل يد</option>
@@ -307,7 +308,7 @@
                         </div>
 
                         <div class="space-y-1.5 pt-1">
-                            <label id="rir-label" class="block text-xs font-medium text-slate-300">مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):</label>
+                            <div class="help-line"><label id="rir-label" class="block text-xs font-medium text-slate-300">مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):</label><button type="button" class="help-q" data-help="rir" aria-label="وش يعني RIR" data-added>؟</button></div>
                             <p id="feel-label" class="block text-xs font-medium text-slate-300 hidden" data-added>كيف كانت الجولة؟</p>
                             <div id="feel-container" class="feel-grid hidden" data-added>
                                 <button type="button" data-feel-rir="3" aria-pressed="false" class="feel-btn"><strong>سهل</strong><small>كان فيني 3 عدات أو أكثر</small></button>
@@ -337,7 +338,7 @@
                         </div>
 
                         <div class="space-y-1.5 pt-1">
-                            <label class="block text-xs font-medium text-slate-300">نوع الجولة:</label>
+                            <div class="help-line"><label class="block text-xs font-medium text-slate-300">نوع الجولة:</label><button type="button" class="help-q" data-help="settype" aria-label="وش يعني أنواع الجولات" data-added>؟</button></div>
                             <div id="set-type-container" class="grid grid-cols-4 gap-1.5 text-xs font-bold">
                                 <button type="button" data-settype="normal" aria-pressed="true" class="set-type-btn active py-2 px-1 rounded-xl border text-center">عادية</button>
                                 <button type="button" data-settype="warmup" aria-pressed="false" class="set-type-btn py-2 px-1 rounded-xl border text-center">تسخين</button>
@@ -450,6 +451,7 @@
 
         <!-- ADD EXERCISE SCREEN -->
         <section id="screen-exercises" class="screen-content space-y-5 hidden animate-fade-in">
+            <button type="button" id="exercises-back" class="back-btn" data-added>رجوع للتمرين</button>
             <div class="glass-card p-5 space-y-4 border border-cyan-500/30">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center text-sm font-bold">
@@ -581,6 +583,19 @@
                 <button type="button" data-jump="sessions-card">سجل الجلسات</button>
             </nav>
 
+<div class="space-y-2.5" data-added>
+                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1"><span>مستوى قوتك مقابل وزنك</span><button type="button" class="help-q" data-help="strength" aria-label="وش يعني مستوى القوة" data-added>؟</button></h3>
+                <div id="bento-strength" class="glass-card p-4 strength-card"></div>
+            </div>
+
+            <div class="space-y-2.5" data-added>
+                <div class="month-head px-1">
+                    <h3 class="font-bold text-xs text-slate-300">تقرير الشهر</h3>
+                    <select id="month-select" class="glass-input month-select" aria-label="اختر الشهر"></select>
+                </div>
+                <div id="bento-month" class="glass-card p-4 month-card"></div>
+            </div>
+
             <section id="records-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="records-title">
                 <h3 id="records-title" class="sec-title">أرقامك القياسية</h3>
                 <p class="field-hint">أعلى حمل وأعلى 1RM تقديري لكل تمرين (بدون التسخين). اضغط على تمرين عشان تشوف رسمه.</p>
@@ -622,17 +637,74 @@
                 <div>
                     <h2 class="font-black text-base text-cyan-300 flex items-center gap-2">
                         <i class="fa-solid fa-chart-pie text-cyan-400"></i>
-                        <span>تحليل القياسات والسعرات التقديرية</span>
+                        <span>جسمك</span>
                     </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">تحليل رياضي تقريبي يعتمد على مدخلات بروفايلك، وليس تشخيصًا طبيًا</p>
+                    <p class="text-xs text-slate-400 mt-0.5">قياساتك وصورك وسعراتك. الأرقام تقديرية، وليست تشخيصًا طبيًا</p>
                 </div>
             </div>
+
+            <div class="glass-card p-4 space-y-4" id="measure-card">
+                <h3 class="font-bold text-sm text-cyan-300" data-added>سجّل قياس اليوم</h3>
+                <div class="grid grid-cols-2 gap-3">
+
+                    <div>
+                        <label for="prof-weight" class="block text-[11px] text-slate-400 mb-1">الوزن (كجم):</label>
+                        <input type="number" id="prof-weight" min="20" max="350" step="0.1" placeholder="مثال: 75" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+
+                    <div>
+                        <label for="prof-waist" class="block text-[11px] text-slate-400 mb-1">محيط الخصر (سم):</label>
+                        <input type="number" id="prof-waist" min="30" max="250" step="0.5" placeholder="مثال: 80" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800 space-y-2">
+                    <div class="text-[11px] font-bold text-slate-400">نسب الجسم المتقدمة (اختياري):</div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label for="prof-fat" class="block text-[10px] text-slate-500 mb-1">الدهون %:</label>
+                            <input type="number" id="prof-fat" min="1" max="70" step="0.1" placeholder="18" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                        </div>
+                        <div>
+                            <label for="prof-muscle" class="block text-[10px] text-slate-500 mb-1">العضلات %:</label>
+                            <input type="number" id="prof-muscle" min="1" max="80" step="0.1" placeholder="42" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                        </div>
+                        <div>
+                            <label for="prof-water" class="block text-[10px] text-slate-500 mb-1">السوائل %:</label>
+                            <input type="number" id="prof-water" min="1" max="90" step="0.1" placeholder="55" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
+                        </div>
+                    </div>
+                </div>
+                <button type="button" id="btn-save-body" data-added class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md">احفظ القياس</button>
+            </div>
+
+            <section id="body-chart-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="body-chart-title">
+                <h3 id="body-chart-title" class="font-bold text-xs text-slate-300">وزنك وخصرك مع الوقت</h3>
+                <div id="body-chart" class="body-chart"></div>
+                <p class="field-hint">من سجل القياسات اللي تحفظه هنا (قياس واحد لكل يوم).</p>
+            </section>
+
+            <div class="glass-card p-4 space-y-3">
+                <h3 class="font-bold text-xs text-slate-300">سجل تغيرات الوزن والقياسات</h3>
+                <div id="profile-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
+            </div>
+
+            <section id="photos-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="photos-title">
+                <div class="photos-head">
+                    <h3 id="photos-title" class="font-bold text-xs text-slate-300">صور التقدم</h3>
+                    <label class="photo-add"><input type="file" id="photo-input" accept="image/*" class="sr-only">+ أضف صورة</label>
+                </div>
+                <p class="field-hint">خاصة: تنحفظ في جوالك بس، وما تدخل في النسخة الاحتياطية ولا تطلع لأي مكان. اضغط صورتين عشان تقارنهم.</p>
+                <p id="photo-empty" class="photo-empty">ما فيه صور للحين. صوّر نفسك كل أسبوعين بنفس المكان، وبتشوف الفرق اللي الميزان ما يبينه.</p>
+                <div id="photo-view" class="photo-view hidden"></div>
+                <div id="photo-grid" class="photo-grid"></div>
+            </section>
 
             <div class="space-y-2.5">
                 <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
                     <i class="fa-solid fa-bullseye text-amber-400"></i>
                     <span>أهداف السعرات اليومية المطلوبة</span>
-                </h3>
+                <button type="button" class="help-q" data-help="tdee" aria-label="وش يعني سعرات المحافظة" data-added>؟</button></h3>
                 <div id="bento-calories-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3"></div>
                 <p id="bento-ramadan" class="ramadan-split hidden" data-added></p>
             </div>
@@ -641,7 +713,7 @@
                 <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
                     <i class="fa-solid fa-weight-scale text-blue-400"></i>
                     <span>مؤشرات تناسب الوزن والخصر</span>
-                </h3>
+                <button type="button" class="help-q" data-help="bmi" aria-label="وش يعني مؤشر كتلة الجسم" data-added>؟</button></h3>
                 <div id="bento-health-container" class="grid grid-cols-2 gap-3"></div>
             </div>
 
@@ -649,31 +721,76 @@
                 <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
                     <i class="fa-solid fa-child-reaching text-teal-400"></i>
                     <span>مؤشرات تركيب الجسم والعضلات</span>
-                </h3>
+                <button type="button" class="help-q" data-help="ffmi" aria-label="وش يعني مؤشر العضل" data-added>؟</button></h3>
                 <div id="bento-comp-container" class="grid grid-cols-2 gap-3"></div>
             </div>
 
             <div class="space-y-2.5" data-added>
-                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1"><span>استشفاء العضلات: وش جاهز اليوم</span></h3>
+                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1"><span>استشفاء العضلات: وش جاهز اليوم</span><button type="button" class="help-q" data-help="recovery" aria-label="وش يعني الاستشفاء" data-added>؟</button></h3>
                 <div id="bento-recovery" class="glass-card p-4 recovery-card"></div>
             </div>
 
-            <div class="space-y-2.5" data-added>
-                <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1"><span>مستوى قوتك مقابل وزنك</span></h3>
-                <div id="bento-strength" class="glass-card p-4 strength-card"></div>
-            </div>
 
-            <div class="space-y-2.5" data-added>
-                <div class="month-head px-1">
-                    <h3 class="font-bold text-xs text-slate-300">تقرير الشهر</h3>
-                    <select id="month-select" class="glass-input month-select" aria-label="اختر الشهر"></select>
-                </div>
-                <div id="bento-month" class="glass-card p-4 month-card"></div>
-            </div>
+
+
+        </section>
+
+        <!-- HELP SCREEN (G6) -->
+        <section id="screen-help" class="screen-content space-y-4 hidden animate-fade-in" data-added>
+            <button type="button" id="help-back" class="back-btn">رجوع</button>
+            <h2 id="help-title" class="page-title" tabindex="-1">وش يعني</h2>
+            <p class="field-hint">كل كلمة تشوفها في التطبيق، بشرح بسيط ومثال من الجيم. زر «؟» في أي صفحة يفتحك هنا على الكلمة نفسها.</p>
+            <input type="search" id="help-search" maxlength="40" class="w-full glass-input px-3 py-2.5 rounded-xl text-sm" placeholder="ابحث: RIR، الحجم، BMI…" aria-label="ابحث في المصطلحات">
+            <div id="help-list" class="help-list" translate="no"></div>
         </section>
 
         <!-- PROFILE SCREEN -->
         <section id="screen-profile" class="screen-content space-y-5 hidden animate-fade-in">
+            <h2 class="page-title" data-added>البروفايل</h2>
+            <h3 class="sec-head" data-added>حسابك</h3>
+            <button id="gender-toggle-btn" class="w-full p-3.5 rounded-2xl glass-card border border-cyan-500/40 text-center transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
+                <span class="text-lg" id="gender-icon"></span>
+                <span class="font-bold text-sm text-cyan-300" id="gender-text">هل أنت رجل؟</span>
+            </button>
+
+            <div class="glass-card p-4 space-y-4" id="account-card">
+                <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-2">
+                    <span>البيانات الشخصية</span>
+                </h3>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="col-span-2">
+                        <label for="prof-name" class="block text-[11px] text-slate-400 mb-1">الاسم الأول:</label>
+                        <input type="text" id="prof-name" maxlength="40" placeholder="مثال: أحمد" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+
+                    <div>
+                        <label for="prof-height" class="block text-[11px] text-slate-400 mb-1">الطول (سم):</label>
+                        <input type="number" id="prof-height" min="50" max="250" step="1" placeholder="مثال: 175" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+
+                    <div>
+                        <label for="prof-age" class="block text-[11px] text-slate-400 mb-1">العمر:</label>
+                        <input type="number" id="prof-age" min="5" max="120" step="1" placeholder="مثال: 25" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
+                    </div>
+                    <div class="col-span-2">
+                        <label for="prof-activity" class="block text-[11px] text-slate-400 mb-1">مستوى النشاط اليومي:</label>
+                        <select id="prof-activity" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                            <option value="1.2">قليل الحركة</option>
+                            <option value="1.375">نشاط خفيف — 1 إلى 3 أيام</option>
+                            <option value="1.55">نشاط متوسط — 3 إلى 5 أيام</option>
+                            <option value="1.725">نشاط عالٍ — 6 إلى 7 أيام</option>
+                            <option value="1.9">نشاط عالٍ جدًا / عمل بدني</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="btn-save-profile" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>احفظ بياناتك</span>
+                </button>
+            </div>
+
+            <h3 class="sec-head" data-added>التطبيق</h3>
             <section id="theme-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="theme-title">
                 <h3 id="theme-title" class="font-bold text-xs text-slate-300">شكل التطبيق</h3>
                 <div id="theme-picker" class="theme-picker" role="radiogroup" aria-labelledby="theme-title">
@@ -708,100 +825,12 @@
                 <label class="setting-row"><span><strong>اهتزاز خفيف مع الأزرار</strong><small>لما تحفظ جولة أو تضغط + و −، ولما تخلص الراحة</small></span><input type="checkbox" id="set-haptics" role="switch"></label>
             </div>
 
-            <button id="gender-toggle-btn" class="w-full p-3.5 rounded-2xl glass-card border border-cyan-500/40 text-center transition-all duration-300 flex items-center justify-center gap-3 shadow-lg">
-                <span class="text-lg" id="gender-icon"></span>
-                <span class="font-bold text-sm text-cyan-300" id="gender-text">هل أنت رجل؟</span>
-            </button>
-
-            <div class="glass-card p-4 space-y-4">
-                <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-2">
-                    <i class="fa-solid fa-user-gear"></i>
-                    <span>البيانات الشخصية والقياسات</span>
-                </h3>
-
-                <div class="grid grid-cols-2 gap-3">
-                    <div class="col-span-2">
-                        <label for="prof-name" class="block text-[11px] text-slate-400 mb-1">الاسم الأول:</label>
-                        <input type="text" id="prof-name" maxlength="40" placeholder="مثال: أحمد" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-
-                    <div>
-                        <label for="prof-weight" class="block text-[11px] text-slate-400 mb-1">الوزن (كجم):</label>
-                        <input type="number" id="prof-weight" min="20" max="350" step="0.1" placeholder="مثال: 75" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-
-                    <div>
-                        <label for="prof-height" class="block text-[11px] text-slate-400 mb-1">الطول (سم):</label>
-                        <input type="number" id="prof-height" min="50" max="250" step="1" placeholder="مثال: 175" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-
-                    <div>
-                        <label for="prof-waist" class="block text-[11px] text-slate-400 mb-1">محيط الخصر (سم):</label>
-                        <input type="number" id="prof-waist" min="30" max="250" step="0.5" placeholder="مثال: 80" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-
-                    <div>
-                        <label for="prof-age" class="block text-[11px] text-slate-400 mb-1">العمر:</label>
-                        <input type="number" id="prof-age" min="5" max="120" step="1" placeholder="مثال: 25" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
-                    </div>
-                    <div class="col-span-2">
-                        <label for="prof-activity" class="block text-[11px] text-slate-400 mb-1">مستوى النشاط اليومي:</label>
-                        <select id="prof-activity" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
-                            <option value="1.2">قليل الحركة</option>
-                            <option value="1.375">نشاط خفيف — 1 إلى 3 أيام</option>
-                            <option value="1.55">نشاط متوسط — 3 إلى 5 أيام</option>
-                            <option value="1.725">نشاط عالٍ — 6 إلى 7 أيام</option>
-                            <option value="1.9">نشاط عالٍ جدًا / عمل بدني</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="pt-2 border-t border-slate-800 space-y-2">
-                    <div class="text-[11px] font-bold text-slate-400">نسب الجسم المتقدمة (اختياري):</div>
-                    <div class="grid grid-cols-3 gap-2">
-                        <div>
-                            <label for="prof-fat" class="block text-[10px] text-slate-500 mb-1">الدهون %:</label>
-                            <input type="number" id="prof-fat" min="1" max="70" step="0.1" placeholder="18" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
-                        </div>
-                        <div>
-                            <label for="prof-muscle" class="block text-[10px] text-slate-500 mb-1">العضلات %:</label>
-                            <input type="number" id="prof-muscle" min="1" max="80" step="0.1" placeholder="42" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
-                        </div>
-                        <div>
-                            <label for="prof-water" class="block text-[10px] text-slate-500 mb-1">السوائل %:</label>
-                            <input type="number" id="prof-water" min="1" max="90" step="0.1" placeholder="55" class="w-full glass-input px-2 py-1.5 rounded-lg text-xs">
-                        </div>
-                    </div>
-                </div>
-
-                <button id="btn-save-profile" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    <span>حفظ القياسات وتحليل النتائج</span>
-                </button>
+            <div class="link-row" data-added>
+                <button type="button" class="link-btn" data-help="rir">وش يعني (شرح المصطلحات)</button>
+                <a id="privacy-link" class="link-btn" href="./privacy.html">سياسة الخصوصية</a>
             </div>
 
-            <div class="glass-card p-4 space-y-3">
-                <h3 class="font-bold text-xs text-slate-300">سجل تغيرات الوزن والقياسات</h3>
-                <div id="profile-history-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
-            </div>
-
-            <section id="body-chart-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="body-chart-title">
-                <h3 id="body-chart-title" class="font-bold text-xs text-slate-300">وزنك وخصرك مع الوقت</h3>
-                <div id="body-chart" class="body-chart"></div>
-                <p class="field-hint">من سجل القياسات اللي تحفظه هنا (قياس واحد لكل يوم).</p>
-            </section>
-
-            <section id="photos-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="photos-title">
-                <div class="photos-head">
-                    <h3 id="photos-title" class="font-bold text-xs text-slate-300">صور التقدم</h3>
-                    <label class="photo-add"><input type="file" id="photo-input" accept="image/*" class="sr-only">+ أضف صورة</label>
-                </div>
-                <p class="field-hint">خاصة: تنحفظ في جوالك بس، وما تدخل في النسخة الاحتياطية ولا تطلع لأي مكان. اضغط صورتين عشان تقارنهم.</p>
-                <p id="photo-empty" class="photo-empty">ما فيه صور للحين. صوّر نفسك كل أسبوعين بنفس المكان، وبتشوف الفرق اللي الميزان ما يبينه.</p>
-                <div id="photo-view" class="photo-view hidden"></div>
-                <div id="photo-grid" class="photo-grid"></div>
-            </section>
-
+            <h3 class="sec-head" data-added>بياناتك</h3>
             <div class="glass-card p-4 space-y-3">
                 <h3 class="font-bold text-xs text-slate-300">إدارة البيانات وقواعد البيانات IndexedDB</h3>
                 
@@ -828,6 +857,12 @@
                 <hr class="border-slate-800">
 
                 <div class="space-y-2">
+                </div>
+            </div>
+
+            <div class="glass-card p-4 space-y-3 danger-card">
+                <h3 class="font-bold text-xs danger-title" data-added>منطقة الحذف</h3>
+                <p class="field-hint" data-added>الحذف ما يرجع. صدّر نسخة قبله.</p>
                     <button id="btn-clear-today-logs" class="w-full py-2 px-3 rounded-xl bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 font-semibold text-xs border border-amber-800/50 flex items-center justify-center gap-2">
                         <i class="fa-solid fa-trash-arrow-up"></i>
                         <span>مسح سجلات جولات اليوم فقط</span>
@@ -837,8 +872,25 @@
                         <i class="fa-solid fa-triangle-exclamation"></i>
                         <span>مسح جميع بيانات التطبيق</span>
                     </button>
-                </div>
             </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         </section>
     </main>
 
@@ -846,7 +898,7 @@
         <summary>عن الأرقام التقديرية وحفظ البيانات</summary>
         <p>السعرات و1RM ومؤشرات الجسم تقديرات إرشادية. 1RM يظهر حتى 15 عدة فقط. البيانات محفوظة على هذا الجهاز؛ صدّر نسخة JSON للاحتفاظ بها خارج المتصفح.</p>
         <p class="field-hint">الإصدار 11.0</p>
-        <p class="field-hint" data-added><a id="privacy-link" href="./privacy.html">سياسة الخصوصية</a></p>
+
     </details>
 
     <nav id="floating-dock" class="floating-dock px-2 py-2">
@@ -854,8 +906,9 @@
             <button data-tab="workout" id="nav-workout" class="dock-item active flex flex-col items-center gap-1">
                 <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg>
                 <span class="text-[10px] font-bold">التمرين</span>
+                <span id="nav-workout-timer" class="dock-timer" hidden data-added translate="no"></span>
             </button>
-            <button data-tab="exercises" id="nav-exercises" class="dock-item flex flex-col items-center gap-1">
+            <button data-tab="exercises" id="nav-exercises" class="dock-item flex flex-col items-center gap-1" hidden aria-hidden="true" tabindex="-1">
                 <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
                 <span class="text-[10px] font-bold">إضافة تمرين</span>
             </button>
@@ -864,8 +917,8 @@
                 <span class="text-[10px] font-bold">التطور</span>
             </button>
             <button data-tab="bento" id="nav-bento" class="dock-item flex flex-col items-center gap-1">
-                <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M12 3v9h9M12 3a9 9 0 1 0 9 9"/></svg>
-                <span class="text-[10px] font-bold">التحليل</span>
+                <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><circle cx="12" cy="5" r="2.5"/><path d="M12 8v7M7 11h10M9 22l3-7 3 7"/></svg>
+                <span class="text-[10px] font-bold">جسمك</span>
             </button>
             <button data-tab="profile" id="nav-profile" class="dock-item flex flex-col items-center gap-1">
                 <svg class="dock-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
@@ -999,6 +1052,7 @@
     <script src="./visual.js" defer></script>
     <script src="./app.js" defer></script>
     <script src="./photos.js" defer></script>
+    <script src="./help.js" defer></script>
 
 </body>
 </html>

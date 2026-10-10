@@ -38,6 +38,9 @@
         function showFieldError(error) {
             const input=document.getElementById(error.fieldId);
             if(!input)return;
+            // v11.8: الحقل ممكن يكون في تبويب ثاني (الوزن في «جسمك» والطول في البروفايل): نفتح تبويبه عشان يشوف الخطأ
+            const scr=input.closest('.screen-content');
+            if(scr&&scr.classList.contains('hidden'))switchTab(scr.id.replace('screen-',''));
             for(let parent=input.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
             input.setAttribute('aria-invalid','true');
             let hint=document.getElementById(input.id+'-error');
@@ -392,7 +395,10 @@
                 clearInterval(sessionTimerInterval);
                 const tick = () => {
                     const seconds = Math.max(0, Math.floor((Date.now() - session.startedAt) / 1000));
-                    document.getElementById('active-session-timer').textContent = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+                    const txt = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+                    document.getElementById('active-session-timer').textContent = txt;
+                    const nt = document.getElementById('nav-workout-timer');
+                    if (nt) { nt.textContent = txt; nt.hidden = false; }
                 };
                 tick();
                 sessionTimerInterval = setInterval(tick, 1000);
@@ -404,6 +410,7 @@
                 finishBtn.disabled = true;
                 clearInterval(sessionTimerInterval);
                 document.getElementById('active-session-timer').textContent = '00:00';
+                const nt = document.getElementById('nav-workout-timer'); if (nt) nt.hidden = true;
             }
             renderSessionPlan(); renderSuggestion(); renderRepeatButton(); applyKeepAwake();
         }
@@ -1207,7 +1214,13 @@
             document.getElementById('new-ex-status').classList.add('hidden');
             renderManageExercisesList();
             renderExerciseDropdown();
-            showToast('تمت إضافة التمرين المخصص بنجاح!');
+            if (addFromWorkout) {
+                // جاي من صفحة التمرين: نرجعه ونختار التمرين الجديد له على طول
+                switchTab('workout');
+                const dd = document.getElementById('exercise-dropdown');
+                if (dd && [...dd.options].some(o => o.value === newEx.id)) { dd.value = newEx.id; onExerciseSelectChange(); }
+                showToast(`انضاف «${name}» واخترناه لك`);
+            } else showToast('تمت إضافة التمرين المخصص بنجاح!');
         }
 
         function deleteExercise(exId) {
@@ -1739,7 +1752,9 @@
             toastTimer = setTimeout(() => toast.remove(), 5000);
         }
 
+        let addFromWorkout = false;
         function switchTab(tabId) {
+            if (tabId !== 'exercises') addFromWorkout = false;
             document.querySelectorAll('.screen-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.dock-item').forEach(el => el.classList.remove('active'));
 
@@ -1911,6 +1926,9 @@
 
             document.getElementById('gender-toggle-btn').addEventListener('click', () => runMutation(toggleGender));
             document.getElementById('btn-save-profile').addEventListener('click', () => runMutation(saveProfile));
+            document.getElementById('btn-save-body').addEventListener('click', () => runMutation(saveProfile));
+            document.getElementById('btn-new-exercise').addEventListener('click', () => { addFromWorkout = true; switchTab('exercises'); const n = document.getElementById('new-ex-name'); if (n) n.focus(); });
+            document.getElementById('exercises-back').addEventListener('click', () => switchTab('workout'));
             document.getElementById('btn-export-json').addEventListener('click', exportDataJSON);
             document.getElementById('btn-download-safety-backup').addEventListener('click', downloadSafetyBackup);
             document.getElementById('import-file-input').addEventListener('change', importDataJSON);
