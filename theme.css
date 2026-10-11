@@ -381,11 +381,12 @@ header h1{border:0!important;background:none!important;padding:0}
 #cal-streak{color:var(--led-amber)}
 .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
 .cal-dow{text-align:center;font-size:.7rem;color:var(--mute);padding-bottom:2px}
-.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:var(--r-sm);font-family:var(--ledf);font-size:1.05rem;color:var(--dim);background:var(--bg-deep);border:1px solid transparent;min-height:0}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:var(--r-sm);font-family:var(--ledf);font-size:1.05rem;color:var(--mute);background:var(--bg-deep);border:1px solid transparent;min-height:0}
 button.cal-day{min-height:0;padding:0}
 .cal-day.on{background:var(--primary);color:var(--on-primary);font-weight:800}
 .cal-day.today{border-color:var(--ink);color:var(--ink)}
-.cal-day.future{opacity:.35}
+.cal-day.on.today{color:var(--on-primary)}
+.cal-day.future{opacity:.55}
 /* العضلات */
 .muscle-bars{display:flex;flex-direction:column;gap:.45rem}
 .muscle-row{display:grid;grid-template-columns:3.2rem 1fr 2rem;gap:.6rem;align-items:center}
@@ -538,7 +539,7 @@ button.cal-day{min-height:0;padding:0}
 .cb-led.off{color:#2A2A2A}
 .cb-btns{display:flex;gap:6px;margin-top:.35rem}
 .cb-btns button{flex:1;min-height:48px;border:1px solid var(--line);background:transparent;color:var(--ink);font-family:var(--ledf);font-size:1.35rem;font-weight:700;display:flex;align-items:center;justify-content:center}
-.cb-btns button:disabled{opacity:.35}
+.cb-btns button:disabled{opacity:.5}
 .cb-btns button:active{background:#1A1A1A}
 /* أزرار ضخمة: الرقم بالوسط والأزرار على الجنبين، تقدر تضغطها بإبهام وحدة */
 :root[data-theme="clock"] #form-weights .flex.items-center.justify-between.gap-1\.5,:root[data-theme="clock"] #form-treadmill .flex.items-center.justify-between.gap-1\.5,:root[data-theme="clock"] #form-bike-elliptical .flex.items-center.justify-between.gap-1\.5{display:grid;grid-template-columns:5.6rem minmax(0,1fr) 5.6rem;gap:.5rem;align-items:stretch}
@@ -1105,10 +1106,10 @@ body.sheet-open{overflow:hidden}
 .log-set{display:grid;grid-template-columns:1.6rem minmax(0,1fr) auto auto;gap:6px;align-items:center;min-height:48px;padding:0 .4rem 0 .9rem;border-bottom:1px solid var(--line-soft);background:var(--panel)}
 [dir="rtl"] .log-set{padding:0 .9rem 0 .4rem}
 .log-set:last-child{border-bottom:0}
-.log-set.warm{opacity:.55}
+.log-set.warm{opacity:.8}
 .log-n{font-size:.75rem;color:var(--mute)}
 .log-set-txt{font-size:.9rem;font-weight:700;color:var(--ink);min-width:0;overflow-wrap:anywhere}
-.log-tag{font-size:.68rem;color:var(--mute);white-space:nowrap}
+.log-tag{font-size:.72rem;color:var(--mute);white-space:nowrap}
 .log-tag.pr{font-weight:800;padding:2px 7px;border-radius:3px;background:var(--accent);color:var(--on-accent)}
 .log-act{display:flex}
 .log-act-btn{width:40px;height:44px;border:0;background:transparent;color:var(--mute)}
@@ -1116,7 +1117,7 @@ body.sheet-open{overflow:hidden}
 .log-act-btn .fa-solid::before{content:none}
 .swipe-hint.help-line{align-items:flex-start}
 .log-set-cell{display:flex;flex-direction:column;gap:1px;min-width:0}
-.log-1rm{font-size:.65rem;color:var(--mute)}
+.log-1rm{font-size:.72rem;color:var(--mute)}
 
 /* WebView قديم (أندرويد 11 بدون تحديث، Chrome 83): ما يدعم gap في flex ولا inset */
 @supports not (inset:0){
@@ -1141,7 +1142,7 @@ body.sheet-open{overflow:hidden}
 .prog-chip small{font-size:.7rem;color:var(--mute)}
 .prog-chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:800}
 .prog-chip[aria-pressed="true"] small{color:var(--on-accent);opacity:.8}
-.prog-chip:disabled{opacity:.45}
+.prog-chip:disabled{opacity:.6}
 .prog-bar{display:flex;justify-content:space-between;align-items:center;font-size:.75rem;color:var(--mute)}
 .prog-sort{min-height:40px;padding:0 .6rem;border:1px solid var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink-2);font-size:.75rem;font-weight:600}
 .prog-items{display:grid;border-top:1px solid var(--line)}
