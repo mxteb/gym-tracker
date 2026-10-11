@@ -85,10 +85,11 @@ async function snapshot(page, data) {
   out['progress+bento+profile (words)'] = ['progress', 'bento', 'profile'].map(t => RENAMED.reduce((x, [o, n]) => x.split(o).join(n), out[t])).join(' ').split(/\s+/).filter(Boolean).sort().join(' ');
   for (const t of ['progress', 'bento', 'profile']) delete out[t];
   // every progress chart: each exercise × each load mode × both metrics
+  // (v12.3 draws record points bigger with class="pr"; that mark is new, so it is folded back before comparing)
   await page.ev(`document.getElementById('nav-progress').click();`);
   const exIds = await page.ev(`return [...document.querySelectorAll('#chart-exercise-select option')].map(o=>o.value)`);
   for (const ex of exIds) for (const mode of ['external', 'per_hand', 'bodyweight', 'added', 'assisted', 'timed']) for (const metric of ['actual', '1rm']) {
-    out[`chart ${ex} ${mode} ${metric}`] = await page.ev(`const s=document.getElementById('chart-exercise-select'); s.value='${ex}'; s.dispatchEvent(new Event('change',{bubbles:true})); const m=document.getElementById('progress-load-mode'); m.value='${mode}'; m.dispatchEvent(new Event('change',{bubbles:true})); document.getElementById('chart-mode-${metric === 'actual' ? 'actual' : '1rm'}').click(); return document.getElementById('progressChart').innerHTML + '||' + ${VIS}(document.getElementById('exercise-progression-history-list'))`).then(norm);
+    out[`chart ${ex} ${mode} ${metric}`] = await page.ev(`const s=document.getElementById('chart-exercise-select'); s.value='${ex}'; s.dispatchEvent(new Event('change',{bubbles:true})); const m=document.getElementById('progress-load-mode'); m.value='${mode}'; m.dispatchEvent(new Event('change',{bubbles:true})); document.getElementById('chart-mode-${metric === 'actual' ? 'actual' : '1rm'}').click(); return document.getElementById('progressChart').innerHTML.replace(/ r="6"( fill="#fff") class="pr"/g, ' r="4"$1') + '||' + ${VIS}(document.getElementById('exercise-progression-history-list'))`).then(norm);
   }
   // each exercise in the workout form: last performance, load mode, live 1RM
   await page.ev(`document.getElementById('nav-workout').click();`);

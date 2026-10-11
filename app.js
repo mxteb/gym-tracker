@@ -1190,6 +1190,7 @@
             for (const p of newExPick.main) states[p] = 'tired';
             document.getElementById('new-ex-figs').replaceChildren(bodySvg(BODY_FRONT, states, 'من قدام', { mini: true }), bodySvg(BODY_BACK, states, 'من ورا', { mini: true }));
             const names = a => a.map(partName).join(listSep());
+            if (typeof renderAddExtras === 'function') queueMicrotask(renderAddExtras);
             const sum = document.getElementById('new-ex-muscle-sum');
             sum.textContent = newExPick.main.length
                 ? `أساسية (أحمر): ${names(newExPick.main)}` + (newExPick.help.length ? ` · مساعدة (أصفر): ${names(newExPick.help)}` : '')
@@ -1318,7 +1319,10 @@
             if (!container || !countEl) return;
 
             const customExercises = state.exercises.filter(e => e.isCustom === true && !e.archived);
-            countEl.textContent = `${customExercises.length} تمارِينَ`;
+            // G9: العدد بالعربي الصحيح (النص القديم يبقى مخفي)
+            const nC = customExercises.length;
+            countEl.replaceChildren(el('span', 'v12-hide', `${nC} تمارِينَ`), el('span', '', nC === 1 ? 'تمرين واحد' : nC === 2 ? 'تمرينين' : `${nC} تمارين`));
+            countEl.lastChild.dataset.added = '';
 
             if (customExercises.length === 0) {
                 container.innerHTML = `<div class="text-center py-6 text-slate-500 text-xs glass-card border border-slate-800">لم تقم بإضافة أي تمارين مخصصة بعد. قم بإضافة تمارينك الخاصة أعلاه!</div>`;
@@ -1327,18 +1331,46 @@
 
             const fragment = document.createDocumentFragment();
             customExercises.forEach(ex => {
+                if (typeof libMatches === 'function' && !libMatches(ex)) return;
                 const item = document.createElement('div');
                 item.className = 'glass-card p-3 flex justify-between items-center border border-slate-800 hover:border-slate-700 transition';
                 item.innerHTML = `
                     <div>
                         <div class="font-bold text-xs text-slate-200">${escapeHTML(ex.name)}</div>
-                        <div class="text-[10px] text-slate-400 mt-0.5">الفئة: ${escapeHTML(CATEGORY_NAMES[ex.category] || '')} | الأداة: ${escapeHTML(EQUIP_NAMES[ex.equip] || 'مخصص')}</div>
+                        <div class="text-[10px] text-slate-400 mt-0.5 v12-hide">الفئة: ${escapeHTML(CATEGORY_NAMES[ex.category] || '')} | الأداة: ${escapeHTML(EQUIP_NAMES[ex.equip] || 'مخصص')}</div>
+                        <div class="picker-meta" data-added>${escapeHTML([EQUIP_NAMES[ex.equip] || '', 'أضفته أنت'].filter(Boolean).join(' · '))}</div>
                         ${(() => { const p = GymCalc.partsOf(ex); return p ? `<div class="custom-ex-muscles" data-added><span translate="no">${escapeHTML(p.main.map(partName).join(listSep()))}</span>${p.help.length ? ` <small translate="no">+ ${escapeHTML(p.help.map(partName).join(listSep()))}</small>` : ''}${p.guessed ? ' <em class="guess-badge">متخمّنة</em>' : ''}</div>` : ''; })()}
                     </div>
                     <button data-action="delete-custom-ex" data-id="${escapeHTML(ex.id)}" aria-label="حذف هذا التمرين المخصص" class="custom-ex-del">
                         <i class="fa-solid fa-trash-can text-sm"></i><span data-added>حذف</span>
                     </button>
                 `;
+                // v12.3: تأكد من العضلات أو غيّرها
+                const parts = GymCalc.partsOf(ex);
+                if (parts) {
+                    item.classList.add('custom-ex-item');
+                    const box = el('div', 'custom-ex-check'); box.dataset.added = '';
+                    const pick = editPicks.get(ex.id);
+                    if (pick) {
+                        const ed = el('div', 'custom-ex-edit'); ed.dataset.editOf = ex.id;
+                        ed.append(el('span', 'new-ex-label', 'الضغطة الأولى أساسية، الثانية مساعدة، والثالثة تشيلها'), chipsFor(pick, 'data-edit-part'),
+                            el('p', 'field-hint', 'لو غيّرتها، جولاتك القديمة تنحسب للعضلات الجديدة في «الجولات لكل عضلة» والاستشفاء.'));
+                        const row = el('div', 'custom-ex-btns');
+                        const sv = el('button', 'custom-ex-ok', 'احفظ العضلات'); sv.type = 'button'; sv.dataset.saveParts = ex.id;
+                        const cn = el('button', 'custom-ex-change', 'إلغاء'); cn.type = 'button'; cn.dataset.editEx = ex.id;
+                        row.append(sv, cn); ed.appendChild(row); box.appendChild(ed);
+                    } else {
+                        const row = el('div', 'custom-ex-btns');
+                        if (parts.guessed) {
+                            box.appendChild(el('span', 'new-ex-label', 'وش العضلة الأساسية لهالتمرين؟'));
+                            const okb = el('button', 'custom-ex-ok', `صح، ${groupName(GymCatalog.PARTS[parts.main[0]].g)}`); okb.type = 'button'; okb.dataset.confirmEx = ex.id;
+                            row.appendChild(okb);
+                        }
+                        const ch = el('button', 'custom-ex-change', parts.guessed ? 'غيّر العضلات' : 'غيّر'); ch.type = 'button'; ch.dataset.editEx = ex.id;
+                        row.appendChild(ch); box.appendChild(row);
+                    }
+                    item.appendChild(box);
+                }
                 fragment.appendChild(item);
             });
 
@@ -1373,6 +1405,7 @@
             renderExerciseVolumeBreakdown();
             updateProgressChart();
             renderRecords(); renderCalendar(); renderMuscles(); renderSessions();
+            renderProgList(); renderProgDetail();
         }
 
         function updateGlobalStats() {
@@ -1410,9 +1443,11 @@
                 const totalTons = (totalKg / 1000).toFixed(2);
                 const workingTons = (workingKg / 1000).toFixed(2);
                 const item = document.createElement('div');
-                item.className = 'flex justify-between items-center text-xs py-2 px-3 bg-slate-900/80 rounded-xl border border-slate-800';
+                item.className = 'flex justify-between items-center text-xs py-2 px-3 bg-slate-900/80 rounded-xl border border-slate-800 vol-row';
+                // G9: الاسم القصير بس (الإنجليزي بين القوسين يبقى مخفي)
+                const short = shortName(name), rest = name.slice(short.length);
                 item.innerHTML = `
-                    <span class="font-bold text-slate-200">${escapeHTML(name)}</span>
+                    <span class="font-bold text-slate-200">${escapeHTML(short)}${rest ? `<span class="v12-hide">${escapeHTML(rest)}</span>` : ''}</span>
                     <span class="text-left"><strong class="block text-cyan-300">فعلي: ${escapeHTML(workingTons)} طن</strong><small class="text-slate-500">الإجمالي مع التسخين: ${escapeHTML(totalTons)} طن</small></span>
                 `;
                 fragment.appendChild(item);
@@ -1474,7 +1509,9 @@
             renderExerciseProgressionHistory(selectedExId);
             const {mode,groups}=progressionGroups(selectedExId);
             document.getElementById('chart-mode-1rm').disabled=mode==='timed';
-            const points=groups.map(g=>({label:g.date,value:mode==='timed'?g.weight:chartMetricMode==='1rm'?g.oneRm:g.weight})).filter(p=>Number.isFinite(p.value));
+            const fromDate=(()=>{if(!progRange)return '';const d=new Date();d.setDate(d.getDate()-progRange);return getLocalDateString(d);})();
+            let bestSoFar=-Infinity;
+            const points=groups.map(g=>({label:g.date,value:mode==='timed'?g.weight:chartMetricMode==='1rm'?g.oneRm:g.weight})).filter(p=>Number.isFinite(p.value)).map((p,i)=>{const pr=i>0&&(mode==='assisted'?p.value<bestSoFar:p.value>bestSoFar);bestSoFar=i===0?p.value:(mode==='assisted'?Math.min(bestSoFar,p.value):Math.max(bestSoFar,p.value));return {...p,pr};}).filter(p=>!fromDate||p.label>=fromDate);
             const target=document.getElementById('progressChart');
             const unit=mode==='timed'?'ثانية':mode==='per_hand'?'كجم لكل يد':'كجم';
             const label=mode==='timed'?'أطول مدة':chartMetricMode==='1rm'?'أعلى 1RM تقديري':'أعلى حمل مسجل';
@@ -1490,7 +1527,7 @@
             el('title',{},label+' ('+unit+')');
             for(let i=0;i<=4;i++){const v=max*i/4;el('line',{x1:left,x2:width-right,y1:y(v),y2:y(v),stroke:'#334155'});el('text',{x:left-8,y:y(v)+4,fill:'#94a3b8','font-size':12,'text-anchor':'end'},Math.round(v));}
             el('polyline',{points:points.map((p,i)=>`${x(i)},${y(p.value)}`).join(' '),fill:'none',stroke:'#00f2fe','stroke-width':3});
-            points.forEach((p,i)=>{const dot=el('circle',{cx:x(i),cy:y(p.value),r:4,fill:'#fff'});const title=document.createElementNS(svgNS,'title');title.textContent=`${p.label}: ${p.value.toFixed(1)} ${unit}`;dot.appendChild(title);if(i===0||i===points.length-1||i%Math.ceil(points.length/4)===0)el('text',{x:x(i),y:height-25,fill:'#94a3b8','font-size':11,'text-anchor':'middle'},p.label);});
+            points.forEach((p,i)=>{const dot=el('circle',Object.assign({cx:x(i),cy:y(p.value),r:p.pr?6:4,fill:'#fff'},p.pr?{class:'pr'}:{}));const title=document.createElementNS(svgNS,'title');title.textContent=`${p.label}: ${p.value.toFixed(1)} ${unit}`;dot.appendChild(title);if(i===0||i===points.length-1||i%Math.ceil(points.length/4)===0)el('text',{x:x(i),y:height-25,fill:'#94a3b8','font-size':11,'text-anchor':'middle'},p.label);});
             target.replaceChildren(svg);
         }
 
@@ -1838,8 +1875,8 @@
             if (targetScreen) targetScreen.classList.remove('hidden');
             if (targetNav) targetNav.classList.add('active');
 
-            if (tabId === 'progress') initProgressScreen();
-            else if (tabId === 'exercises') { renderManageExercisesList(); renderMusclePicker(); }
+            if (tabId === 'progress') { document.getElementById('screen-progress').classList.remove('detail'); initProgressScreen(); }
+            else if (tabId === 'exercises') { renderManageExercisesList(); renderMusclePicker(); setExTab(exTab); }
             else if (tabId === 'bento') renderBentoGridAnalysis();
             else if (tabId === 'profile') renderProfileUI();
         }
@@ -1998,7 +2035,7 @@
                 if (deleteBtn && deleteBtn.dataset.id) deleteExercise(deleteBtn.dataset.id);
             });
 
-            document.getElementById('chart-exercise-select').addEventListener('change', () => {resetProgressLoadMode();updateProgressChart();});
+            document.getElementById('chart-exercise-select').addEventListener('change', () => {resetProgressLoadMode();openProgDetail(null,false);});
             document.getElementById('progress-load-mode').addEventListener('change', updateProgressChart);
             document.getElementById('chart-mode-actual').addEventListener('click', () => setChartMetricMode('actual'));
             document.getElementById('chart-mode-1rm').addEventListener('click', () => setChartMetricMode('1rm'));
@@ -2006,7 +2043,7 @@
             document.getElementById('gender-toggle-btn').addEventListener('click', () => runMutation(toggleGender));
             document.getElementById('btn-save-profile').addEventListener('click', () => runMutation(saveProfile));
             document.getElementById('btn-save-body').addEventListener('click', () => runMutation(saveProfile));
-            document.getElementById('btn-new-exercise').addEventListener('click', () => { addFromWorkout = true; switchTab('exercises'); scrollTo(0, 0); });
+            document.getElementById('btn-new-exercise').addEventListener('click', () => { addFromWorkout = true; exTab = 'add'; switchTab('exercises'); scrollTo(0, 0); });
             document.getElementById('exercises-back').addEventListener('click', () => switchTab('workout'));
             document.getElementById('btn-export-json').addEventListener('click', exportDataJSON);
             document.getElementById('btn-download-safety-backup').addEventListener('click', downloadSafetyBackup);
@@ -2811,7 +2848,7 @@
         function newFromPicker() {
             const q = document.getElementById('picker-search').value.trim();
             closePicker();
-            addFromWorkout = true; switchTab('exercises'); scrollTo(0, 0);
+            addFromWorkout = true; exTab = 'add'; switchTab('exercises'); scrollTo(0, 0);
             const n = document.getElementById('new-ex-name');
             n.value = q; n.dispatchEvent(new Event('input', { bubbles: true }));
             if (q) n.focus();
@@ -2833,6 +2870,284 @@
             if (e.target && ['input-weight', 'input-reps', 'input-duration-sec'].includes(e.target.id)) updateSaveSum();
         });
 
+
+
+        /* ---------- v12.3 (المرحلة 4أ): صفحة التطور ---------- */
+        let progGroup = 'all', progSort = 'recent', progRange = 0;
+        const PROG_SORTS = [['recent', 'الترتيب: آخر تمرين'], ['improved', 'الترتيب: أكثر تحسن'], ['name', 'الترتيب: الاسم']];
+        function trendText(t, unit) {
+            const m = t.firstDate ? AR_MONTHS[new Date(t.firstDate + 'T12:00:00').getMonth()] : '';
+            const n = x => String(Math.round(Math.abs(x) * 10) / 10);
+            if (t.dir === 'new') return 'أول جلسة';
+            if (t.dir === 'flat') return t.plateauSessions ? `— ثابت من ${t.plateauSessions} جلسات` : '— ثابت';
+            if (t.metric === 'assist') return t.dir === 'up' ? `↑ المساعدة نزلت ${n(t.change)} ${unit}` : `↓ المساعدة زادت ${n(t.change)} ${unit}`;
+            if (t.metric === 'seconds') return t.dir === 'up' ? `↑ زاد ${n(t.change)} ثانية` : `↓ نزل ${n(t.change)} ثانية`;
+            return t.dir === 'up' ? `↑ زاد ${n(t.change)} ${unit} من ${m}` : `↓ نزل ${n(t.change)} ${unit}`;
+        }
+        function sparkline(vals, dir) {
+            const svg = document.createElementNS(SVG_NS, 'svg');
+            svg.setAttribute('viewBox', '0 0 84 24'); svg.setAttribute('aria-hidden', 'true'); svg.setAttribute('class', 'prog-spark'); svg.dataset.dir = dir;
+            if (vals.length < 2) return svg;
+            const mn = Math.min(...vals), mx = Math.max(...vals), r = mx - mn || 1;
+            const pl = document.createElementNS(SVG_NS, 'polyline');
+            pl.setAttribute('points', vals.map((v, i) => `${(2 + i * 80 / (vals.length - 1)).toFixed(1)},${(21 - (v - mn) / r * 18).toFixed(1)}`).join(' '));
+            svg.appendChild(pl);
+            return svg;
+        }
+        function progUnit(t) { return t.metric === 'seconds' ? 'ثانية' : t.mode === 'per_hand' ? 'كجم لكل يد' : 'كجم'; }
+        function renderProgList() {
+            const box = document.getElementById('prog-items');
+            if (!box) return;
+            const today = getLocalDateString();
+            const logged = new Set(state.logs.filter(l => l.type === 'weights').map(l => l.exerciseId));
+            const rows = [];
+            for (const ex of state.exercises) {
+                if (!logged.has(ex.id)) continue;
+                const t = GymCalc.exerciseTrend(state.logs, ex.id, today);
+                if (t) rows.push({ ex, t, g: groupOf(ex) });
+            }
+            document.getElementById('pt-days').textContent = String(new Set(state.logs.map(l => l.date)).size);
+            document.getElementById('pt-ex').textContent = String(rows.length);
+            document.getElementById('pt-up').textContent = String(rows.filter(r => r.t.improvedThisMonth).length);
+            // العضلات مع العدد
+            const chips = document.getElementById('prog-chips'); chips.replaceChildren();
+            const counts = {}; for (const r of rows) counts[r.g] = (counts[r.g] || 0) + 1;
+            for (const [g, label] of [['all', 'الكل'], ...Object.entries(GymCatalog.MUSCLE_NAMES)]) {
+                const n = g === 'all' ? rows.length : counts[g] || 0;
+                const b = el('button', 'prog-chip'); b.type = 'button'; b.dataset.progGroup = g; b.setAttribute('aria-pressed', String(progGroup === g));
+                b.append(el('span', '', label), el('small', '', String(n)));
+                if (!n && g !== 'all') b.disabled = true;
+                chips.appendChild(b);
+            }
+            const q = document.getElementById('prog-search').value.trim();
+            let list = rows.filter(r => (progGroup === 'all' || r.g === progGroup) && (!q || GymData.matchScore(r.ex.name, q) > 0));
+            if (progSort === 'recent') list.sort((a, b) => (b.t.lastDate > a.t.lastDate ? 1 : b.t.lastDate < a.t.lastDate ? -1 : 0));
+            else if (progSort === 'improved') list.sort((a, b) => (b.t.dir === 'up' ? b.t.pct : -1) - (a.t.dir === 'up' ? a.t.pct : -1));
+            else list.sort((a, b) => shortName(a.ex.name).localeCompare(shortName(b.ex.name), 'ar'));
+            document.getElementById('prog-count').textContent = list.length === 1 ? 'تمرين واحد' : `${list.length} تمارين`;
+            document.getElementById('prog-sort').textContent = PROG_SORTS.find(x => x[0] === progSort)[1];
+            box.replaceChildren();
+            if (!list.length) { box.appendChild(el('p', 'field-hint prog-empty', rows.length ? 'ما فيه تمرين بهالبحث.' : 'سجّل أول جولة وبيطلع تطورك هنا.')); return; }
+            for (const { ex, t, g } of list) {
+                const b = el('button', 'prog-item'); b.type = 'button'; b.dataset.progEx = ex.id;
+                const mid = el('span', 'prog-item-mid');
+                mid.appendChild(el('span', 'prog-item-name', shortName(ex.name)));
+                const meta = el('span', 'prog-item-meta');
+                if (g) meta.appendChild(el('span', 'cur-ex-chip', groupName(g)));
+                meta.appendChild(el('span', '', [EQUIP_NAMES[ex.equip] || '', t.mode === 'per_hand' ? 'لكل يد' : t.mode === 'assisted' ? 'بمساعدة' : t.mode === 'timed' ? 'بالوقت' : '', ex.isCustom ? 'تمرين مضاف' : '', friendlyDate(t.lastDate)].filter(Boolean).join(' · ')));
+                mid.appendChild(meta);
+                const unit = progUnit(t);
+                const val = el('span', 'prog-item-val');
+                val.append(el('b', '', String(Math.round(t.best * 10) / 10)), el('small', '', t.metric === '1rm' ? unit + ' 1RM' : t.metric === 'assist' ? unit + ' مساعدة' : unit));
+                const tr = el('span', 'prog-item-trend', trendText(t, unit)); tr.dataset.dir = t.dir;
+                b.append(mid, val, tr, sparkline(t.points, t.dir));
+                box.appendChild(b);
+            }
+        }
+        function openProgDetail(exId, push = true) {
+            const sel = document.getElementById('chart-exercise-select');
+            if (exId && sel.value !== exId && [...sel.options].some(o => o.value === exId)) { sel.value = exId; resetProgressLoadMode(); }
+            document.getElementById('screen-progress').classList.add('detail');
+            renderProgDetail();
+            updateProgressChart();
+            if (push) window.scrollTo(0, 0);
+        }
+        function closeProgDetail() {
+            document.getElementById('screen-progress').classList.remove('detail');
+            renderProgList();
+            window.scrollTo(0, 0);
+        }
+        function renderProgDetail() {
+            const id = document.getElementById('chart-exercise-select').value;
+            const ex = state.exercises.find(e => e.id === id);
+            if (!ex) return;
+            const t = GymCalc.exerciseTrend(state.logs, id, getLocalDateString());
+            document.getElementById('prog-title').textContent = shortName(ex.name);
+            const g = groupOf(ex), chip = document.getElementById('prog-chip'); chip.textContent = g ? groupName(g) : ''; chip.hidden = !g;
+            document.getElementById('prog-meta').textContent = [EQUIP_NAMES[ex.equip] || '', t ? `${t.sessions === 1 ? 'جلسة وحدة' : t.sessions + ' جلسات'} من ${friendlyDate(t.firstDate)}` : ''].filter(Boolean).join(' · ');
+            // طريقة الحمل للمقارنة تطلع بس لو التمرين انسجل بأكثر من طريقة
+            const modes = new Set(state.logs.filter(l => l.exerciseId === id && l.type === 'weights').map(l => l.loadMode || 'external'));
+            document.getElementById('prog-chart-card').classList.toggle('one-mode', modes.size < 2);
+            document.querySelectorAll('#prog-range [data-range]').forEach(b => b.setAttribute('aria-checked', String(Number(b.dataset.range) === progRange)));
+            const sum = document.getElementById('prog-summary');
+            if (!t || t.sessions < 2) { sum.textContent = t ? 'سجّل جلسة ثانية وتبدأ تشوف تطورك.' : ''; return; }
+            const unit = progUnit(t), name = t.metric === '1rm' ? '1RM حقك' : t.metric === 'seconds' ? 'وقتك' : t.metric === 'assist' ? 'المساعدة اللي تحتاجها' : 'أعلى وزن حقك';
+            const n = Math.round(Math.abs(t.change) * 10) / 10;
+            const moved = t.metric === 'assist' ? (t.change > 0 ? 'نزلت' : 'زادت') : (t.change > 0 ? 'زاد' : t.change < 0 ? 'نزل' : 'بقى نفسه');
+            sum.textContent = `من ${friendlyDate(t.firstDate)} ${name} ${moved}${t.change ? ` ${n} ${unit} (${t.pct}%)` : ''}` +
+                (t.prs ? `، وكسرت رقمك ${t.prs === 1 ? 'مرة وحدة' : t.prs === 2 ? 'مرتين' : t.prs + ' مرات'}. آخر رقم قياسي كان ${friendlyDate(t.lastPrDate)}.` : '.');
+        }
+        document.addEventListener('click', e => {
+            const t = e.target.closest ? e.target : null;
+            if (!t) return;
+            const it = t.closest('[data-prog-ex]'); if (it) return openProgDetail(it.dataset.progEx);
+            if (t.closest('#prog-back')) return closeProgDetail();
+            const ch = t.closest('[data-prog-group]'); if (ch) { progGroup = ch.dataset.progGroup; return renderProgList(); }
+            if (t.closest('#prog-sort')) { const i = PROG_SORTS.findIndex(x => x[0] === progSort); progSort = PROG_SORTS[(i + 1) % PROG_SORTS.length][0]; return renderProgList(); }
+            const rg = t.closest('#prog-range [data-range]'); if (rg) { progRange = Number(rg.dataset.range); renderProgDetail(); updateProgressChart(); return; }
+            if (t.closest('#prog-log-now')) { const id = document.getElementById('chart-exercise-select').value; switchTab('workout'); if (id) { selectExercise(id); renderWorkoutV12(); } document.getElementById('ex-card')?.scrollIntoView({ block: 'start' }); }
+        });
+        document.addEventListener('input', e => { if (e.target && e.target.id === 'prog-search') renderProgList(); });
+
+
+        /* ---------- v12.3 (المرحلة 4ب): إضافة تمرين ومكتبة تماريني ---------- */
+        let exTab = 'add', libFilter = 'all';
+        const editPicks = new Map(); // تمارين مضافة مفتوحة للتعديل: id → {main, help}
+        function chipsFor(pick, attr) {
+            const wrap = el('div', 'muscle-chips');
+            const active = GymCalc.activeParts();
+            for (const [g, label] of Object.entries(GymCatalog.MUSCLE_NAMES)) {
+                const row = el('div', 'muscle-chip-row');
+                row.appendChild(el('span', 'muscle-chip-group', label));
+                const w = el('div', 'muscle-chip-wrap');
+                for (const p of active.filter(x => GymCatalog.PARTS[x].g === g)) {
+                    const role = pick.main.includes(p) ? 'main' : pick.help.includes(p) ? 'help' : '';
+                    const c = el('button', 'muscle-chip', partName(p)); c.type = 'button'; c.setAttribute(attr, p); c.setAttribute('translate', 'no');
+                    if (role) c.dataset.role = role;
+                    c.setAttribute('aria-pressed', String(!!role));
+                    w.appendChild(c);
+                }
+                row.appendChild(w); wrap.appendChild(row);
+            }
+            return wrap;
+        }
+        function cyclePart(pick, p) {
+            const m = pick.main.filter(x => x !== p), h = pick.help.filter(x => x !== p);
+            if (pick.main.includes(p)) h.push(p); else if (!pick.help.includes(p)) m.push(p);
+            return { main: m, help: h };
+        }
+        function setExTab(t) {
+            exTab = t;
+            document.getElementById('screen-exercises').classList.toggle('lib', t === 'library');
+            document.getElementById('ex-tab-add').setAttribute('aria-selected', String(t === 'add'));
+            document.getElementById('ex-tab-library').setAttribute('aria-selected', String(t === 'library'));
+            if (t === 'library') renderLibrary(); else renderAddExtras();
+        }
+        // إضافة تمرين: الأداة بأزرار، سطر يقول وش اخترنا ومن وين، تنبيه لو فيه تمرين قريب، ومعاينة
+        function renderAddExtras() {
+            const nameRaw = document.getElementById('new-ex-name').value.trim();
+            const cat = document.getElementById('new-ex-cat').value, equip = document.getElementById('new-ex-equip').value;
+            document.getElementById('ex-tab-library').textContent = `مكتبة تماريني (${state.exercises.filter(e => !e.archived).length})`;
+            document.querySelectorAll('#new-ex-tools [data-tool]').forEach(b => b.setAttribute('aria-checked', String(b.dataset.tool === equip)));
+            document.getElementById('add-form-card').classList.toggle('is-cardio', cat === 'cardio' || equip === 'cardio');
+            const hint = document.getElementById('new-ex-hint');
+            const g = newExPick.main[0] && GymCatalog.PARTS[newExPick.main[0]].g;
+            hint.classList.toggle('hidden', !nameRaw || newExTouched || !(g || cat === 'cardio'));
+            const st = document.getElementById('new-ex-status');
+            st.classList.toggle('v12-hide', !hint.classList.contains('hidden') && !/مسبق/.test(st.textContent));
+            if (nameRaw) hint.textContent = cat === 'cardio' || equip === 'cardio' ? `اخترنا لك كارديو من الاسم. لو مو صح، غيّر الأداة تحت.` : g ? `اخترنا لك ${groupName(g)} و${(EQUIP_NAMES[equip] || '')} من الاسم. لو مو صح، غيّرها تحت.` : '';
+            // تمرين قريب في المكتبة (منع التكرار)
+            const dup = document.getElementById('new-ex-dup');
+            // قريب = كل كلمات اسمك في اسمه، أو ثلثين الكلمات مشتركة
+            const words = x => new Set(GymData.normalizeText(x).split(' ').filter(w => w.length > 1));
+            const overlap = (a2, b2) => { const A = words(a2), B = words(b2); if (!A.size || !B.size) return 0; let n = 0; for (const w of A) if (B.has(w)) n++; return n / Math.max(A.size, B.size); };
+            const near = nameRaw.length >= 3 ? state.exercises.filter(e => !e.archived && e.name.trim().toLowerCase() !== nameRaw.toLowerCase())
+                .map(e => [e, Math.max(GymData.matchScore(e.name, nameRaw), GymData.matchScore(nameRaw, shortName(e.name)), Math.round(overlap(shortName(e.name), nameRaw) * 60))]).filter(x => x[1] >= 40).sort((a, b) => b[1] - a[1])[0] : null;
+            dup.classList.toggle('hidden', !near);
+            dup.replaceChildren();
+            if (near) {
+                dup.appendChild(el('span', '', 'عندك تمرين قريب منه: '));
+                dup.appendChild(el('b', '', shortName(near[0].name)));
+                dup.appendChild(el('div', 'new-ex-dup-note', 'لو هو نفسه، استخدمه بدال ما تضيف واحد جديد.'));
+                const use = el('button', 'new-ex-use', 'استخدمه'); use.type = 'button'; use.dataset.useEx = near[0].id; dup.appendChild(use);
+            }
+            const pv = document.getElementById('new-ex-preview');
+            pv.classList.toggle('hidden', !nameRaw);
+            if (nameRaw) {
+                document.getElementById('nxp-name').textContent = nameRaw;
+                document.getElementById('nxp-meta').textContent = [EQUIP_NAMES[equip] || '', CATEGORY_NAMES[cat] ? `مع تمارين ${CATEGORY_NAMES[cat]}` : ''].filter(Boolean).join(' · ');
+                const chip = document.getElementById('nxp-chip'); chip.textContent = g && cat !== 'cardio' ? groupName(g) : cat === 'cardio' ? 'كارديو' : ''; chip.hidden = !chip.textContent;
+            }
+        }
+        // مكتبة تماريني
+        function libMatches(ex) {
+            const q = document.getElementById('lib-search').value.trim();
+            const g = ex.type === 'weights' ? groupOf(ex) : 'cardio';
+            if (libFilter === 'mine' && !ex.isCustom) return false;
+            if (!['all', 'mine'].includes(libFilter) && g !== libFilter) return false;
+            return !q || GymData.matchScore(ex.name, q) > 0;
+        }
+        function renderLibrary() {
+            const live = state.exercises.filter(e => !e.archived);
+            const customs = live.filter(e => e.isCustom);
+            const guessed = customs.filter(e => GymCalc.partsOf(e)?.guessed);
+            const banner = document.getElementById('lib-banner');
+            banner.classList.toggle('hidden', !guessed.length);
+            banner.replaceChildren();
+            if (guessed.length) {
+                banner.appendChild(el('b', '', guessed.length === 1 ? 'تمرين واحد عضلاته متخمّنة' : `${guessed.length} تمارين عضلاتها متخمّنة`));
+                banner.appendChild(el('span', '', guessed.length === 1 ? `«${shortName(guessed[0].name)}» أضفته قبل، والتطبيق خمّن عضلاته من الاسم. تأكد منها تحت.` : 'أضفتها قبل، والتطبيق خمّن عضلاتها من الاسم. تأكد منها تحت.'));
+            }
+            const chips = document.getElementById('lib-chips'); chips.replaceChildren();
+            const opts = [['all', 'الكل'], ['mine', `مضافة مني (${customs.length})`], ...Object.entries(GymCatalog.MUSCLE_NAMES), ['cardio', 'كارديو']];
+            for (const [k, label] of opts) { const b = el('button', 'prog-chip', label); b.type = 'button'; b.dataset.libFilter = k; b.setAttribute('aria-pressed', String(libFilter === k)); chips.appendChild(b); }
+            renderManageExercisesList();
+            // تمارين المكتبة مقسّمة حسب العضلة
+            const box = document.getElementById('lib-groups'); box.replaceChildren();
+            const builtIn = live.filter(e => !e.isCustom && libMatches(e));
+            const order = [...Object.keys(GymCatalog.MUSCLE_NAMES), 'cardio'];
+            for (const g of order) {
+                const list = builtIn.filter(e => (e.type === 'weights' ? groupOf(e) : 'cardio') === g);
+                if (!list.length) continue;
+                const sec = el('section', 'lib-group');
+                const head = el('div', 'lib-group-head'); head.append(el('h3', '', g === 'cardio' ? 'كارديو' : groupName(g)), el('span', '', list.length === 1 ? 'تمرين واحد' : `${list.length} تمارين`));
+                sec.appendChild(head);
+                for (const ex of list) {
+                    // الضغط على التمرين يختاره للتمرين، والشارة تقول العضلة بالتحديد (صدر علوي، كتف جانبي…)
+                    const row = el('button', 'lib-row'); row.type = 'button'; row.dataset.useEx = ex.id;
+                    const mid = el('span', 'picker-mid'); mid.append(el('span', 'picker-name', shortName(ex.name)), el('span', 'picker-meta', `${EQUIP_NAMES[ex.equip] || ''} · من المكتبة`));
+                    const pmain = ex.type === 'weights' ? (GymCalc.partsOf(ex)?.main || []) : [], pm = pmain.length === 1 && pmain[0]; // أكثر من عضلة أساسية → اسم المجموعة
+                    const chip = el('span', 'cur-ex-chip', pm ? partName(pm) : g === 'cardio' ? 'كارديو' : groupName(g)); if (pm) chip.setAttribute('translate', 'no');
+                    row.append(mid, chip);
+                    sec.appendChild(row);
+                }
+                box.appendChild(sec);
+            }
+            if (!box.children.length && !customs.some(libMatches)) box.appendChild(el('p', 'field-hint', 'ما فيه تمرين بهالبحث.'));
+        }
+        async function saveExerciseParts(id, pick, confirm) {
+            const ex = state.exercises.find(e => e.id === id);
+            if (!ex) return;
+            if (!pick.main.length) throw Error('اختر العضلة الأساسية: اضغطها مرة وحدة');
+            ex.parts = { main: [...pick.main], help: [...pick.help] };
+            ex.muscle = GymCatalog.PARTS[pick.main[0]].g;
+            ex.category = CAT_OF_GROUP[ex.muscle] || ex.category;
+            ex.muscleConfirmed = true; ex.editedAt = Date.now();
+            await dbSaveAll('exercises', state.exercises);
+            editPicks.delete(id);
+            renderLibrary(); renderExerciseDropdown();
+            showToast(confirm ? `تمام، «${shortName(ex.name)}» على ${groupName(ex.muscle)}` : `انحفظت عضلات «${shortName(ex.name)}»`);
+        }
+        document.addEventListener('click', e => {
+            const t = e.target.closest ? e.target : null;
+            if (!t) return;
+            if (t.closest('#ex-tab-add')) return setExTab('add');
+            if (t.closest('#ex-tab-library')) return setExTab('library');
+            const tool = t.closest('#new-ex-tools [data-tool]');
+            if (tool) {
+                const v = tool.dataset.tool, cat = document.getElementById('new-ex-cat');
+                document.getElementById('new-ex-equip').value = v;
+                if (v === 'cardio') cat.value = 'cardio';
+                else if (cat.value === 'cardio') cat.value = newExPick.main[0] ? CAT_OF_GROUP[GymCatalog.PARTS[newExPick.main[0]].g] : 'push';
+                if (v !== 'cardio' && !newExPick.main.length) guessNewExMuscles();
+                renderMusclePicker(); renderAddExtras(); return;
+            }
+            const use = t.closest('[data-use-ex]');
+            if (use) { const id = use.dataset.useEx; const n = document.getElementById('new-ex-name'); n.value = ''; n.dispatchEvent(new Event('input', { bubbles: true })); switchTab('workout'); selectExercise(id); renderWorkoutV12(); showToast('اخترناه لك'); return; }
+            const f = t.closest('[data-lib-filter]'); if (f) { libFilter = f.dataset.libFilter; return renderLibrary(); }
+            const ok = t.closest('[data-confirm-ex]');
+            if (ok) { const ex = state.exercises.find(x => x.id === ok.dataset.confirmEx); const p = ex && GymCalc.partsOf(ex); if (p) runMutation(() => saveExerciseParts(ex.id, { main: p.main, help: p.help }, true)); return; }
+            const ed = t.closest('[data-edit-ex]');
+            if (ed) { const id = ed.dataset.editEx; if (editPicks.has(id)) editPicks.delete(id); else { const ex = state.exercises.find(x => x.id === id); const p = GymCalc.partsOf(ex) || { main: [], help: [] }; editPicks.set(id, { main: p.main, help: p.help }); } renderManageExercisesList(); return; }
+            const ep = t.closest('[data-edit-part]');
+            if (ep) { const id = ep.closest('[data-edit-of]').dataset.editOf; editPicks.set(id, cyclePart(editPicks.get(id), ep.dataset.editPart)); renderManageExercisesList(); document.querySelector(`[data-edit-of="${id}"] [data-edit-part="${ep.dataset.editPart}"]`)?.focus(); return; }
+            const sv = t.closest('[data-save-parts]'); if (sv) { const id = sv.dataset.saveParts; runMutation(() => saveExerciseParts(id, editPicks.get(id), false)); return; }
+        });
+        document.addEventListener('input', e => {
+            if (e.target && e.target.id === 'lib-search') renderLibrary();
+            if (e.target && e.target.id === 'new-ex-name') renderAddExtras();
+        });
+        document.addEventListener('change', e => { if (e.target && ['new-ex-cat', 'new-ex-equip'].includes(e.target.id)) renderAddExtras(); });
 
         /* ---------- v12.2 (المرحلة 3ب) ---------- */
         // W4: «عبّي من»: اقتراح اليوم، آخر جولة، التسخين
@@ -3654,7 +3969,7 @@
                 drawn++;
                 const first = pts[0].v, last = pts[pts.length - 1].v, diff = Math.round((last - first) * 10) / 10;
                 const head = el('div', 'body-head');
-                head.append(el('span', '', label), el('b', 'num-led', `${fmt1(last)} ${unit}`), el('small', diff === 0 ? '' : diff > 0 ? 'up' : 'down', pts.length > 1 ? `${diff > 0 ? '+' : ''}${diff} من ${pts[0].d}` : 'قياس واحد'));
+                head.append(el('span', '', label), el('b', 'num-led', `${fmt1(last)} ${unit}`), el('small', diff === 0 ? '' : diff > 0 ? 'up' : 'down', pts.length > 1 ? `${diff > 0 ? '+' : ''}${diff} من ${friendlyDate(pts[0].d)}` : 'قياس واحد'));
                 box.append(head, lineChart(pts, { unit, label }));
             }
             if (!drawn) box.appendChild(el('p', 'field-hint', 'احفظ وزنك (ومحيط خصرك لو تبي) من فوق، وكل يوم تحفظ فيه يصير نقطة في الرسم.'));

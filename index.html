@@ -507,7 +507,11 @@
         <!-- ADD EXERCISE SCREEN -->
         <section id="screen-exercises" class="screen-content space-y-5 hidden animate-fade-in">
             <button type="button" id="exercises-back" class="back-btn" data-added>رجوع للتمرين</button>
-            <div class="glass-card p-5 space-y-4 border border-cyan-500/30">
+            <div class="ex-tabs seg-picker" role="tablist" data-added>
+                <button type="button" role="tab" id="ex-tab-add" aria-selected="true">أضف تمرين</button>
+                <button type="button" role="tab" id="ex-tab-library" aria-selected="false">مكتبة تماريني</button>
+            </div>
+            <div class="glass-card p-5 space-y-4 border border-cyan-500/30" id="add-form-card">
                 <div class="flex items-center gap-2">
                     <div class="w-8 h-8 rounded-lg bg-cyan-950 text-cyan-400 border border-cyan-800 flex items-center justify-center text-sm font-bold">
                         <i class="fa-solid fa-plus"></i>
@@ -525,7 +529,9 @@
                         <div id="new-ex-status" class="hidden text-[11px] font-bold mt-1.5 px-2 py-1 rounded-lg border flex items-center gap-1.5"></div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                    <div id="new-ex-hint" class="new-ex-hint hidden" data-added></div>
+                    <div id="new-ex-dup" class="new-ex-dup hidden" data-added></div>
+                    <div class="grid grid-cols-2 gap-3 v12-hide">
                         <div>
                             <label for="new-ex-cat" class="block text-xs text-slate-400 mb-1">الفئة التدريبية:</label>
                             <select id="new-ex-cat" class="w-full glass-input px-2 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
@@ -549,6 +555,16 @@
                         </div>
                     </div>
 
+                    <div class="new-ex-kind" data-added>
+                        <span class="new-ex-label">الأداة</span>
+                        <div id="new-ex-tools" class="new-ex-tools" role="radiogroup" aria-label="الأداة">
+                            <button type="button" role="radio" data-tool="barbell">بار</button>
+                            <button type="button" role="radio" data-tool="dumbbell">دمبل</button>
+                            <button type="button" role="radio" data-tool="machine">جهاز</button>
+                            <button type="button" role="radio" data-tool="cable_body">كابل / وزن الجسم</button>
+                            <button type="button" role="radio" data-tool="cardio">كارديو</button>
+                        </div>
+                    </div>
                     <div id="new-ex-muscles" class="muscle-pick" data-added>
                         <div class="muscle-pick-head"><span id="new-ex-muscles-title">العضلات اللي يشغّلها</span><span id="new-ex-guess" class="guess-badge">متخمّنة</span></div>
                         <p class="field-hint">الضغطة الأولى تخليها أساسية، الثانية مساعدة، والثالثة تشيلها. والمجسم يتلون معك عشان تتأكد.</p>
@@ -557,6 +573,10 @@
                         <p id="new-ex-muscle-sum" class="field-hint" aria-live="polite"></p>
                     </div>
 
+                    <div id="new-ex-preview" class="new-ex-preview hidden" data-added>
+                        <span class="new-ex-label">كذا بيطلع في تمارينك</span>
+                        <div class="new-ex-preview-card"><span class="picker-mid"><span id="nxp-name" class="picker-name" translate="no"></span><span id="nxp-meta" class="picker-meta"></span></span><span id="nxp-chip" class="cur-ex-chip"></span></div>
+                    </div>
                     <label for="new-ex-machine" class="block text-xs text-slate-300">نوع الجهاز للتمرين المخصص إذا كان كارديو:</label>
 <select id="new-ex-machine" class="w-full glass-input px-3 py-2 rounded-xl text-xs"><option value="bike">دراجة ثابتة</option><option value="treadmill">جهاز مشي</option><option value="elliptical">إليبتيكال</option><option value="stairs">درج</option><option value="rowing">تجديف</option><option value="airbike">دراجة هوائية</option></select>
 <button id="add-ex-submit-btn" class="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs shadow-md hover:from-cyan-600 hover:to-blue-700 flex items-center justify-center gap-2 mt-2">
@@ -566,22 +586,46 @@
                 </div>
             </div>
 
-            <div class="space-y-3">
+            <div id="library" class="library" data-added>
+                <div id="lib-banner" class="lib-banner hidden"></div>
+                <input type="search" id="lib-search" maxlength="50" class="glass-input prog-search" placeholder="ابحث في تمارينك…" aria-label="ابحث في التمارين">
+                <div id="lib-chips" class="prog-chips" role="group" aria-label="تصفية"></div>
+            </div>
+            <div class="space-y-3" id="custom-list-sec">
                 <div class="flex justify-between items-center">
                     <h3 class="font-bold text-sm text-slate-200">التمارين المخصصة التي أضفتها</h3>
                     <span id="custom-ex-count" class="text-xs bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full border border-slate-700">0 تمارِينَ</span>
                 </div>
                 <div id="manage-exercises-list" class="space-y-2"></div>
             </div>
+            <div id="lib-groups" class="lib-groups" data-added></div>
         </section>
 
         <!-- PROGRESS SCREEN (ENHANCED WITH ACTUAL WEIGHT & HISTORY TABLE) -->
         <section id="screen-progress" class="screen-content space-y-5 hidden animate-fade-in">
+            <!-- v12.3: قائمة التمارين -->
+            <div id="prog-list" class="prog-list" data-added>
+                <div><h2 class="page-title">التطور</h2><p class="field-hint">اضغط على أي تمرين وتشوف وين وصلت فيه.</p></div>
+                <div class="prog-tiles">
+                    <div><b id="pt-days" class="prog-tile-num"></b><span>أيام تمرين</span></div>
+                    <div><b id="pt-ex" class="prog-tile-num"></b><span>تمارين سجلتها</span></div>
+                    <div><b id="pt-up" class="prog-tile-num"></b><span>تحسنت هالشهر</span></div>
+                </div>
+                <input type="search" id="prog-search" maxlength="50" class="glass-input prog-search" placeholder="ابحث عن تمرين… (بنش، سكوات، Row)" aria-label="ابحث عن تمرين">
+                <div id="prog-chips" class="prog-chips" role="group" aria-label="العضلة"></div>
+                <div class="prog-bar"><span id="prog-count"></span><button type="button" id="prog-sort" class="prog-sort"></button></div>
+                <div id="prog-items" class="prog-items"></div>
+            </div>
+            <div id="prog-detail-head" class="prog-detail-head" data-added>
+                <button type="button" id="prog-back" class="back-btn">كل التمارين</button>
+                <h2 id="prog-title" class="page-title"></h2>
+                <div class="prog-detail-meta"><span id="prog-chip" class="cur-ex-chip"></span><span id="prog-meta"></span></div>
+            </div>
             <section id="progress-hero" class="progress-hero" data-added aria-label="أرقامك القياسية">
                 <div class="hero-cell"><span class="hero-label">1RM تقديري</span><span id="hero-1rm" class="hero-val num-led hero-red">—</span><span id="hero-1rm-sub" class="hero-sub"></span></div>
                 <div class="hero-cell"><span class="hero-label">أعلى حمل</span><span id="hero-top" class="hero-val num-stencil">—</span><span id="hero-top-sub" class="hero-sub"></span></div>
             </section>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-2 gap-3 v12-hide">
                 <div class="glass-card p-3.5 border-r-4 border-r-cyan-400">
                     <div class="text-[11px] text-slate-400">إجمالي أيام التمرين</div>
                     <div class="text-xl font-black text-cyan-300 mt-1" id="stat-total-days">0 يوم</div>
@@ -593,9 +637,14 @@
                 </div>
             </div>
 
-            <div class="glass-card p-4 space-y-4">
+            <div class="glass-card p-4 space-y-4" id="prog-chart-card">
+                <div id="prog-range" class="seg-picker prog-range" role="radiogroup" aria-label="المدة" data-added>
+                    <button type="button" role="radio" data-range="28">4 أسابيع</button>
+                    <button type="button" role="radio" data-range="90">3 شهور</button>
+                    <button type="button" role="radio" data-range="0">الكل</button>
+                </div>
                 <div class="flex flex-col gap-3">
-                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 prog-old-head">
                         <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
                             <i class="fa-solid fa-chart-line text-cyan-400"></i>
                             <span>منحنى تطور التمرين المختار</span>
@@ -614,10 +663,11 @@
                     <div id="progressChart" class="w-full h-full"></div>
                     <div id="led-columns" class="led-columns" data-added aria-label="أعمدة التطور"></div>
                 </div>
+                <p id="prog-summary" class="prog-summary" data-added></p>
             </div>
 
             <!-- Session-by-Session Progression History Table -->
-            <div class="glass-card p-4 space-y-3">
+            <div class="glass-card p-4 space-y-3" id="prog-history-card">
                 <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">
                     <span class="flex items-center gap-1.5 text-cyan-300">
                         <i class="fa-solid fa-timeline text-cyan-400"></i>
@@ -627,6 +677,7 @@
                 </h3>
                 <div id="exercise-progression-history-list" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
             </div>
+            <div id="prog-actions" class="prog-actions" data-added><button type="button" id="prog-log-now" class="prog-log-now">سجّل جولة الحين</button></div>
 
             <div class="glass-card p-4 space-y-3">
                 <h3 class="font-bold text-xs text-slate-200 flex items-center justify-between border-b border-slate-800 pb-2">

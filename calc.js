@@ -335,6 +335,35 @@ function weeklySets(logs, exercises, startDate) {
  return { groups, parts };
 }
 
+
+/* ---------- v12.3 (المرحلة 4): صفحة التطور ---------- */
+/** ملخص تطور تمرين: القيمة اللي تهم (1RM، أو الثواني، أو المساعدة)، الاتجاه، الأرقام القياسية، ونقاط الرسم الصغير. */
+function exerciseTrend(logs, exerciseId, today) {
+ const own = logs.filter(l => l.exerciseId === exerciseId && l.type === 'weights' && l.setType !== 'warmup');
+ if (!own.length) return null;
+ const newest = own.slice().sort((a, b) => (b.timestamp || Date.parse(b.date) || 0) - (a.timestamp || Date.parse(a.date) || 0))[0];
+ const mode = newest.loadMode || 'external';
+ const groups = progressionGroups(logs, exerciseId, mode);
+ if (!groups.length) return null;
+ const metric = mode === 'timed' ? 'seconds' : mode === 'assisted' ? 'assist' : groups.some(g => Number.isFinite(g.oneRm)) ? '1rm' : 'weight';
+ const val = g => metric === '1rm' ? g.oneRm : g.weight;
+ const pts = groups.filter(g => Number.isFinite(val(g))).map(g => ({ date: g.date, value: val(g) }));
+ if (!pts.length) return null;
+ const better = (a, b) => metric === 'assist' ? a < b : a > b; // assistance: less is better
+ let best = pts[0], prs = 0, lastPrDate = null;
+ for (let i = 1; i < pts.length; i++) if (better(pts[i].value, best.value + (metric === 'assist' ? -1e-9 : 1e-9))) { best = pts[i]; prs++; lastPrDate = pts[i].date; }
+ const first = pts[0], last = pts[pts.length - 1];
+ const change = Math.round((metric === 'assist' ? first.value - last.value : last.value - first.value) * 10) / 10;
+ const pct = first.value ? Math.round(Math.abs(change) / first.value * 100) : 0;
+ const pl = plateau(logs, exerciseId, { mode });
+ const dir = pl ? 'flat' : pts.length < 2 ? 'new' : Math.abs(change) <= Math.abs(first.value) * 0.005 ? 'flat' : change > 0 ? 'up' : 'down';
+ const monthAgo = new Date(today + 'T12:00:00'); monthAgo.setDate(monthAgo.getDate() - 30);
+ const cut = isoDate(monthAgo), before = pts.filter(p => p.date < cut), recent = pts.filter(p => p.date >= cut);
+ const bestOf = arr => arr.reduce((a, b) => better(b.value, a.value) ? b : a);
+ const improvedThisMonth = !!(before.length && recent.length && better(bestOf(recent).value, bestOf(before).value));
+ return { mode, metric, best: best.value, bestDate: best.date, first: first.value, firstDate: first.date, last: last.value, lastDate: last.date, change, pct, dir,
+  plateauSessions: pl ? pl.sessions : 0, prs, lastPrDate, sessions: pts.length, improvedThisMonth, points: pts.slice(-7).map(p => p.value) };
+}
 /* ---------- v12 (M1/M2/M5): العضلات بالتفصيل ---------- */
 function exOfLog(l, byId) { return byId.get(l.exerciseId) || { id: l.exerciseId, name: l.exerciseName, category: l.category, type: 'weights' }; }
 /** العضلات المرسومة الحين: الأساسية، والزيادة اللي انفعّلت (والعضلة الكبيرة تختفي لما تتفصّل) */
@@ -636,5 +665,5 @@ function sideBalance(logs, exerciseId) {
  if (!weak || !last.every(x => (weak === 'left' ? x.L < x.R : x.R < x.L) && gap(x) > 0.1)) return null;
  return { weak, pct: Math.round(last.reduce((s, x) => s + gap(x), 0) / 3 * 100) };
 }
-window.GymCalc = { weeklySets, activeParts, resolvePart, guessParts, partsOf, partWeights, recoveryParts, LBS_PER_KG, sideBalance, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
+window.GymCalc = { exerciseTrend, weeklySets, activeParts, resolvePart, guessParts, partsOf, partWeights, recoveryParts, LBS_PER_KG, sideBalance, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();

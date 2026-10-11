@@ -459,3 +459,17 @@ test('v12 muscle parts: library table, your choice, guesses, and merging extra m
   assert.deepEqual(plain(GymCalc.partsOf({ id: 'c', isCustom: true, type: 'weights', category: 'pull', name: 'Hammer curl cable' })).main, ['brachialis']);
   assert.equal(GymCalc.partsOf({ id: 'c', type: 'bike_elliptical', category: 'cardio', name: 'x' }), null);
 });
+
+test('v12.3 exercise trend for the progress list', () => {
+  const L = (id, date, w, reps, extra = {}) => ({ id, type: 'weights', exerciseId: 'ex_1', exerciseName: 'Bench', date, sessionId: 's' + date, weight: w, displayWeight: w, unit: 'kg', reps, loadMode: 'external', setType: 'normal', timestamp: Date.parse(date + 'T18:00:00'), ...extra });
+  const logs = [L('a', '2026-08-25', 45, 12), L('b', '2026-09-01', 47.5, 5), L('c', '2026-09-22', 55, 12), L('d', '2026-10-10', 60, 10)];
+  const t = plain(GymCalc.exerciseTrend(logs, 'ex_1', '2026-10-11'));
+  assert.equal(t.metric, '1rm'); assert.equal(t.dir, 'up'); assert.equal(t.sessions, 4);
+  assert.equal(t.best, t.last); assert.equal(t.prs, 2); assert.equal(t.lastPrDate, '2026-10-10');
+  assert.ok(t.change > 0 && t.pct > 0); assert.equal(t.improvedThisMonth, true); assert.equal(t.points.length, 4);
+  // assisted: less help is better
+  const A = (id, date, w) => ({ ...L(id, date, w, 8), loadMode: 'assisted', exerciseId: 'ex_32' });
+  const a = plain(GymCalc.exerciseTrend([A('x', '2026-09-01', 40), A('y', '2026-10-01', 30)], 'ex_32', '2026-10-11'));
+  assert.equal(a.metric, 'assist'); assert.equal(a.dir, 'up'); assert.equal(a.change, 10); assert.equal(a.best, 30);
+  assert.equal(GymCalc.exerciseTrend([], 'ex_1', '2026-10-11'), null);
+});

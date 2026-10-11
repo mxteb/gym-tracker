@@ -551,6 +551,62 @@ async function run(lang) {
   await p.shot('w5-counter');
   await ev(`document.getElementById('btn-finish-session').click()`); await sleep(300); await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(900); await ev(`const m=document.getElementById('custom-modal'); if(!m.classList.contains('hidden')) document.getElementById('modal-cancel-btn').click()`); await sleep(300);
 
+  /* ---------- v12.3 progress list + detail (G5, P1–P4) ---------- */
+  await ev(`document.getElementById('nav-progress').click(); scrollTo(0,0)`); await sleep(400);
+  const items = await ev(`return document.querySelectorAll('#prog-items [data-prog-ex]').length`);
+  check(lang, 'P1 progress opens on a list of logged exercises', items >= 5 && await ev(`return !document.getElementById('screen-progress').classList.contains('detail') && Number(document.getElementById('pt-ex').textContent) === ${items}`), String(items));
+  check(lang, 'P1 every row has a trend line', await ev(`return [...document.querySelectorAll('#prog-items .prog-item-trend')].every(x => x.textContent.trim().length > 2)`));
+  await ev(`document.querySelector('[data-prog-group="chest"]').click()`); await sleep(200);
+  const chest = await ev(`return document.querySelectorAll('#prog-items [data-prog-ex]').length`);
+  check(lang, 'P2 muscle chip filters the list', chest > 0 && chest < items, chest + ' of ' + items);
+  await ev(`document.querySelector('[data-prog-group="all"]').click(); const s=document.getElementById('prog-search'); s.value='ديدليفت'; s.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(200);
+  check(lang, 'P2 search narrows the list', await ev(`return document.querySelectorAll('#prog-items [data-prog-ex]').length`) < items);
+  await ev(`const s=document.getElementById('prog-search'); s.value=''; s.dispatchEvent(new Event('input',{bubbles:true}))`);
+  const s0 = await ev(`return document.getElementById('prog-sort').textContent`);
+  await ev(`document.getElementById('prog-sort').click()`); await sleep(150);
+  check(lang, 'P2 sort button cycles', s0 !== await ev(`return document.getElementById('prog-sort').textContent`));
+  await ev(`document.getElementById('prog-sort').click(); document.getElementById('prog-sort').click()`);
+  await p.shot('p1-progress-list');
+  await ev(`document.querySelector('#prog-items [data-prog-ex="ex_1"]').click()`); await sleep(500);
+  check(lang, 'P3 tapping a row opens its detail with a chart and a summary', await ev(`return document.getElementById('screen-progress').classList.contains('detail') && document.getElementById('chart-exercise-select').value === 'ex_1' && document.querySelector('#progressChart polyline') && document.getElementById('prog-summary').textContent.length > 20`));
+  check(lang, 'P3 records are marked on the chart', await ev(`return document.querySelectorAll('#progressChart circle.pr').length`) > 0);
+  const dots = await ev(`return document.querySelectorAll('#progressChart circle').length`);
+  await ev(`document.querySelector('#prog-range [data-range="28"]').click()`); await sleep(300);
+  check(lang, 'P4 range buttons cut the chart', await ev(`return document.querySelectorAll('#progressChart circle').length`) <= dots && await ev(`return document.querySelector('#prog-range [data-range="28"]').getAttribute('aria-checked')`) === 'true');
+  await ev(`document.querySelector('#prog-range [data-range="0"]').click()`); await sleep(200);
+  await p.shot('p3-progress-detail');
+  await ev(`document.getElementById('prog-back').click()`); await sleep(300);
+  check(lang, 'P3 back returns to the list', await ev(`return !document.getElementById('screen-progress').classList.contains('detail')`));
+
+  /* ---------- v12.3 add exercise + library (G6, G7, G8) ---------- */
+  await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`); await sleep(200);
+  await ev(`document.getElementById('btn-change-ex').click(); document.getElementById('picker-new').click()`); await sleep(300);
+  await ev(`document.getElementById('ex-tab-add').click(); const n=document.getElementById('new-ex-name'); n.value='بنش بريس بالبار'; n.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(300);
+  const dupId = await ev(`return document.querySelector('#new-ex-dup:not(.hidden) [data-use-ex]')?.dataset.useEx || ''`);
+  check(lang, 'G7 a near name warns about the exercise you already have', !!dupId, dupId);
+  check(lang, 'G6 the form says what it picked and shows a preview', await ev(`return !document.getElementById('new-ex-hint').classList.contains('hidden') && !document.getElementById('new-ex-preview').classList.contains('hidden') && document.getElementById('nxp-name').textContent === 'بنش بريس بالبار'`));
+  await ev(`document.querySelector('#new-ex-tools [data-tool="dumbbell"]').click()`); await sleep(150);
+  check(lang, 'G6 equipment buttons set the equipment', await ev(`return document.getElementById('new-ex-equip').value === 'dumbbell' && document.querySelector('#new-ex-tools [data-tool="dumbbell"]').getAttribute('aria-checked') === 'true'`));
+  await p.shot('g6-add');
+  await ev(`document.querySelector('#new-ex-dup [data-use-ex]').click()`); await sleep(400);
+  check(lang, 'G7 «use it» selects that exercise instead of adding a copy', await ev(`return !document.getElementById('screen-workout').classList.contains('hidden') && document.getElementById('exercise-dropdown').value === ${JSON.stringify(dupId)} && document.getElementById('new-ex-name').value === ''`));
+  await ev(`document.getElementById('btn-change-ex').click(); document.getElementById('picker-new').click()`); await sleep(300);
+  await ev(`document.getElementById('ex-tab-library').click()`); await sleep(300);
+  const libRows = await ev(`return document.querySelectorAll('#lib-groups .lib-row').length`);
+  check(lang, 'G8 library lists the built-in exercises by muscle', libRows > 40 && await ev(`return document.querySelectorAll('#lib-groups .lib-group').length`) >= 6, String(libRows));
+  await ev(`document.querySelector('[data-lib-filter="mine"]').click()`); await sleep(200);
+  check(lang, 'G8 «added by me» shows only your exercises', await ev(`return document.querySelectorAll('#lib-groups .lib-row').length === 0 && document.querySelectorAll('#manage-exercises-list .custom-ex-del').length > 0`));
+  await ev(`document.querySelector('[data-lib-filter="all"]').click()`); await sleep(200);
+  const guessed = await ev(`return !document.getElementById('lib-banner').classList.contains('hidden') && !!document.querySelector('[data-confirm-ex]')`);
+  if (guessed) {
+    const cid = await ev(`return document.querySelector('[data-confirm-ex]').dataset.confirmEx`);
+    const g0 = await ev(`return document.querySelectorAll('[data-confirm-ex]').length`);
+    await p.shot('g8-library');
+    await ev(`document.querySelector('[data-confirm-ex]').click()`); await sleep(600);
+    check(lang, 'G8 confirming a guessed exercise saves it and drops it from the guessed list', await ev(`return !document.querySelector('[data-confirm-ex="${cid}"]') && document.querySelectorAll('[data-confirm-ex]').length === ${g0 - 1} && document.getElementById('lib-banner').classList.contains('hidden') === ${g0 === 1}`));
+  } else check(lang, 'G8 the fixture has a guessed custom exercise', false);
+  await ev(`document.getElementById('exercises-back').click()`); await sleep(300);
+
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);
   await select(ex);

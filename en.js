@@ -956,4 +956,56 @@
     [/^(جولة وحدة|جولتين|\d+ جولات) \+ تسخين$/, function (a) { return t(a) + ' + warm-up'; }]
   ]);
 
+  /* ---------- v12.3 (progress + add/library) ---------- */
+  GymI18n.add({
+    'أيام تمرين': 'Training days', 'تمارين سجلتها': 'Exercises logged', 'تحسنت هالشهر': 'Improved this month', 'تصفية': 'Filter',
+    'ابحث في التمارين': 'Search exercises', 'ابحث في تمارينك…': 'Search your exercises…', 'كل التمارين': 'All exercises',
+    'ابحث عن تمرين… (بنش، سكوات، Row)': 'Search exercises… (bench, squat, row)', 'بنش, سكوات, Row': 'bench, squat, row',
+    'اضغط على أي تمرين وتشوف وين وصلت فيه.': 'Tap any exercise to see how far you have come.',
+    'الترتيب: آخر تمرين': 'Sort: last trained', 'الترتيب: أكثر تحسن': 'Sort: most improved', 'الترتيب: الاسم': 'Sort: name',
+    '4 أسابيع': '4 weeks', '3 شهور': '3 months', 'سجّل جولة الحين': 'Log a set now', 'أول جلسة': 'First session', '— ثابت': '— steady',
+    'ما فيه تمرين بهالبحث.': 'No exercise matches that search.', 'سجّل أول جولة وبيطلع تطورك هنا.': 'Log your first set and your progress shows here.',
+    'سجّل جلسة ثانية وتبدأ تشوف تطورك.': 'Log a second session to start seeing your progress.', 'جلسة وحدة': '1 session',
+    'تمرين مضاف': 'custom exercise', 'من المكتبة': 'from the library', 'أضفته أنت': 'added by you', 'تمرينين': '2 exercises',
+    'أضف تمرين': 'Add exercise', 'مكتبة تماريني': 'My exercises', 'جهاز': 'Machine', 'كذا بيطلع في تمارينك': 'This is how it will show in your exercises',
+    'عندك تمرين قريب منه:': 'You already have a similar exercise:', 'لو هو نفسه، استخدمه بدال ما تضيف واحد جديد.': 'If it is the same one, use it instead of adding a new one.',
+    'استخدمه': 'Use it', 'اخترناه لك': 'Selected for you', 'غيّر': 'Change', 'غيّر العضلات': 'Change muscles', 'احفظ العضلات': 'Save muscles', 'متخمّنة': 'guessed',
+    'وش العضلة الأساسية لهالتمرين؟': 'Is this the main muscle of the exercise?',
+    'الضغطة الأولى تخليها أساسية، الثانية مساعدة، والثالثة تشيلها': 'Tap once for main, twice for helper, a third time to remove',
+    'اختر العضلة الأساسية: اضغطها مرة وحدة': 'Pick the main muscle: tap it once',
+    'أضفتها قبل، والتطبيق خمّن عضلاتها من الاسم. تأكد منها تحت.': 'You added these earlier and the app guessed their muscles from the name. Check them below.',
+    'تمرين واحد عضلاته متخمّنة': '1 exercise with guessed muscles',
+    'اخترنا لك كارديو من الاسم. لو مو صح، غيّر الأداة تحت.': 'We picked cardio from the name. If that is wrong, change the equipment below.'
+  }, [
+    [/^([+−-]?[\d.]+) من (?!\d+$)(.+)$/, function (n, d) { return n + ' since ' + t(d); }],
+    [/^مكتبة تماريني \((\d+)\)$/, function (n) { return 'My exercises (' + n + ')'; }],
+    [/^مضافة مني \((\d+)\)$/, function (n) { return 'Added by me (' + n + ')'; }],
+    [/^(\d+) تمارين عضلاتها متخمّنة$/, function (n) { return n + ' exercises with guessed muscles'; }],
+    [/^«(.+)» أضفته قبل، والتطبيق خمّن عضلاته من الاسم\. تأكد منها تحت\.$/, function (n) { return '"' + t(n) + '": you added it earlier and the app guessed its muscles from the name. Check them below.'; }],
+    [/^تمام، «(.+)» على (.+)$/, function (n, g) { return 'Done: "' + t(n) + '" is ' + t(g); }],
+    [/^انحفظت عضلات «(.+)»$/, function (n) { return 'Muscles saved for "' + t(n) + '"'; }],
+    [/^صح، (.+)$/, function (g) { return 'Yes, ' + t(g); }],
+    [/^اخترنا لك (.+?) و(.*) من الاسم\. لو مو صح، غيّرها تحت\.$/, function (g, e) { return 'We picked ' + t(g) + (e ? ' and ' + t(e) : '') + ' from the name. If that is wrong, change it below.'; }],
+    [/^مع تمارين (.+)$/, function (g) { return 'with ' + t(g) + ' exercises'; }],
+    [/^— ثابت من (\d+) جلسات$/, function (n) { return '— steady for ' + n + ' sessions'; }],
+    [/^↑ المساعدة نزلت ([\d.]+) (.+)$/, function (n, u) { return '↑ assistance down ' + n + ' ' + t(u); }],
+    [/^↓ المساعدة زادت ([\d.]+) (.+)$/, function (n, u) { return '↓ assistance up ' + n + ' ' + t(u); }],
+    [/^↑ زاد ([\d.]+) ثانية$/, function (n) { return '↑ up ' + n + ' s'; }],
+    [/^↓ نزل ([\d.]+) ثانية$/, function (n) { return '↓ down ' + n + ' s'; }],
+    [/^↑ زاد ([\d.]+) (.+) من (.+)$/, function (n, u, m) { return '↑ up ' + n + ' ' + t(u) + ' since ' + t(m); }],
+    [/^↓ نزل ([\d.]+) (.+)$/, function (n, u) { return '↓ down ' + n + ' ' + t(u); }],
+    [/^([\d.]+ )?(كجم|كجم لكل يد|ثانية)( 1RM| مساعدة)?$/, function (a, u, k) { return (a || '') + (u === 'ثانية' ? 's' : u === 'كجم' ? 'kg' : 'kg per hand') + (k === ' 1RM' ? ' 1RM' : k ? ' assist' : ''); }],
+    [/^(جلسة وحدة|(\d+) جلسات) من (.+)$/, function (w, n, d) { return (n ? n + ' sessions' : '1 session') + ' since ' + t(d); }],
+    [/^من (.+?) (1RM حقك|وقتك|المساعدة اللي تحتاجها|أعلى وزن حقك) (زاد|نزل|بقى نفسه|نزلت|زادت)(?: ([\d.]+) (.+?) \((-?\d+)%\))?(?:، وكسرت رقمك (مرة وحدة|مرتين|(\d+) مرات)\. آخر رقم قياسي كان (.+)\.|\.)$/,
+      function (d, what, mv, n, u, pct, prw, prn, prd) {
+        var name = { '1RM حقك': 'your 1RM', 'وقتك': 'your time', 'المساعدة اللي تحتاجها': 'the assistance you need', 'أعلى وزن حقك': 'your top weight' }[what];
+        var verb = { 'زاد': 'went up', 'زادت': 'went up', 'نزل': 'went down', 'نزلت': 'went down', 'بقى نفسه': 'stayed the same' }[mv];
+        var s = 'Since ' + t(d) + ', ' + name + ' ' + verb + (n ? ' ' + n + ' ' + t(u) + ' (' + pct + '%)' : '');
+        if (prw) s += ', and you broke your record ' + (prn ? prn + ' times' : prw === 'مرتين' ? 'twice' : 'once') + '. Your last record was ' + t(prd) + '.';
+        else s += '.';
+        return s;
+      }],
+    [/^(بار|دمبل|أجهزة|كابل\/وزن جسم|كارديو) · (لكل يد · |بمساعدة · |بالوقت · )?(تمرين مضاف · )?(.+)$/, function (e, m, c, d) { return t(e) + ' · ' + (m ? t(m.slice(0, -3)) + ' · ' : '') + (c ? 'custom exercise · ' : '') + t(d); }]
+  ]);
+
 })();
