@@ -900,4 +900,40 @@
     [/^أساسية \(أحمر\): (.+?)(?: · مساعدة \(أصفر\): (.+))?$/, function (a, b) { return 'Main (red): ' + a + (b ? ' · Helper (yellow): ' + b : ''); }]
   ]);
 
+  /* ---------- v12.1 (workout screen) ---------- */
+  GymI18n.add({
+    'وش تمرين اليوم؟': "What's today's workout?", 'يومك الجاي في برنامجك': 'Your next program day', 'نوع الجلسة': 'Session type',
+    'جاهزية العضلات': 'Muscle readiness', 'هالأسبوع': 'This week', 'آخر جلسة': 'Last session', 'أو سجّل جولة بدون جلسة': 'or log a set without a session',
+    'يوم واحد': '1 day', 'ما فيه للحين': 'None yet', 'مثل الجلسة السابقة': 'Same as last session', 'جلسة حرة': 'Free session',
+    'تختار تمارينك وأنت تتمرن، أو اضغط «خطّط الجلسة».': 'Pick exercises as you go, or tap "Plan the session".',
+    'التمرين السابق': 'Previous exercise', 'التمرين الجاي': 'Next exercise', 'غيّر التمرين': 'Change exercise', 'اختر تمرين': 'Choose an exercise',
+    'ابحث: اسم التمرين أو العضلة': 'Search: exercise or muscle', 'ابحث عن تمرين': 'Search exercises', 'إغلاق': 'Close',
+    'يفتح الإضافة كاملة (الاسم، العضلات، الأداة)، والاسم مكتوب لك': 'Opens the full add form (name, muscles, equipment) with the name filled in',
+    'في خطتك اليوم': 'In your plan today', 'تمارينك الأخيرة أول، وبعدها الباقي': 'Your recent exercises first, then the rest',
+    'ما لقينا تمرين بهالاسم. تقدر تضيفه من تحت.': 'No exercise by that name. You can add it below.', 'ما بديته': 'Not started', 'ما سجلته': 'Never logged',
+    '+ تمرين جديد': '+ New exercise', 'جولة وحدة': 'one set', 'جولتين': 'two sets'
+  }, [
+    [/^التمرين (السابق|الجاي): (.+)$/, function (w, n) { return (w === 'السابق' ? 'Previous: ' : 'Next: ') + t(n); }],
+    [/^الجولة (\d+) من (\d+)$/, function (a, b) { return 'Set ' + a + ' of ' + b; }],
+    [/^خلصت (\d+) من (\d+)$/, function (a, b) { return 'Done ' + a + ' of ' + b; }],
+    [/^الحين · (\d+) من (\d+)$/, function (a, b) { return 'Now · ' + a + ' of ' + b; }],
+    [/^(\d+) من (\d+)$/, function (a, b) { return a + ' of ' + b; }],
+    [/^(\d+) من (\d+) في الخطة$/, function (a, b) { return a + ' of ' + b + ' in the plan'; }],
+    [/^الخطة: (\d+) من (\d+)$/, function (a, b) { return 'Plan: ' + a + ' of ' + b; }],
+    [/^الهدف المعتاد: (\d+) جولات$/, function (a) { return 'Usual target: ' + a + ' sets'; }],
+    [/^آخر مرة سويت (جولة وحدة|جولتين|(\d+) جولات)$/, function (w, n) { return 'Last time: ' + (n ? n + ' sets' : w === 'جولتين' ? '2 sets' : '1 set'); }],
+    [/^هدف البرنامج: (.+) (عدات|ثانية)$/, function (a, u) { return 'Program target: ' + a + (u === 'ثانية' ? ' s' : ' reps'); }],
+    [/^(\d+) أيام$/, function (n) { return n + ' days'; }],
+    [/^(.+) · (\d+) ساعة$/, function (g, h) { return t(g) + ' · ' + h + ' h'; }],
+    [/^آخر جلسة · (.+)$/, function (d) { return 'Last session · ' + t(d); }],
+    [/^(.+?) · (\d+) دقيقة · (\d+) جولة$/, function (n, m, k) { return t(n) + ' · ' + m + ' min · ' + k + ' sets'; }],
+    [/^(.+) لسه ترتاح \(باقي حوالي (\d+) ساعة\)\. بنبدأ بـ (.+) ونخلي (.+) لآخر الجلسة\.$/, function (g, h, a, b) { return t(g) + ' still resting (about ' + h + ' h left). We start with ' + t(a) + ' and leave ' + t(b) + ' for the end.'; }],
+    [/^(.+) لسه ترتاح \(باقي حوالي (\d+) ساعة\)\. خفف الوزن شوي أو خلّ هالتمارين ليوم ثاني\.$/, function (g, h) { return t(g) + ' still resting (about ' + h + ' h left). Go a bit lighter or keep these for another day.'; }],
+    [/^نتايج «(.+)»$/, function (q) { return 'Results for "' + q + '"'; }],
+    [/^(\d+) نتيجة · تكتب بالعربي أو الإنجليزي، والهمزات ما تفرق$/, function (n) { return n + ' results · Arabic or English, spelling variants are fine'; }],
+    [/^\+ تمرين جديد «(.+)»$/, function (q) { return '+ New exercise "' + q + '"'; }],
+    [/^(.+) · آخر مرة (.+)$/, function (e, d) { return t(e) + ' · last ' + t(d); }],
+    [/^(.+) · ما سجلته$/, function (e) { return t(e) + ' · never logged'; }]
+  ]);
+
 })();

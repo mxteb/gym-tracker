@@ -505,6 +505,52 @@ async function run(lang) {
   check(lang, 'M5 no main muscle: says what to do, saves nothing', /(main muscle|الأساسية)/.test(err) && await ev(`return document.querySelectorAll('#manage-exercises-list .custom-ex-del').length`) === cx0, err);
   await ev(`const n=document.getElementById('new-ex-name'); n.value=''; n.dispatchEvent(new Event('input',{bubbles:true})); document.getElementById('nav-workout').click()`);
 
+  /* ---------- v12.1 workout screen ---------- */
+  await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`); await sleep(300);
+  if (await ev(`return document.getElementById('btn-start-session').disabled`)) { await ev(`document.getElementById('btn-finish-session').click()`); await sleep(300); await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(900); await ev(`const m=document.getElementById('custom-modal'); if(!m.classList.contains('hidden')) document.getElementById('modal-cancel-btn').click()`); await sleep(300); }
+  // G4 start screen
+  check(lang, 'G4 start screen shows with no session', await ev(`return !document.getElementById('start-head').classList.contains('hidden') && document.getElementById('workout-session-card').classList.contains('start-mode') && document.querySelectorAll('#start-ready .start-ready-chip').length === 7`));
+  const progOn = await ev(`return document.getElementById('workout-session-card').classList.contains('start-program')`);
+  if (!progOn) { await ev(`const s=document.getElementById('session-routine-select'); s.value='ppl_push'; s.dispatchEvent(new Event('change',{bubbles:true}))`); await sleep(200); }
+  const preview = await ev(`return document.querySelectorAll('#start-plan li:not(.start-plan-empty)').length`);
+  check(lang, 'G4 preview lists the day', preview >= 3, String(preview));
+  await p.shot('g4-start');
+  await ev(`document.getElementById('btn-start-session').click()`); await sleep(1200);
+  const plan = await ev(`return document.querySelectorAll('#session-plan .plan-step').length`);
+  check(lang, 'G4 start = session with the previewed plan', plan === preview, plan + ' vs ' + preview);
+  check(lang, 'no sideways scroll with a plan running', await ev(`return document.documentElement.scrollWidth <= document.documentElement.clientWidth`));
+  check(lang, 'W1 thin bar while training', await ev(`const c=document.getElementById('workout-session-card'); const hid = id => !document.getElementById(id).getClientRects().length; return c.classList.contains('session-active') && hid('session-routine-select') && hid('btn-start-session') && hid('btn-copy-session') && !hid('btn-finish-session')`));
+  // W2 + W3
+  const first = await ev(`return document.getElementById('exercise-dropdown').value`);
+  const next1 = await ev(`return document.getElementById('btn-ex-next').dataset.ex`);
+  check(lang, 'W3 next arrow follows the plan', !!next1 && await ev(`return document.querySelectorAll('#session-plan .plan-step')[1]?.dataset.ex`) === next1, first + ' → ' + next1);
+  await ev(`document.getElementById('btn-ex-next').click()`); await sleep(300);
+  check(lang, 'W3 arrow moves to the next exercise', await ev(`return document.getElementById('exercise-dropdown').value`) === next1 && await ev(`return document.getElementById('btn-ex-prev').dataset.ex`) === first);
+  // picker
+  await ev(`document.getElementById('btn-change-ex').click()`); await sleep(300);
+  check(lang, 'W2 picker opens with the plan on top', await ev(`return !document.getElementById('ex-picker').classList.contains('hidden') && document.querySelectorAll('#picker-list .picker-sec:first-child .picker-item').length`) === plan);
+  await ev(`const s=document.getElementById('picker-search'); s.value='اكتاف'; s.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(200);
+  const hits = await ev(`return [...document.querySelectorAll('#picker-list [data-pick]')].map(b=>b.dataset.pick)`);
+  check(lang, 'W2 picker search finds shoulder press', hits.includes('ex_11'), hits.slice(0, 5).join());
+  await p.shot('w2-picker');
+  await ev(`document.querySelector('#picker-list [data-pick="ex_11"]').click()`); await sleep(300);
+  check(lang, 'W2 picking closes and selects', await ev(`return document.getElementById('ex-picker').classList.contains('hidden') && document.getElementById('exercise-dropdown').value === 'ex_11'`));
+  // new exercise from picker keeps the typed name
+  await ev(`document.getElementById('btn-change-ex').click(); const s=document.getElementById('picker-search'); s.value='Landmine Press'; s.dispatchEvent(new Event('input',{bubbles:true}))`); await sleep(200);
+  await ev(`document.getElementById('picker-new').click()`); await sleep(300);
+  check(lang, 'G1 «+ new» from the picker opens the full form with the name', await ev(`return !document.getElementById('screen-exercises').classList.contains('hidden') && document.getElementById('new-ex-name').value === 'Landmine Press' && document.querySelectorAll('#new-ex-chips [data-role="main"]').length > 0`));
+  await ev(`const n=document.getElementById('new-ex-name'); n.value=''; n.dispatchEvent(new Event('input',{bubbles:true})); document.getElementById('exercises-back').click()`); await sleep(300);
+  // W5 counter + W9 save bar
+  await select('ex_11');
+  await ev(`document.getElementById('input-weight').value='40'; document.getElementById('input-reps').value='5'; document.getElementById('input-weight').dispatchEvent(new Event('input',{bubbles:true})); const r=document.getElementById('rest-timer-duration'); r.value='0'; r.dispatchEvent(new Event('change',{bubbles:true}))`); await sleep(200);
+  const c1 = await ev(`return document.getElementById('set-counter-title').textContent`);
+  check(lang, 'W9 fixed save button says what it saves', /40 × 5/.test(await ev(`return document.getElementById('btn-save-weights').textContent`)) && await ev(`return getComputedStyle(document.getElementById('save-bar')).position`) === 'fixed');
+  await ev(`document.getElementById('btn-save-weights').click()`); await sleep(800);
+  const c2 = await ev(`return document.getElementById('set-counter-title').textContent`);
+  check(lang, 'W5 set counter moves on after a save', c1 !== c2 && /(2|Set 2)/.test(c2), c1 + ' → ' + c2);
+  await p.shot('w5-counter');
+  await ev(`document.getElementById('btn-finish-session').click()`); await sleep(300); await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(900); await ev(`const m=document.getElementById('custom-modal'); if(!m.classList.contains('hidden')) document.getElementById('modal-cancel-btn').click()`); await sleep(300);
+
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);
   await select(ex);

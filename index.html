@@ -75,14 +75,25 @@
     <main class="max-w-xl mx-auto px-4 space-y-6">
         <!-- WORKOUT SCREEN -->
         <section id="screen-workout" class="screen-content space-y-4 animate-fade-in">
+            <!-- v12.1 G4: قبل الجلسة -->
+            <div id="start-head" class="start-head hidden" data-added>
+                <span id="start-date" class="start-date"></span>
+                <h2 class="page-title">وش تمرين اليوم؟</h2>
+            </div>
             <div id="workout-session-card" class="glass-card p-4 border border-emerald-500/30 space-y-3">
                 <div class="flex items-center justify-between gap-3">
                     <div>
                         <div class="text-[10px] text-slate-400">جلسة التمرين الحالية</div>
                         <div id="active-session-title" class="font-black text-sm text-emerald-300">لا توجد جلسة نشطة</div>
                         <div id="active-session-meta" class="text-[10px] text-slate-400 mt-0.5">ابدأ جلسة ليتم حساب مدتها وملخصها بدقة</div>
+                        <div id="session-plan-pos" class="session-plan-pos" data-added></div>
                     </div>
                     <span id="active-session-timer" class="text-xs font-black text-cyan-300 bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-700">00:00</span>
+                </div>
+                <div id="start-preview" class="start-preview hidden" data-added>
+                    <div class="start-preview-head"><span><small id="start-kicker"></small><b id="start-day"></b></span><span id="start-time" class="start-time"></span></div>
+                    <ul id="start-plan" class="start-plan"></ul>
+                    <p id="start-warn" class="start-warn hidden"></p>
                 </div>
                 <select aria-label="نوع الجلسة" id="session-routine-select" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
                     <option value="free">جلسة حرة</option>
@@ -94,15 +105,25 @@
                 </select>
                 <div class="grid grid-cols-3 gap-2">
                     <button id="btn-start-session" class="py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold">ابدأ الجلسة</button>
-                    <button id="btn-copy-session" class="py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-bold">استخدام السابقة كخطة</button>
+                    <button id="btn-copy-session" class="py-2 rounded-xl bg-cyan-950 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-[11px] font-bold">مثل الجلسة السابقة</button>
                     <button id="btn-finish-session" disabled class="py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold">إنهاء وملخص</button>
+                    <button type="button" id="btn-start-free" class="start-free" data-added>جلسة حرة</button>
                 </div>
                 <button type="button" id="btn-plan-session" class="w-full py-2 rounded-xl text-[11px] font-bold border" data-added>خطّط الجلسة: اختر تمارينك</button>
                 <div id="session-plan" class="session-plan hidden" data-added aria-label="خطة الجلسة"></div>
                 <div id="copied-session-plan" class="hidden text-[10px] text-slate-300 bg-slate-900/70 rounded-xl p-2 border border-slate-800"></div>
             </div>
 
-            <details id="exercise-filters" class="glass-card filter-panel">
+            <div id="start-extra" class="start-extra hidden" data-added>
+                <div class="start-ready-card"><span class="start-label">جاهزية العضلات</span><div id="start-ready" class="start-ready"></div></div>
+                <div class="start-stats">
+                    <div><span class="start-label">هالأسبوع</span><b id="start-week" class="start-week"></b></div>
+                    <div><span class="start-label" id="start-last-label">آخر جلسة</span><b id="start-last" class="start-last"></b></div>
+                </div>
+                <p class="start-or">أو سجّل جولة بدون جلسة</p>
+            </div>
+
+            <details id="exercise-filters" class="glass-card filter-panel v12-hide">
                 <summary>القوائم والفلاتر <span id="filter-summary" class="field-hint">كل التمارين</span></summary>
                 <div class="space-y-3 filter-content">
             <div class="glass-card p-3 border border-cyan-500/30 space-y-2">
@@ -147,11 +168,25 @@
                 </div>
             </details>
 
-            <div class="glass-card p-4 space-y-4">
-                <div class="flex flex-col gap-2">
+            <div class="glass-card p-4 space-y-4" id="ex-card">
+                <div id="cur-ex" class="cur-ex" data-added>
+                    <div class="cur-ex-row">
+                        <button type="button" id="btn-ex-prev" class="cur-ex-arrow" aria-label="التمرين السابق"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+                        <div class="cur-ex-mid">
+                            <b id="cur-ex-name" class="cur-ex-name"></b>
+                            <span class="cur-ex-meta"><span id="cur-ex-muscle" class="cur-ex-chip"></span><span id="cur-ex-equip" class="cur-ex-equip"></span><span id="cur-ex-pos" class="cur-ex-pos"></span></span>
+                        </div>
+                        <button type="button" id="btn-ex-next" class="cur-ex-arrow" aria-label="التمرين الجاي"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+                    </div>
+                    <div class="cur-ex-actions">
+                        <button type="button" id="btn-change-ex" class="cur-ex-btn">غيّر التمرين</button>
+                        <button type="button" id="btn-guide-toggle" class="cur-ex-btn hidden">طريقة الأداء</button>
+                        <button type="button" id="btn-busy" class="busy-btn cur-ex-btn hidden">الجهاز مشغول؟</button>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 v12-hide" id="old-picker">
                     <div class="flex items-center justify-between">
                         <label for="exercise-dropdown" class="text-xs font-bold text-cyan-300">اختر التمرين:</label>
-                        <button type="button" id="btn-busy" class="busy-btn hidden" data-added>الجهاز مشغول؟</button>
                         <button type="button" id="btn-new-exercise" class="new-ex-btn" data-added>+ تمرين جديد</button>
                         <span id="selected-exercise-equip-badge" class="text-[10px] bg-slate-900 text-cyan-300 px-2.5 py-0.5 rounded-full border border-cyan-800 font-bold">أوزان حرة (بار)</span>
                     </div>
@@ -206,6 +241,11 @@
                 <label id="previous-set-picker" class="hidden field-hint">الجولة السابقة المراد تعبئتها:
                     <select id="previous-set-select" class="glass-input w-full px-3 py-2 rounded-xl text-sm" aria-label="اختيار جولة من الأداء السابق"></select>
                 </label>
+                <div id="set-counter" class="set-counter hidden" data-added aria-live="polite">
+                    <div class="set-counter-text"><b id="set-counter-title"></b><span id="set-counter-sub"></span></div>
+                    <div id="set-counter-dots" class="set-counter-dots" aria-hidden="true"></div>
+                    <button type="button" id="btn-next-ex" class="set-counter-next hidden"></button>
+                </div>
                 <div id="dynamic-input-container">
                     <div id="equip-visual" class="equip-visual" data-added hidden></div>
                     <div id="form-weights" class="space-y-4">
@@ -349,11 +389,13 @@
                             <p class="field-hint">RIR 0 يعني أنك وصلت للفشل. نوع الجولة وRIR يظهران في السجل.</p>
                         </div>
 
+                        <div id="save-bar" class="save-bar">
                         <button type="button" id="btn-repeat-set" class="repeat-set hidden" data-added>كرر الجولة السابقة</button>
                         <button id="btn-save-weights" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs shadow-lg neon-glow-green flex items-center justify-center gap-2 mt-2">
                             <i class="fa-solid fa-floppy-disk text-sm"></i>
-                            <span>حفظ الجولة</span>
+                            <span>حفظ الجولة</span><span id="save-sum" class="save-sum" data-added></span>
                         </button>
+                        </div>
                     </div>
 
                     <div id="form-treadmill" class="hidden space-y-4">
@@ -934,6 +976,22 @@
             </button>
         </div>
     </nav>
+
+    <div id="ex-picker" class="ex-picker modal-overlay hidden" data-added role="dialog" aria-modal="true" aria-labelledby="picker-title">
+        <div class="ex-picker-sheet">
+            <div class="ex-picker-grip" aria-hidden="true"></div>
+            <div class="ex-picker-head"><h2 id="picker-title">اختر تمرين</h2><button type="button" id="picker-close" class="picker-close" aria-label="إغلاق">×</button></div>
+            <div class="ex-picker-search">
+                <input type="search" id="picker-search" maxlength="50" class="glass-input" placeholder="ابحث: اسم التمرين أو العضلة" aria-label="ابحث عن تمرين" autocomplete="off">
+                <span id="picker-meta" class="field-hint"></span>
+            </div>
+            <div id="picker-list" class="ex-picker-list"></div>
+            <div class="ex-picker-foot">
+                <button type="button" id="picker-new" class="picker-new">+ تمرين جديد</button>
+                <span class="field-hint">يفتح الإضافة كاملة (الاسم، العضلات، الأداة)، والاسم مكتوب لك</span>
+            </div>
+        </div>
+    </div>
 
     <div id="custom-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
         <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-slate-700 shadow-2xl animate-fade-in">

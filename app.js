@@ -414,7 +414,7 @@
                 document.getElementById('active-session-timer').textContent = '00:00';
                 const nt = document.getElementById('nav-workout-timer'); if (nt) nt.hidden = true;
             }
-            renderSessionPlan(); renderSuggestion(); renderRepeatButton(); applyKeepAwake();
+            renderSessionPlan(); renderSuggestion(); renderRepeatButton(); applyKeepAwake(); renderWorkoutV12();
         }
 
         function setSplitSystem(split) {
@@ -553,6 +553,7 @@
         }
 
         function onExerciseSelectChange() {
+            queueMicrotask(() => { if (typeof renderWorkoutV12 === 'function') renderWorkoutV12(); });
             const dropdown = document.getElementById('exercise-dropdown');
             const selectedId = dropdown.value;
             const ex = state.exercises.find(e => e.id === selectedId);
@@ -1147,8 +1148,10 @@
         let newExPick = { main: [], help: [] }, newExTouched = false;
         const CAT_OF_GROUP = { chest: 'push', shoulders: 'push', triceps: 'push', back: 'pull', biceps: 'pull', legs: 'legs', abs: 'abs' };
         function guessNewExMuscles() {
-            if (newExTouched) return;
             const name = document.getElementById('new-ex-name').value.trim();
+            // اسم فاضي = تمرين جديد: ننسى اختيارك القديم
+            if (!name) newExTouched = false;
+            if (newExTouched) return;
             const cat = document.getElementById('new-ex-cat').value;
             const p = cat === 'cardio' ? null : GymCalc.partsOf({ id: 'new', isCustom: true, type: 'weights', category: cat, name });
             newExPick = p && name ? { main: p.main, help: p.help } : { main: [], help: [] };
@@ -1840,7 +1843,7 @@
             document.addEventListener('keydown', event => {
                 const modal=document.querySelector('.modal-overlay:not(.hidden)');if(!modal)return;
                 const buttons=[...modal.querySelectorAll('button,input:not([type=hidden]),select')].filter(e=>!e.disabled&&e.getClientRects().length);
-                if(event.key==='Escape'){if(saving)return;event.preventDefault();if(modal.id==='edit-log-modal')closeEditLog();else if(modal.id==='finish-session-modal')closeFinishSession();else if(modal.id==='plan-modal')closePlan();else if(modal.id==='busy-modal')closeBusy();else document.getElementById('modal-cancel-btn').click();return;}
+                if(event.key==='Escape'){if(saving)return;event.preventDefault();if(modal.id==='edit-log-modal')closeEditLog();else if(modal.id==='finish-session-modal')closeFinishSession();else if(modal.id==='plan-modal')closePlan();else if(modal.id==='busy-modal')closeBusy();else if(modal.id==='ex-picker')closePicker();else document.getElementById('modal-cancel-btn').click();return;}
                 if(event.key==='Tab'&&buttons.length){const first=buttons[0],last=buttons[buttons.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}}
             });
             document.getElementById('logs-date-filter').addEventListener('change', () => {logsRenderLimit=15;renderTodayLogs();});
@@ -1957,7 +1960,9 @@
             document.getElementById('set-haptics')?.addEventListener('change', e => runMutation(() => saveSetting('haptics', e.target.checked)));
             document.getElementById('set-feel')?.addEventListener('change', e => runMutation(() => saveSetting('effortMode', e.target.checked ? 'feel' : 'rir')));
             document.querySelectorAll('.rir-btn,.set-type-btn').forEach(b => b.addEventListener('click', () => haptic('tap')));
-            document.getElementById('btn-start-session').addEventListener('click', () => runMutation(() => startWorkoutSession()));
+            document.getElementById('btn-start-session').addEventListener('click', () => runMutation(startFromPanel));
+            document.getElementById('btn-start-free').addEventListener('click', () => runMutation(() => startWorkoutSession('free')));
+            document.getElementById('session-routine-select').addEventListener('change', renderStartPanel);
             document.getElementById('btn-copy-session').addEventListener('click', () => runMutation(copyPreviousSession));
             document.getElementById('btn-finish-session').addEventListener('click',openFinishSession);
             document.getElementById('btn-confirm-finish')?.addEventListener('click',()=>runMutation(finishWorkoutSession));
@@ -2531,6 +2536,295 @@
             if (!window.Capacitor) showToast('انحفظت صورة الجلسة');
         }
 
+
+
+        /* ---------- v12.1 (المرحلة 3أ): صفحة التمرين ---------- */
+        const groupOf = ex => GymCalc.muscleOf(ex);
+        const groupName = g => GymCatalog.MUSCLE_NAMES[g] || '';
+        const workingSetsOf = (exId, filter) => state.logs.filter(l => l.exerciseId === exId && l.type === 'weights' && l.setType !== 'warmup' && filter(l));
+        // G4: وش ينعرض قبل الجلسة (البرنامج أو نوع الجلسة) — نفس اللي يبدأ لما تضغط «ابدأ الجلسة»
+        function startPreview() {
+            const P = programs(), progId = state.profile.program;
+            const prog = progId && P ? P.find(progId) : null;
+            if (prog) {
+                const day = P.nextDay(prog.id, state.sessions);
+                const d = prog.split[day];
+                return { kind: 'program', title: `${shortName(prog.name)} · ${d.name}`, kicker: 'يومك الجاي في برنامجك', ids: d.ex.map(r => r[0]), targets: Object.fromEntries(d.ex.map(([id, sets, reps]) => [id, { sets, reps }])), programDay: { program: prog.id, day } };
+            }
+            const routine = document.getElementById('session-routine-select').value || 'free';
+            return { kind: 'routine', routine, title: ROUTINE_LABELS[routine] || 'جلسة حرة', kicker: 'نوع الجلسة', ids: routine === 'free' ? [] : [...(ROUTINE_PRESETS[routine] || [])], targets: {} };
+        }
+        // التمارين اللي عضلتها ترتاح تتأخر لآخر الجلسة (بنفس ترتيبها)
+        function orderByRecovery(ids) {
+            const rec = GymCalc.recovery(state.logs, state.exercises, Date.now());
+            const tired = id => { const g = groupOf(state.exercises.find(e => e.id === id) || (id === 'ex_70' ? programs()?.DEADLIFT : null)); return !!(g && rec[g] && rec[g].pct < 1); };
+            return [...ids.filter(id => !tired(id)), ...ids.filter(tired)];
+        }
+        function exNameById(id) { const ex = state.exercises.find(e => e.id === id) || (id === 'ex_70' ? programs()?.DEADLIFT : null); return ex ? shortName(ex.name) : id; }
+        function renderStartPanel() {
+            const card = document.getElementById('workout-session-card');
+            if (!card) return;
+            const session = getActiveSession(), off = !session;
+            card.classList.toggle('start-mode', off);
+            document.getElementById('start-head').classList.toggle('hidden', !off);
+            document.getElementById('start-extra').classList.toggle('hidden', !off);
+            document.getElementById('start-preview').classList.toggle('hidden', !off);
+            document.getElementById('screen-workout').classList.toggle('no-session', off);
+            if (!off) return;
+            document.getElementById('start-date').textContent = prettyDate(getLocalDateString());
+            document.getElementById('screen-workout').classList.toggle('no-session', off);
+            const pv = startPreview();
+            card.classList.toggle('start-program', pv.kind === 'program');
+            document.getElementById('start-kicker').textContent = pv.kicker;
+            document.getElementById('start-day').textContent = pv.title;
+            const list = document.getElementById('start-plan'); list.replaceChildren();
+            for (const id of pv.ids) {
+                const ex = state.exercises.find(e => e.id === id) || (id === 'ex_70' ? programs()?.DEADLIFT : null);
+                if (!ex) continue;
+                const li = el('li');
+                const nm = el('span', 'start-plan-name', shortName(ex.name));
+                const chip = el('span', 'cur-ex-chip', groupName(groupOf(ex)));
+                const t = pv.targets[id];
+                li.append(el('span', 'start-plan-left'), el('span', 'start-plan-target', t ? targetText(t) : ''));
+                li.firstChild.append(nm, chip);
+                list.appendChild(li);
+            }
+            if (!pv.ids.length) list.appendChild(el('li', 'start-plan-empty', 'تختار تمارينك وأنت تتمرن، أو اضغط «خطّط الجلسة».'));
+            const est = pv.ids.length ? GymCalc.planMinutes(pv.ids, state.exercises.concat(state.exercises.some(e => e.id === 'ex_70') ? [] : [programs()?.DEADLIFT].filter(Boolean)), state.logs).total : 0;
+            document.getElementById('start-time').textContent = est ? `تقريبًا ${est} دقيقة` : '';
+            // تنبيه: عضلة يومك لسه ترتاح، مع ترتيب مقترح
+            const rec = GymCalc.recovery(state.logs, state.exercises, Date.now());
+            const tiredGroups = [...new Set(pv.ids.map(id => groupOf(state.exercises.find(e => e.id === id) || (id === 'ex_70' ? programs()?.DEADLIFT : null))).filter(g => g && rec[g] && rec[g].pct < 1))];
+            const warn = document.getElementById('start-warn');
+            warn.classList.toggle('hidden', !tiredGroups.length);
+            if (tiredGroups.length) {
+                const left = Math.max(...tiredGroups.map(g => rec[g].left));
+                const order = orderByRecovery(pv.ids);
+                const readyFirst = order.filter(id => !tiredGroups.includes(groupOf(state.exercises.find(e => e.id === id) || programs()?.DEADLIFT)));
+                warn.textContent = `${tiredGroups.map(groupName).join('، ')} لسه ${tiredGroups.length > 1 ? 'ترتاح' : 'ترتاح'} (باقي حوالي ${left} ساعة). ` +
+                    (readyFirst.length ? `بنبدأ بـ ${exNameById(readyFirst[0])} ونخلي ${tiredGroups.map(groupName).join('، ')} لآخر الجلسة.` : 'خفف الوزن شوي أو خلّ هالتمارين ليوم ثاني.');
+            }
+            // جاهزية العضلات
+            const ready = document.getElementById('start-ready'); ready.replaceChildren();
+            for (const g of Object.keys(GymCatalog.MUSCLE_NAMES)) {
+                const r = rec[g], st = recoveryState(r);
+                const chip = el('span', 'start-ready-chip', groupName(g) + (r && r.pct < 1 ? ` · ${r.left} ساعة` : ''));
+                chip.dataset.state = st; ready.appendChild(chip);
+            }
+            const today = getLocalDateString();
+            const week = GymCalc.consistency(state.logs, today).thisWeekDays;
+            document.getElementById('start-week').textContent = week === 1 ? 'يوم واحد' : `${week} أيام`;
+            const last = state.sessions.filter(x => x.status === 'completed').sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0))[0];
+            document.getElementById('start-last-label').textContent = last ? 'آخر جلسة · ' + friendlyDate(last.date) : 'آخر جلسة';
+            if (last) {
+                const sets = state.logs.filter(l => l.sessionId === last.id && l.type === 'weights' && l.setType !== 'warmup').length;
+                // جلسة نسيت تنهيها: المدة لين آخر جولة + 10 دقايق (مثل حساب السعرات)
+                const lastSet = Math.max(0, ...state.logs.filter(l => l.sessionId === last.id).map(l => Number(l.timestamp) || 0));
+                const end = Math.min(last.endedAt || Date.now(), lastSet ? lastSet + 600000 : Infinity);
+                const mins = Math.max(1, Math.round((end - last.startedAt) / 60000));
+                document.getElementById('start-last').textContent = [last.name, mins ? `${mins} دقيقة` : '', `${sets} جولة`].filter(Boolean).join(' · ');
+            } else document.getElementById('start-last').textContent = 'ما فيه للحين';
+        }
+        async function startFromPanel() {
+            if (getActiveSession()) return;
+            const pv = startPreview();
+            if (pv.ids.includes('ex_70') && !state.exercises.some(e => e.id === 'ex_70')) {
+                state.exercises.push({ ...programs().DEADLIFT, isCustom: false, archived: false, editedAt: Date.now() });
+                renderExerciseDropdown();
+            }
+            const session = await startWorkoutSession(pv.kind === 'routine' ? pv.routine : 'free');
+            if (!session) return;
+            if (pv.kind === 'program') session.name = pv.title;
+            const ids = orderByRecovery(pv.ids.filter(id => state.exercises.some(e => e.id === id && !e.archived)));
+            if (ids.length) { session.planIds = ids; session.editedAt = Date.now(); }
+            if (pv.programDay) session.programDay = pv.programDay;
+            await GymStorage.save(state);
+            renderSessionPlan(); updateSessionUI();
+            if (ids.length) selectExercise(ids[0]);
+        }
+
+        // W3: ترتيب التمارين للأسهم: الخطة، وإلا ترتيب آخر جلسة من نفس النوع، وإلا تمارين نفس العضلة
+        function exerciseOrder() {
+            const s = getActiveSession(), cur = currentExercise();
+            const alive = id => state.exercises.some(e => e.id === id && !e.archived);
+            if (s?.planIds?.length) return { ids: s.planIds.filter(alive), from: 'plan' };
+            const routine = s?.routine || document.getElementById('session-routine-select').value || 'free';
+            const last = state.sessions.filter(x => x.status === 'completed' && (x.routine || 'free') === routine && x.id !== s?.id).sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0))
+                .find(x => new Set(state.logs.filter(l => l.sessionId === x.id).map(l => l.exerciseId)).size >= 2);
+            if (last) {
+                const ids = [...new Set(state.logs.filter(l => l.sessionId === last.id).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)).map(l => l.exerciseId))].filter(alive);
+                if (!cur || ids.includes(cur.id)) return { ids, from: 'last' };
+            }
+            const g = cur && groupOf(cur);
+            return { ids: g ? state.exercises.filter(e => !e.archived && groupOf(e) === g).map(e => e.id) : [], from: 'muscle' };
+        }
+        function neighbors() {
+            const cur = currentExercise(), { ids, from } = exerciseOrder();
+            const i = cur ? ids.indexOf(cur.id) : -1;
+            return { prev: i > 0 ? ids[i - 1] : null, next: i >= 0 ? (ids[i + 1] || null) : (ids[0] || null), index: i, total: ids.length, from };
+        }
+        function renderCurEx() {
+            const box = document.getElementById('cur-ex');
+            if (!box) return;
+            const ex = currentExercise();
+            document.getElementById('cur-ex-name').textContent = ex ? shortName(ex.name) : 'اختر تمرين';
+            const g = ex && groupOf(ex);
+            const chip = document.getElementById('cur-ex-muscle'); chip.textContent = g ? groupName(g) : ''; chip.hidden = !g;
+            document.getElementById('cur-ex-equip').textContent = ex ? (EQUIP_NAMES[ex.equip] || '') : '';
+            const n = neighbors();
+            const pos = document.getElementById('cur-ex-pos');
+            pos.textContent = n.from === 'plan' && n.index >= 0 ? `${n.index + 1} من ${n.total} في الخطة` : '';
+            for (const [id, key, label] of [['btn-ex-prev', 'prev', 'التمرين السابق'], ['btn-ex-next', 'next', 'التمرين الجاي']]) {
+                const b = document.getElementById(id), target = n[key];
+                b.disabled = !target; b.dataset.ex = target || '';
+                b.setAttribute('aria-label', target ? `${label}: ${exNameById(target)}` : label);
+                b.title = target ? exNameById(target) : '';
+            }
+            document.getElementById('btn-guide-toggle').classList.toggle('hidden', document.getElementById('ex-guide').classList.contains('hidden'));
+            const bar = document.getElementById('session-plan-pos');
+            if (bar) bar.textContent = n.from === 'plan' && n.total ? `الخطة: ${Math.max(1, n.index + 1)} من ${n.total}` : '';
+        }
+        // W5: «الجولة 3 من 5»
+        function setTarget(ex) {
+            const s = getActiveSession(), pd = s?.programDay;
+            const t = pd && programs() ? programs().target(pd.program, pd.day, ex.id) : null;
+            if (t) return { sets: t.sets, sub: `هدف البرنامج: ${t.reps.replace(/s$/, '')} ${/s$/.test(t.reps) ? 'ثانية' : 'عدات'}` };
+            const today = getLocalDateString();
+            const prev = workingSetsOf(ex.id, l => l.date !== today);
+            if (prev.length) {
+                const lastDate = prev.reduce((m, l) => l.date > m ? l.date : m, '');
+                const n = prev.filter(l => l.date === lastDate).length;
+                return { sets: Math.min(10, n), sub: `آخر مرة سويت ${n === 1 ? 'جولة وحدة' : n === 2 ? 'جولتين' : n + ' جولات'}` };
+            }
+            return { sets: 3, sub: 'الهدف المعتاد: 3 جولات' };
+        }
+        function renderSetCounter() {
+            const box = document.getElementById('set-counter');
+            if (!box) return;
+            const ex = currentExercise();
+            box.classList.toggle('hidden', !ex || ex.type !== 'weights');
+            if (!ex || ex.type !== 'weights') return;
+            const s = getActiveSession(), today = getLocalDateString();
+            const done = workingSetsOf(ex.id, l => s ? l.sessionId === s.id : l.date === today).length;
+            const t = setTarget(ex);
+            document.getElementById('set-counter-title').textContent = done < t.sets ? `الجولة ${done + 1} من ${t.sets}` : `خلصت ${done} من ${t.sets}`;
+            document.getElementById('set-counter-sub').textContent = t.sub;
+            const dots = document.getElementById('set-counter-dots'); dots.replaceChildren();
+            for (let i = 0; i < Math.max(t.sets, Math.min(done, 12)); i++) { const d = el('i'); d.dataset.s = i < done ? 'done' : i === done ? 'now' : 'todo'; dots.appendChild(d); }
+            box.dataset.done = String(done >= t.sets);
+            const next = neighbors().next, nb = document.getElementById('btn-next-ex');
+            nb.classList.toggle('hidden', !(done >= t.sets && next));
+            if (next) { nb.textContent = `التمرين الجاي: ${exNameById(next)}`; nb.dataset.ex = next; }
+        }
+        // W9: الحفظ الثابت يقول وش بينحفظ
+        function updateSaveSum() {
+            const out = document.getElementById('save-sum');
+            if (!out) return;
+            const ex = currentExercise();
+            if (!ex || ex.type !== 'weights') { out.replaceChildren(); return; }
+            const mode = document.getElementById('load-mode-select').value;
+            const reps = document.getElementById('input-reps').value, w = document.getElementById('input-weight').value;
+            if (mode === 'timed') { out.replaceChildren(el('span', 'save-sep', ' · '), el('span', 'save-num', `${document.getElementById('input-duration-sec').value} ث`)); return; }
+            const load = mode === 'bodyweight' ? 'وزن الجسم' : (w || '0');
+            out.replaceChildren(el('span', 'save-sep', ' · '), el('span', 'save-num', `${load} × ${reps || 0}`));
+        }
+        function renderWorkoutV12() { renderStartPanel(); renderCurEx(); renderSetCounter(); updateSaveSum(); }
+
+        /* اختيار التمرين: قائمة من تحت */
+        let pickerReturn = null;
+        function openPicker() {
+            const p = document.getElementById('ex-picker');
+            pickerReturn = document.activeElement;
+            document.getElementById('picker-search').value = '';
+            renderPicker();
+            p.classList.remove('hidden');
+            document.body.classList.add('sheet-open');
+            setTimeout(() => document.getElementById('picker-search').focus(), 50);
+        }
+        function closePicker() {
+            document.getElementById('ex-picker').classList.add('hidden');
+            document.body.classList.remove('sheet-open');
+            (pickerReturn && pickerReturn.isConnected ? pickerReturn : document.getElementById('btn-change-ex'))?.focus();
+        }
+        function pickerItem(ex, q, meta, mark) {
+            const b = el('button', 'picker-item'); b.type = 'button'; b.dataset.pick = ex.id;
+            if (mark) { const m = el('span', 'picker-mark', mark.text); m.dataset.s = mark.s; b.appendChild(m); }
+            const mid = el('span', 'picker-mid');
+            const name = el('span', 'picker-name'), full = shortName(ex.name);
+            const at = q ? GymData.normalizeText(full).indexOf(GymData.normalizeText(q)) : -1;
+            // نظلل الكلمة اللي بحثت عنها لو لقيناها كما هي
+            if (at >= 0 && GymI18n.lang !== 'en' && GymData.normalizeText(full).length === full.length) { name.append(document.createTextNode(full.slice(0, at)), el('mark', '', full.slice(at, at + q.length)), document.createTextNode(full.slice(at + q.length))); }
+            else name.textContent = full;
+            mid.append(name, el('span', 'picker-meta', meta));
+            b.append(mid);
+            const g = groupOf(ex); if (g) b.appendChild(el('span', 'cur-ex-chip', groupName(g)));
+            return b;
+        }
+        function lastUse(id) { let t = 0, d = ''; for (const l of state.logs) if (l.exerciseId === id && (l.timestamp || 0) >= t) { t = l.timestamp || 0; d = l.date; } return d; }
+        function renderPicker() {
+            const q = document.getElementById('picker-search').value.trim();
+            const box = document.getElementById('picker-list'); box.replaceChildren();
+            const s = getActiveSession(), cur = currentExercise();
+            const live = state.exercises.filter(e => !e.archived);
+            const meta = ex => [EQUIP_NAMES[ex.equip] || '', (d => d ? 'آخر مرة ' + friendlyDate(d) : 'ما سجلته')(lastUse(ex.id))].filter(Boolean).join(' · ');
+            if (s?.planIds?.length && !q) {
+                const sec = el('div', 'picker-sec'); sec.appendChild(el('span', 'picker-sec-title', 'في خطتك اليوم'));
+                s.planIds.forEach((id, i) => {
+                    const ex = live.find(e => e.id === id); if (!ex) return;
+                    const n = workingSetsOf(id, l => l.sessionId === s.id).length;
+                    const t = setTarget(ex).sets;
+                    const st = n >= t ? 'done' : cur?.id === id ? 'now' : 'todo';
+                    sec.appendChild(pickerItem(ex, '', st === 'done' ? `خلصت ${n} من ${t}` : st === 'now' ? `الحين · ${n} من ${t}` : (n ? `${n} من ${t}` : 'ما بديته'), { text: st === 'done' ? '✓' : String(i + 1), s: st }));
+                });
+                box.appendChild(sec);
+            }
+            let list;
+            if (q) list = live.map(e => [e, GymData.matchScore(e.name, q)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1] || (lastUse(b[0].id) > lastUse(a[0].id) ? 1 : -1)).map(x => x[0]);
+            else { const used = live.filter(e => lastUse(e.id)).sort((a, b) => (lastUse(b.id) > lastUse(a.id) ? 1 : -1)); list = used.concat(live.filter(e => !lastUse(e.id))); }
+            const sec = el('div', 'picker-sec');
+            const en = GymI18n.lang === 'en';
+            const head = el('span', 'picker-sec-title', q ? (en ? `Results for "${q}"` : `نتايج «${q}»`) : 'تمارينك الأخيرة أول، وبعدها الباقي');
+            if (q) head.setAttribute('translate', 'no');
+            sec.appendChild(head);
+            for (const ex of list.slice(0, 80)) sec.appendChild(pickerItem(ex, q, meta(ex)));
+            if (!list.length) sec.appendChild(el('p', 'field-hint', 'ما لقينا تمرين بهالاسم. تقدر تضيفه من تحت.'));
+            box.appendChild(sec);
+            document.getElementById('picker-meta').textContent = q ? `${list.length} نتيجة · تكتب بالعربي أو الإنجليزي، والهمزات ما تفرق` : '';
+            const nb = document.getElementById('picker-new');
+            nb.textContent = q ? (GymI18n.lang === 'en' ? `+ New exercise "${q}"` : `+ تمرين جديد «${q}»`) : '+ تمرين جديد';
+            if (q) nb.setAttribute('translate', 'no'); else nb.removeAttribute('translate');
+        }
+        function pickExercise(id) {
+            closePicker();
+            selectExercise(id);
+            renderWorkoutV12();
+            document.getElementById('ex-card').scrollIntoView({ block: 'start' });
+            haptic('tap');
+        }
+        function newFromPicker() {
+            const q = document.getElementById('picker-search').value.trim();
+            closePicker();
+            addFromWorkout = true; switchTab('exercises'); scrollTo(0, 0);
+            const n = document.getElementById('new-ex-name');
+            n.value = q; n.dispatchEvent(new Event('input', { bubbles: true }));
+            if (q) n.focus();
+        }
+        document.addEventListener('click', e => {
+            const t = e.target.closest ? e.target : null;
+            if (!t) return;
+            if (t.closest('#btn-change-ex')) return openPicker();
+            if (t.closest('#picker-close')) return closePicker();
+            if (t.id === 'ex-picker') return closePicker();
+            const pick = t.closest('[data-pick]'); if (pick) return pickExercise(pick.dataset.pick);
+            if (t.closest('#picker-new')) return newFromPicker();
+            const arrow = t.closest('#btn-ex-prev,#btn-ex-next,#btn-next-ex'); if (arrow && arrow.dataset.ex) { selectExercise(arrow.dataset.ex); renderWorkoutV12(); haptic('tap'); return; }
+            if (t.closest('#btn-guide-toggle')) { const g = document.getElementById('ex-guide'); g.open = !g.open; if (g.open) g.scrollIntoView({ block: 'nearest' }); return; }
+            if (t.closest('[data-step-target],#unit-btn-kg,#unit-btn-lbs')) requestAnimationFrame(updateSaveSum);
+        });
+        document.addEventListener('input', e => {
+            if (e.target && e.target.id === 'picker-search') renderPicker();
+            if (e.target && ['input-weight', 'input-reps', 'input-duration-sec'].includes(e.target.id)) updateSaveSum();
+        });
 
         /* ---------- v11.5 (الدفعة 3) ---------- */
         // A1: خريطة الاستشفاء: وش جاهز للتمرين اليوم ووش يحتاج راحة

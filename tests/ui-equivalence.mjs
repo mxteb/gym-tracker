@@ -75,7 +75,9 @@ async function snapshot(page, data) {
     ['تحليل رياضي تقريبي يعتمد على مدخلات بروفايلك، وليس تشخيصًا طبيًا', 'قياساتك وصورك وسعراتك. الأرقام تقديرية، وليست تشخيصًا طبيًا'],
     ['البيانات الشخصية والقياسات', 'البيانات الشخصية'],
     ['حفظ القياسات وتحليل النتائج', 'احفظ بياناتك'],
+    ['استخدام السابقة كخطة', 'مثل الجلسة السابقة'],
   ];
+  out.workout = RENAMED.reduce((x, [o, n]) => x.split(o).join(n), out.workout);
   out['progress+bento+profile (words)'] = ['progress', 'bento', 'profile'].map(t => RENAMED.reduce((x, [o, n]) => x.split(o).join(n), out[t])).join(' ').split(/\s+/).filter(Boolean).sort().join(' ');
   for (const t of ['progress', 'bento', 'profile']) delete out[t];
   // every progress chart: each exercise × each load mode × both metrics
