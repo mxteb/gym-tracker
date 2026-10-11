@@ -289,7 +289,7 @@ async function run(lang) {
   await ev(`document.getElementById('btn-sides').click()`); await sleep(300);
   await ev(`const s=document.getElementById('rest-timer-duration'); s.value='0'; s.dispatchEvent(new Event('change',{bubbles:true}))`);
   await ev(`document.getElementById('input-weight').value='12'; document.getElementById('input-reps').value='10'; document.getElementById('input-reps-left').value='8'; document.getElementById('btn-save-weights').click()`); await sleep(700);
-  const sideRow = await ev(`return document.querySelector('#today-logs-container .glass-card')?.innerText.replace(/\\n/g,' ')`);
+  const sideRow = await ev(`return document.querySelector('#today-logs-container .log-row[data-newest]')?.innerText.replace(/\\n/g,' ')`);
   check(lang, 'B5 log shows both sides', /يمين 10 · يسار 8|R 10 · L 8/.test(sideRow), sideRow);
   await p.shotEl('b5-sides', '#reps-field-wrapper');
   await select('ex_1');
@@ -299,7 +299,7 @@ async function run(lang) {
   const cnt = `return Number((document.getElementById('today-sets-count')?.textContent||'').replace(/\\D/g,''))||0`;
   const c0 = await ev(cnt);
   await ev(`document.dispatchEvent(new CustomEvent('gym:repeat-set',{detail:{exerciseId:'ex_55'}}))`); await sleep(800);
-  check(lang, 'B6 repeat saves the same set again', await ev(cnt) === c0 + 1 && /يمين 10 · يسار 8|R 10 · L 8/.test(await ev(`return document.querySelector('#today-logs-container .glass-card')?.innerText.replace(/\\n/g,' ')`)), `${c0} → ${await ev(cnt)}`);
+  check(lang, 'B6 repeat saves the same set again', await ev(cnt) === c0 + 1 && /يمين 10 · يسار 8|R 10 · L 8/.test(await ev(`return document.querySelector('#today-logs-container .log-row[data-newest]')?.innerText.replace(/\\n/g,' ')`)), `${c0} → ${await ev(cnt)}`);
 
   // C4 photos
   await ev(`document.getElementById('nav-profile').click()`);

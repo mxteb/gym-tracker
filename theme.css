@@ -1012,7 +1012,7 @@ button.muscle-row{width:100%;font:inherit;background:transparent;border:0;paddin
 .set-counter-next{flex-basis:100%;min-height:48px;border:1px solid var(--ok);border-radius:var(--r-sm);background:transparent;color:var(--ok);font-size:.85rem;font-weight:800}
 .set-counter-next.hidden{display:none}
 /* W9: الحفظ ثابت فوق الشريط السفلي */
-.save-bar{position:fixed;inset-inline:0;bottom:calc(64px + env(safe-area-inset-bottom));z-index:40;display:flex;gap:8px;padding:8px 16px;background:var(--bg-deep);border-top:1px solid var(--line)}
+.save-bar{position:fixed;left:0;right:0;bottom:calc(64px + env(safe-area-inset-bottom));z-index:40;display:flex;gap:8px;padding:8px 16px;background:var(--bg-deep);border-top:1px solid var(--line)}
 .save-bar > *{margin:0!important}
 .save-bar #btn-save-weights{flex:1;min-height:56px;font-size:.95rem!important}
 .save-bar #btn-repeat-set{flex:none;max-width:42%;min-height:56px;padding:0 .75rem;font-size:.72rem;line-height:1.3;white-space:normal}
@@ -1022,7 +1022,7 @@ button.muscle-row{width:100%;font:inherit;background:transparent;border:0;paddin
 #toast-container{bottom:calc(150px + env(safe-area-inset-bottom))!important}
 @media (min-width:640px){.save-bar{max-width:36rem;margin-inline:auto}}
 /* اختيار التمرين */
-.ex-picker{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.ex-picker{position:fixed;top:0;right:0;bottom:0;left:0;z-index:60;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
 .ex-picker.hidden{display:none}
 .ex-picker-sheet{width:100%;max-width:36rem;height:min(88vh,52rem);display:flex;flex-direction:column;background:var(--panel);border-top:1px solid var(--line);border-radius:12px 12px 0 0;padding-bottom:env(safe-area-inset-bottom)}
 .ex-picker-grip{width:44px;height:4px;border-radius:2px;background:var(--track-2);margin:8px auto 0}
@@ -1060,3 +1060,68 @@ body.sheet-open{overflow:hidden}
 #workout-session-card.session-active #btn-plan-session,#workout-session-card.session-active #session-plan,#workout-session-card.session-active #copied-session-plan{flex-basis:100%}
 #workout-session-card.session-active #active-session-timer{font-size:1.9rem}
 #workout-session-card.session-active > *{min-width:0;max-width:100%}
+
+/* ---------- v12.2 (المرحلة 3ب) ---------- */
+/* W4: عبّي من */
+.fill-from{display:grid;gap:.5rem}
+.fill-from.hidden{display:none}
+.fill-label{font-size:.75rem;color:var(--mute)}
+.fill-from.empty .fill-label{display:none}
+.fill-row{display:flex;gap:6px}
+.fill-btn{flex:1;min-width:0;min-height:56px;padding:6px 10px;border:1px solid var(--line);border-radius:var(--r-sm);background:transparent;color:var(--ink);display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;text-align:start}
+.fill-btn.hidden{display:none}
+.fill-btn small{font-size:.7rem;color:var(--mute)}
+.fill-btn b{font-size:.95rem;font-weight:800;direction:ltr;unicode-bidi:isolate}
+.fill-btn.fill-main{flex:1.3;background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.fill-btn.fill-main small{color:var(--on-accent);opacity:.8}
+.fill-btn[aria-expanded="true"]{border-color:var(--accent-ink)}
+#fill-from #next-suggestion{border:0!important;background:transparent!important;padding:0!important;margin:0!important;box-shadow:none!important}
+#fill-from .sugg-head{display:none}
+#fill-from .sugg-reason{font-size:.75rem;line-height:1.7;color:var(--mute);margin:0}
+#fill-from .sugg-warmup{display:none!important}
+#fill-from.show-warm .sugg-warmup:not(.hidden){display:flex!important}
+/* W7: إعدادات التمرين مطوية */
+.ex-settings{border:1px solid var(--line);border-radius:var(--r-sm)}
+.ex-settings > summary{list-style:none;display:flex;flex-direction:column;gap:2px;min-height:52px;justify-content:center;padding:.4rem 2.4rem .4rem .9rem;cursor:pointer;position:relative}
+[dir="rtl"] .ex-settings > summary{padding:.4rem .9rem .4rem 2.4rem}
+.ex-settings > summary::-webkit-details-marker{display:none}
+.ex-settings > summary::after{content:"⌄";position:absolute;inset-inline-end:.9rem;top:50%;transform:translateY(-60%);color:var(--mute);font-size:1.1rem}
+.ex-settings[open] > summary::after{content:"⌃";transform:translateY(-30%)}
+.ex-settings-title{font-size:.78rem;font-weight:700;color:var(--ink)}
+.ex-settings-sum{font-size:.75rem;color:var(--ink-2)}
+.ex-settings-body{display:grid;gap:.9rem;padding:.25rem .9rem .9rem}
+/* W10: السجل مجمّع */
+.logs-kcal{font-size:.75rem;color:var(--mute)}
+.logs-kcal:empty{display:none}
+.log-group{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
+.log-group-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.7rem .9rem;border-bottom:1px solid var(--line)}
+.log-cardio .log-group-head{border-bottom:0}
+.log-group-title{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.log-group-title b{font-size:.92rem;color:var(--ink)}
+.log-group-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:.7rem;color:var(--mute)}
+.log-kcal{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:0}
+.log-kcal b{font-size:.92rem;color:var(--accent-ink)}
+.log-kcal small{font-size:.62rem;color:var(--mute)}
+.log-set{display:grid;grid-template-columns:1.6rem minmax(0,1fr) auto auto;gap:6px;align-items:center;min-height:48px;padding:0 .4rem 0 .9rem;border-bottom:1px solid var(--line-soft);background:var(--panel)}
+[dir="rtl"] .log-set{padding:0 .9rem 0 .4rem}
+.log-set:last-child{border-bottom:0}
+.log-set.warm{opacity:.55}
+.log-n{font-size:.75rem;color:var(--mute)}
+.log-set-txt{font-size:.9rem;font-weight:700;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.log-tag{font-size:.68rem;color:var(--mute);white-space:nowrap}
+.log-tag.pr{font-weight:800;padding:2px 7px;border-radius:3px;background:var(--accent);color:var(--on-accent)}
+.log-act{display:flex}
+.log-act-btn{width:40px;height:44px;border:0;background:transparent;color:var(--mute)}
+.log-act-btn .fa-solid{display:block;width:16px;height:16px;margin:auto;background:currentColor;-webkit-mask:var(--ico) center/contain no-repeat;mask:var(--ico) center/contain no-repeat}
+.log-act-btn .fa-solid::before{content:none}
+.swipe-hint.help-line{align-items:flex-start}
+.log-set-cell{display:flex;flex-direction:column;gap:1px;min-width:0}
+.log-1rm{font-size:.65rem;color:var(--mute)}
+
+/* WebView قديم (أندرويد 11 بدون تحديث، Chrome 83): ما يدعم gap في flex ولا inset */
+@supports not (inset:0){
+ .cur-ex-actions > * + *,.fill-row > * + *,.save-bar > * + *{margin-inline-start:6px!important}
+ .cur-ex-row > * + *{margin-inline-start:6px}
+ .rec-close{position:absolute;top:.6rem;left:0}
+ [dir="ltr"] .rec-close{left:auto;right:0}
+}

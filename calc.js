@@ -75,9 +75,12 @@ function calories(type, data, profileWeightKg) {
 function weightSessionCalories(session, sessionLogs, now = Date.now()) {
  // v11.8: a session left open (forgot to tap Finish) only counts up to 10 minutes after its last set,
  // so a session finished the next day does not add thousands of calories
- const lastSet = Math.max(0, ...sessionLogs.map(l => Number(l.timestamp) || 0));
+ const stamps = sessionLogs.map(l => Number(l.timestamp) || 0).filter(Boolean);
+ const lastSet = stamps.length ? Math.max(...stamps) : 0, firstSet = stamps.length ? Math.min(...stamps) : 0;
  const end = Math.min(session.endedAt || now, lastSet ? lastSet + 10 * 60000 : Infinity);
- const totalMinutes = Math.max(0, (end - session.startedAt) / 60000);
+ // v12.2: and a session started hours before its first set (started yesterday, trained today) counts from 30 minutes before that set
+ const start = firstSet && firstSet - session.startedAt > 3 * 3600000 ? firstSet - 30 * 60000 : session.startedAt;
+ const totalMinutes = Math.max(0, (end - start) / 60000);
  const cardioMinutes = sessionLogs.filter(l => l.type !== 'weights').reduce((n, l) => n + (Number(l.duration) || 0), 0);
  const durationMins = Math.max(0, totalMinutes - cardioMinutes);
  const working = sessionLogs.filter(l => l.type === 'weights' && l.setType !== 'warmup');

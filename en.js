@@ -936,4 +936,24 @@
     [/^(.+) · ما سجلته$/, function (e) { return t(e) + ' · never logged'; }]
   ]);
 
+  /* ---------- v12.2 (workout screen 2) ---------- */
+  GymI18n.add({
+    'عبّي من:': 'Fill from:', 'آخر جولة': 'Last set', 'اقتراح اليوم': "Today's suggestion", 'إعدادات التمرين': 'Exercise settings', 'كيف تنحسب السعرات': 'How calories are counted',
+    'رقم قياسي': 'Record', 'وزن خارجي': 'External load', 'لكل يد': 'Per hand', 'وزن جسم + إضافي': 'Bodyweight + added', 'بمساعدة': 'Assisted', 'بالوقت': 'Timed', 'بدون مؤقت راحة': 'No rest timer',
+    'كم باقي فيك؟ (RIR)': 'Reps left in you? (RIR)', '+ تسخين': '+ warm-up', 'تعبّت آخر جولة. احفظها بعد ما تسويها': 'Last set filled in. Save it after you do it',
+    'سعرات الحديد تنحسب للجلسة من مدتها ووزنك، وتنقسم على التمارين حسب عدد جولاتها. اسحب الجولة يمين للتعديل ويسار للحذف (وتقدر تتراجع 6 ثواني).': 'Weights calories are counted for the whole session from its length and your weight, then split across exercises by their sets. Swipe a set right to edit and left to delete (you can undo for 6 seconds).'
+  }, [
+    [/^الجهاز ([\d.]+) كجم$/, function (n) { return 'machine ' + n + ' kg'; }],
+    [/^البار ([\d.]+) كجم$/, function (n) { return 'bar ' + n + ' kg'; }],
+    [/^راحة (\d+) ث$/, function (n) { return 'rest ' + n + ' s'; }],
+    [/^راحة (\d+) دقايق$/, function (n) { return 'rest ' + n + ' min'; }],
+    [/^حوالي (\d+) سعرة$/, function (n) { return 'about ' + n + ' kcal'; }],
+    [/^وزن الجسم × (.+)$/, function (r) { return 'Bodyweight × ' + t(r); }],
+    [/^وزن الجسم \(([\d.—]+) كجم\) × (.+)$/, function (w, r) { return 'Bodyweight (' + w + ' kg) × ' + t(r); }],
+    [/^(.+) × يمين (\d+) · يسار (\d+)$/, function (w, r, l) { return t(w) + ' × R ' + r + ' · L ' + l; }],
+    [/^(\d+) دقيقة$/, function (n) { return n + ' min'; }],
+    [/^(\d+) دقيقة · (.+)$/, function (n, r) { return n + ' min · ' + t(r); }],
+    [/^(جولة وحدة|جولتين|\d+ جولات) \+ تسخين$/, function (a) { return t(a) + ' + warm-up'; }]
+  ]);
+
 })();

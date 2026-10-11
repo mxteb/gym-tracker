@@ -72,7 +72,9 @@ test('calc.js gives exactly the same results as v10.3 on 3000 random cases', () 
     const now = 1790000000000 + 3.6e6;
     const realNow = Date.now; Date.now = () => now;
     try {
-      assert.deepEqual(GymCalc.weightSessionCalories(session, logs, now), ref.estimateWeightSessionCalories(session, logs), 'session calories');
+      // timestamps removed: v11.8 / v12.2 purposely trim a forgotten session by its set times (own test below); the formula itself must match v10.3
+      const noTs = logs.map(({ timestamp, ...l }) => l);
+      assert.deepEqual(GymCalc.weightSessionCalories(session, noTs, now), ref.estimateWeightSessionCalories(session, noTs), 'session calories');
     } finally { Date.now = realNow; }
     for (const ex of exIds) for (const mode of ['external', 'per_hand', 'bodyweight', 'added', 'assisted', 'timed'])
       assert.deepEqual(plain(GymCalc.progressionGroups(logs, ex, mode)), plain(ref.progressionGroups(ex, mode).groups), 'progression ' + ex + ' ' + mode);
@@ -82,7 +84,7 @@ test('calc.js gives exactly the same results as v10.3 on 3000 random cases', () 
 
 test('session summary equals the fields v10.3 wrote on a finished session', () => {
   for (let round = 0; round < 500; round++) {
-    const logs = Array.from({ length: 1 + Math.floor(rnd() * 15) }, (_, i) => randomLog(i, ['ex_1', 'ex_3', 'ex_64'], ['s1']));
+    const logs = Array.from({ length: 1 + Math.floor(rnd() * 15) }, (_, i) => randomLog(i, ['ex_1', 'ex_3', 'ex_64'], ['s1'])).map(({ timestamp, ...l }) => l); // see above
     const session = { startedAt: 1790000000000, endedAt: 1790000000000 + Math.floor(rnd() * 7.2e6), bodyWeightKgAtStart: pick([undefined, 80]) };
     const ref = require('./reference-v10.3.cjs')({ profile: {}, logs }, GymData);
     const working = logs.filter(l => l.type === 'weights' && l.setType !== 'warmup');
@@ -414,13 +416,16 @@ test('G5 smart search: hamza, taa marbuta, English, one typo', () => {
 
 test('v11.8: a session left open counts only up to 10 minutes after its last set', () => {
   const start = Date.parse('2026-10-01T18:00:00');
-  const logs = [{ type: 'weights', setType: 'normal', rir: 2, timestamp: start + 50 * 60000 }];
+  const logs = [5, 25, 50].map(m => ({ type: 'weights', setType: 'normal', rir: 2, timestamp: start + m * 60000 }));
   const normal = GymCalc.weightSessionCalories({ startedAt: start, endedAt: start + 60 * 60000, bodyWeightKgAtStart: 80 }, logs);
   const forgotten = GymCalc.weightSessionCalories({ startedAt: start, endedAt: start + 20 * 3600000, bodyWeightKgAtStart: 80 }, logs);
   assert.equal(normal, 4 * 80 * 1);           // 60 minutes, MET 5 − 1
   assert.equal(forgotten, normal);            // 20 hours open, still 60 minutes (last set + 10)
   const short = GymCalc.weightSessionCalories({ startedAt: start, endedAt: start + 30 * 60000, bodyWeightKgAtStart: 80 }, [{ ...logs[0], timestamp: start + 25 * 60000 }]);
   assert.equal(short, 4 * 80 * 0.5);          // finished on time: unchanged
+  // started a day before the first set (forgot it open overnight): counts from 30 min before the first set
+  const stale = GymCalc.weightSessionCalories({ startedAt: start - 24 * 3600000, endedAt: start + 60 * 60000, bodyWeightKgAtStart: 80 }, logs);
+  assert.equal(stale, Math.round(4 * 80 * (85 / 60) * 10) / 10); // first set at 5 min → from −25 min to 60 min
 });
 
 test('v12 muscle parts: library table, your choice, guesses, and merging extra muscles', () => {

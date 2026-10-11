@@ -10,7 +10,7 @@ import path from 'node:path';
 
 const [oldUrl, newUrl, chrome = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'] = process.argv.slice(2);
 const HERE = path.dirname(new URL(import.meta.url).pathname);
-const VIS = `(root => { const c = root.cloneNode(true); c.querySelectorAll('[data-added],.hidden,[hidden],script,style,svg').forEach(e => e.remove()); c.querySelectorAll('#active-session-timer,#active-session-meta').forEach(e=>e.remove()); const parts=[]; const walk=n=>{ if(n.nodeType===3){parts.push(n.nodeValue);return;} if(n.nodeType!==1)return; const block=/^(DIV|P|SECTION|H1|H2|H3|LI|BUTTON|LABEL|OPTION|SUMMARY|STRONG|SMALL|SPAN)$/.test(n.tagName); if(n.tagName==='SELECT'){parts.push(' '+[...n.options].map(o=>o.textContent).join(' / ')+' ');return;} if(block)parts.push(' '); n.childNodes.forEach(walk); if(block)parts.push(' '); }; walk(c); return parts.join(''); })`;
+const VIS = `(root => { const c = root.cloneNode(true); c.querySelectorAll('[data-added],.hidden,[hidden],script,style,svg').forEach(e => e.remove()); c.querySelectorAll('#active-session-timer,#active-session-meta,#today-logs-container,#today-sets-count').forEach(e=>e.remove()); const parts=[]; const walk=n=>{ if(n.nodeType===3){parts.push(n.nodeValue);return;} if(n.nodeType!==1)return; const block=/^(DIV|P|SECTION|H1|H2|H3|LI|BUTTON|LABEL|OPTION|SUMMARY|STRONG|SMALL|SPAN)$/.test(n.tagName); if(n.tagName==='SELECT'){parts.push(' '+[...n.options].map(o=>o.textContent).join(' / ')+' ');return;} if(block)parts.push(' '); n.childNodes.forEach(walk); if(block)parts.push(' '); }; walk(c); return parts.join(''); })`;
 const EMOJI = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{2712}\u{2714}-\u{27BF}\u{2B00}-\u{2BFF}\u{23E9}-\u{23FA}\u{FE0F}\u{200D}]/gu;
 // v11.7 (G7): dates are shown as words now («اليوم»، «الثلاثاء 29 سبتمبر») where they were 2026-09-29. Both forms count as one <date>.
 const AR_DAY = '(?:الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس|الجمعة|السبت)', AR_MON = '(?:يناير|فبراير|مارس|أبريل|مايو|يونيو|يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)';
@@ -61,6 +61,8 @@ async function snapshot(page, data) {
   const out = {};
   const clean = `t => t.replace(/\\d\\d:\\d\\d(:\\d\\d)?/g,'<time>').replace(/[ \\t]+/g,' ').replace(/\\n\\s*\\n+/g,'\\n').trim()`;
   out.header = norm(await page.ev(`return ${VIS}(document.querySelector('header'))`));
+  // show every log (older versions load them 15 at a time)
+  await page.ev(`for (let i = 0; i < 20; i++) { const b = document.getElementById('btn-load-more-logs'); if (!b || b.closest('.hidden')) break; b.click(); await new Promise(r => setTimeout(r, 100)); } return true`);
   for (const tab of ['workout', 'exercises', 'progress', 'bento', 'profile']) {
     await page.ev(`document.getElementById('nav-${tab}').click(); document.querySelectorAll('#screen-${tab} details').forEach(d=>d.open=true);`);
     await sleep(300);
@@ -76,8 +78,10 @@ async function snapshot(page, data) {
     ['البيانات الشخصية والقياسات', 'البيانات الشخصية'],
     ['حفظ القياسات وتحليل النتائج', 'احفظ بياناتك'],
     ['استخدام السابقة كخطة', 'مثل الجلسة السابقة'],
+    ['مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):', 'كم باقي فيك؟ (RIR)'],
   ];
-  out.workout = RENAMED.reduce((x, [o, n]) => x.split(o).join(n), out.workout);
+  out.workout = RENAMED.reduce((x, [o, n]) => x.split(o).join(n), out.workout).split(/\s+/).filter(Boolean).sort().join(' ');
+  out['workout (words)'] = out.workout; delete out.workout;
   out['progress+bento+profile (words)'] = ['progress', 'bento', 'profile'].map(t => RENAMED.reduce((x, [o, n]) => x.split(o).join(n), out[t])).join(' ').split(/\s+/).filter(Boolean).sort().join(' ');
   for (const t of ['progress', 'bento', 'profile']) delete out[t];
   // every progress chart: each exercise × each load mode × both metrics
@@ -101,7 +105,7 @@ const a = await open(oldUrl, 9411), b = await open(newUrl, 9412);
 const A = await snapshot(a, data), B = await snapshot(b, data);
 // guard: the import must have worked, or two empty apps would look "equal"
 for (const [name, snap] of [['old', A], ['new', B]]) {
-  const logsShown = (snap.workout.match(/عدات|ثانية|دقيقة/g) || []).length;
+  const logsShown = Object.keys(snap).filter(k => k.startsWith('edit ')).length;
   const charts = Object.keys(snap).filter(k => k.startsWith('chart ') && snap[k].includes('<polyline')).length;
   console.log(`${name}: ${logsShown} log lines today, ${charts} drawn charts, header "${snap.header.replace(/\n/g, ' ')}"`);
   if (logsShown < 10 || charts < 5) { console.log('✘ fixture did not load in ' + name); process.exit(2); }

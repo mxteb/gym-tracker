@@ -201,7 +201,7 @@
 
                 <hr class="border-slate-800">
 
-                <div id="last-performance-container" class="bg-slate-900/90 p-2.5 rounded-xl border border-cyan-500/30 flex justify-between items-center text-xs">
+                <div id="last-performance-container" class="v12-hide bg-slate-900/90 p-2.5 rounded-xl border border-cyan-500/30 flex justify-between items-center text-xs">
                     <div class="flex items-center gap-2">
                         <span class="text-amber-400 font-bold text-base"></span>
                         <div>
@@ -230,21 +230,28 @@
                     <div id="ex-guide-body" class="ex-guide-body" translate="no"></div>
                 </details>
 
-                <div id="next-suggestion" class="next-suggestion hidden" data-added aria-live="polite">
-                    <div class="sugg-head"><span class="sugg-label">اقتراح اليوم</span><span id="sugg-value" class="sugg-value num-led"></span></div>
-                    <p id="sugg-reason" class="sugg-reason"></p>
-                    <div id="sugg-plateau" class="sugg-plateau hidden"><p id="sugg-plateau-text"></p><button type="button" id="btn-deload" class="sugg-wchip"></button></div>
-                    <button type="button" id="btn-apply-suggestion" class="sugg-apply">عبّي الاقتراح</button>
-                    <div id="sugg-warmup" class="sugg-warmup hidden"><span class="sugg-wlabel">تسخين:</span><span id="sugg-warmup-sets" class="sugg-wsets"></span></div>
-                </div>
 
-                <label id="previous-set-picker" class="hidden field-hint">الجولة السابقة المراد تعبئتها:
+                <label id="previous-set-picker" class="hidden field-hint v12-hide">الجولة السابقة المراد تعبئتها:
                     <select id="previous-set-select" class="glass-input w-full px-3 py-2 rounded-xl text-sm" aria-label="اختيار جولة من الأداء السابق"></select>
                 </label>
                 <div id="set-counter" class="set-counter hidden" data-added aria-live="polite">
                     <div class="set-counter-text"><b id="set-counter-title"></b><span id="set-counter-sub"></span></div>
                     <div id="set-counter-dots" class="set-counter-dots" aria-hidden="true"></div>
                     <button type="button" id="btn-next-ex" class="set-counter-next hidden"></button>
+                </div>
+                <div id="fill-from" class="fill-from hidden" data-added>
+                    <span class="fill-label">عبّي من:</span>
+                    <div class="fill-row">
+                        <button type="button" id="btn-apply-suggestion" class="sugg-apply fill-btn fill-main"><small>اقتراح اليوم</small><b id="fill-sugg-val"></b></button>
+                        <button type="button" id="fill-last" class="fill-btn"><small>آخر جولة</small><b id="fill-last-val"></b></button>
+                        <button type="button" id="fill-warm" class="fill-btn" aria-expanded="false"><small>تسخين</small><b id="fill-warm-val"></b></button>
+                    </div>
+                <div id="next-suggestion" class="next-suggestion hidden" data-added aria-live="polite">
+                    <div class="sugg-head"><span class="sugg-label">اقتراح اليوم</span><span id="sugg-value" class="sugg-value num-led"></span></div>
+                    <p id="sugg-reason" class="sugg-reason"></p>
+                    <div id="sugg-plateau" class="sugg-plateau hidden"><p id="sugg-plateau-text"></p><button type="button" id="btn-deload" class="sugg-wchip"></button></div>
+                    <div id="sugg-warmup" class="sugg-warmup hidden"><span class="sugg-wlabel">تسخين:</span><span id="sugg-warmup-sets" class="sugg-wsets"></span></div>
+                </div>
                 </div>
                 <div id="dynamic-input-container">
                     <div id="equip-visual" class="equip-visual" data-added hidden></div>
@@ -275,6 +282,10 @@
                             </div>
                         </div>
 
+
+                        <details id="ex-settings" class="ex-settings">
+                            <summary><span class="ex-settings-title" data-added>إعدادات التمرين</span><span id="ex-settings-sum" class="ex-settings-sum" data-added></span></summary>
+                            <div class="ex-settings-body">
                         <div class="space-y-1.5">
                             <div class="help-line"><label for="load-mode-select" class="block text-xs font-medium text-slate-300">طريقة تسجيل الحمل:</label><button type="button" class="help-q" data-help="loadmode" aria-label="وش يعني طريقة تسجيل الحمل" data-added>؟</button></div>
                             <select id="load-mode-select" class="w-full glass-input px-3 py-2 rounded-xl text-xs bg-slate-900 border border-slate-700">
@@ -287,7 +298,6 @@
                             </select>
                             <p id="load-mode-hint" class="field-hint">يسجل الوزن المدخل كما هو ويستخدمه في القوة والحجم.</p>
                         </div>
-
                         <div id="equip-settings" class="equip-settings hidden" data-added>
                             <div id="machine-weight-row" class="hidden space-y-2">
                                 <div class="settings-grid">
@@ -311,6 +321,19 @@
                             </div>
                         </div>
 
+                        <div class="space-y-1 pt-1">
+                            <label for="rest-timer-duration" class="block text-xs font-medium text-slate-300">وقت الراحة التلقائي للجولة:</label>
+                            <select id="rest-timer-duration" class="w-full glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700">
+                                <option value="0">بدون مؤقت (بين مراحل الدروب أو تمريني السوبر)</option>
+                                <option value="60">60 ثانية (تمارين العزل والتراي/الباي)</option>
+                                <option value="90" selected>90 ثانية (معياري)</option>
+                                <option value="120">120 ثانية (2 دقيقة - تمارين مركبة)</option>
+                                <option value="180">180 ثانية (3 دقائق - سكوات / ديدليفت / بنش)</option>
+                            </select>
+                            <p class="field-hint" data-added>يتذكر الراحة اللي تختارها لكل تمرين.</p>
+                        </div>
+                            </div>
+                        </details>
                         <div id="timed-duration-field" class="hidden space-y-1.5">
                             <label for="input-duration-sec" class="block text-xs font-medium text-slate-300">المدة بالثواني:</label>
                             <input type="number" id="input-duration-sec" min="1" max="3600" step="1" value="60" class="w-full glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
@@ -348,7 +371,7 @@
                         </div>
 
                         <div class="space-y-1.5 pt-1">
-                            <div class="help-line"><label id="rir-label" class="block text-xs font-medium text-slate-300">مقياس الجهد الفعلي (RIR / العدات المتبقية للفشل):</label><button type="button" class="help-q" data-help="rir" aria-label="وش يعني RIR" data-added>؟</button></div>
+                            <div class="help-line"><label id="rir-label" class="block text-xs font-medium text-slate-300">كم باقي فيك؟ (RIR)</label><button type="button" class="help-q" data-help="rir" aria-label="وش يعني RIR" data-added>؟</button></div>
                             <p id="feel-label" class="block text-xs font-medium text-slate-300 hidden" data-added>كيف كانت الجولة؟</p>
                             <div id="feel-container" class="feel-grid hidden" data-added>
                                 <button type="button" data-feel-rir="3" aria-pressed="false" class="feel-btn"><strong>سهل</strong><small>كان فيني 3 عدات أو أكثر</small></button>
@@ -365,17 +388,6 @@
                             </div>
                         </div>
 
-                        <div class="space-y-1 pt-1">
-                            <label for="rest-timer-duration" class="block text-xs font-medium text-slate-300">وقت الراحة التلقائي للجولة:</label>
-                            <select id="rest-timer-duration" class="w-full glass-input px-3 py-1.5 rounded-xl text-xs bg-slate-900 border border-slate-700">
-                                <option value="0">بدون مؤقت (بين مراحل الدروب أو تمريني السوبر)</option>
-                                <option value="60">60 ثانية (تمارين العزل والتراي/الباي)</option>
-                                <option value="90" selected>90 ثانية (معياري)</option>
-                                <option value="120">120 ثانية (2 دقيقة - تمارين مركبة)</option>
-                                <option value="180">180 ثانية (3 دقائق - سكوات / ديدليفت / بنش)</option>
-                            </select>
-                            <p class="field-hint" data-added>يتذكر الراحة اللي تختارها لكل تمرين.</p>
-                        </div>
 
                         <div class="space-y-1.5 pt-1">
                             <div class="help-line"><label class="block text-xs font-medium text-slate-300">نوع الجولة:</label><button type="button" class="help-q" data-help="settype" aria-label="وش يعني أنواع الجولات" data-added>؟</button></div>
@@ -386,7 +398,7 @@
                                 <button type="button" data-settype="superset" aria-pressed="false" class="set-type-btn py-2 px-1 rounded-xl border text-center">سوبر</button>
                             </div>
                             <p id="set-type-help" class="field-hint" aria-live="polite"></p>
-                            <p class="field-hint">RIR 0 يعني أنك وصلت للفشل. نوع الجولة وRIR يظهران في السجل.</p>
+                            <p class="field-hint v12-hide">RIR 0 يعني أنك وصلت للفشل. نوع الجولة وRIR يظهران في السجل.</p>
                         </div>
 
                         <div id="save-bar" class="save-bar">
@@ -476,12 +488,13 @@
                         <i class="fa-solid fa-clipboard-list text-cyan-400"></i>
                         <span>سجل الجولات</span>
                     </h3>
+                    <span id="logs-kcal" class="logs-kcal" data-added></span>
                     <input id="logs-date-filter" type="date" aria-label="تاريخ سجل الجولات" class="glass-input px-2 py-1 rounded-xl text-xs">
                     <span id="today-sets-count" class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">0 جولات</span>
                 </div>
 
-                <p class="field-hint swipe-hint" data-added>اسحب الجولة يمين للتعديل، ويسار للحذف (وتقدر تتراجع 6 ثواني).</p>
                 <div id="today-logs-container" class="space-y-2"></div>
+                <p class="field-hint swipe-hint help-line" data-added><span>سعرات الحديد تنحسب للجلسة من مدتها ووزنك، وتنقسم على التمارين حسب عدد جولاتها. اسحب الجولة يمين للتعديل ويسار للحذف (وتقدر تتراجع 6 ثواني).</span><button type="button" class="help-q" data-help="calories-burn" aria-label="كيف تنحسب السعرات">؟</button></p>
 
                 <div id="lazy-logs-load-more" class="hidden text-center pt-2">
                     <button id="btn-load-more-logs" class="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-cyan-300">

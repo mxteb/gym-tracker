@@ -1064,6 +1064,11 @@
                 renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion); renderProgramTarget();
                 return;
             }
+            // v12.2 (W10): مجمّع بالتمرين في الأقراص والساعة (الدفتر عنده جدوله)
+            loadMoreWrapper.classList.add('hidden');
+            renderGroupedLogs(container, todayLogs);
+            renderRepeatButton(); renderSessionPlan(); renderWarmup(currentExercise(), currentSuggestion); renderProgramTarget(); renderWorkoutV12();
+            if (todayLogs.length) return;
             const visibleLogs = todayLogs.slice(0, logsRenderLimit);
             loadMoreWrapper.classList.toggle('hidden', todayLogs.length <= logsRenderLimit);
 
@@ -2138,6 +2143,7 @@
             currentSuggestion = ramadanSuggestion(ex && ex.type === 'weights' ? GymCalc.suggestNext(state.logs, ex.id, { excludeSessionId: activeSessionId, mode: activeLoadMode }) : null);
             box.classList.toggle('hidden', !currentSuggestion);
             renderWarmup(ex, currentSuggestion);
+            if (!currentSuggestion && typeof renderFill === 'function') queueMicrotask(renderFill);
             renderPlateau(ex, currentSuggestion);
             if (!currentSuggestion) return;
             const sg = currentSuggestion, u = sg.unit === 'lbs' ? 'باوند' : 'كجم';
@@ -2147,6 +2153,7 @@
                 : `${sg.weight} ${u} × ${sg.reps}`;
             document.getElementById('sugg-reason').textContent = sg.date ? sg.reason.replace(`(${sg.date})`, `(${friendlyDate(sg.date)})`) : sg.reason;
             box.dataset.kind = sg.kind;
+            if (typeof renderFill === 'function') renderFill();
         }
         function applySuggestion() {
             const sg = currentSuggestion;
@@ -2728,7 +2735,7 @@
             const load = mode === 'bodyweight' ? 'وزن الجسم' : (w || '0');
             out.replaceChildren(el('span', 'save-sep', ' · '), el('span', 'save-num', `${load} × ${reps || 0}`));
         }
-        function renderWorkoutV12() { renderStartPanel(); renderCurEx(); renderSetCounter(); updateSaveSum(); }
+        function renderWorkoutV12() { renderStartPanel(); renderCurEx(); renderSetCounter(); updateSaveSum(); renderFill(); renderSettingsSum(); }
 
         /* اختيار التمرين: قائمة من تحت */
         let pickerReturn = null;
@@ -2825,6 +2832,135 @@
             if (e.target && e.target.id === 'picker-search') renderPicker();
             if (e.target && ['input-weight', 'input-reps', 'input-duration-sec'].includes(e.target.id)) updateSaveSum();
         });
+
+
+        /* ---------- v12.2 (المرحلة 3ب) ---------- */
+        // W4: «عبّي من»: اقتراح اليوم، آخر جولة، التسخين
+        function lastSetAny(ex) {
+            return lastSetForRepeat(ex.id) || state.logs.filter(l => l.exerciseId === ex.id && l.type === 'weights' && l.setType !== 'warmup').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0] || null;
+        }
+        const shortSet = l => l.loadMode === 'timed' ? `${Number(l.durationSeconds) || 0} ث` : l.loadMode === 'bodyweight' ? `BW × ${l.repsRight ?? l.reps}` : `${l.displayWeight ?? getCanonicalWeightKg(l)} × ${l.repsRight ?? l.reps}`;
+        function renderFill() {
+            const box = document.getElementById('fill-from');
+            if (!box) return;
+            const ex = currentExercise(), on = !!ex && ex.type === 'weights';
+            box.classList.toggle('hidden', !on);
+            if (!on) return;
+            const sg = currentSuggestion;
+            const sb = document.getElementById('btn-apply-suggestion');
+            sb.classList.toggle('hidden', !sg);
+            if (sg) document.getElementById('fill-sugg-val').textContent = sg.mode === 'timed' ? `${sg.seconds} ث` : sg.mode === 'bodyweight' ? `BW × ${sg.reps}` : `${sg.weight} × ${sg.reps}`;
+            const last = lastSetAny(ex), lb = document.getElementById('fill-last');
+            lb.classList.toggle('hidden', !last);
+            if (last) { document.getElementById('fill-last-val').textContent = shortSet(last); lb.dataset.logId = last.id; }
+            const n = document.querySelectorAll('#sugg-warmup-sets .sugg-wchip').length, wb = document.getElementById('fill-warm');
+            wb.classList.toggle('hidden', !n);
+            document.getElementById('fill-warm-val').textContent = n === 1 ? 'جولة وحدة' : n === 2 ? 'جولتين' : `${n} جولات`;
+            if (!n) { box.classList.remove('show-warm'); wb.setAttribute('aria-expanded', 'false'); }
+            box.classList.toggle('empty', !sg && !last && !n);
+        }
+        // W7: سطر يلخص إعدادات التمرين
+        function renderSettingsSum() {
+            const out = document.getElementById('ex-settings-sum');
+            if (!out) return;
+            const ex = currentExercise();
+            const mode = document.getElementById('load-mode-select').value;
+            const modeName = { external: 'وزن خارجي', per_hand: 'لكل يد', bodyweight: 'وزن الجسم', added: 'وزن جسم + إضافي', assisted: 'بمساعدة', timed: 'بالوقت' }[mode] || '';
+            const parts = [modeName];
+            if (ex && usesMachineWeight(ex, mode) && Number(ex.machineKg) > 0) parts.push(`الجهاز ${ex.machineKg} كجم`);
+            if (ex && ex.equip === 'barbell' && mode === 'external') parts.push(`البار ${Number(ex.barKg) > 0 ? ex.barKg : 20} كجم`);
+            const rest = Number(document.getElementById('rest-timer-duration').value);
+            parts.push(rest ? `راحة ${rest >= 120 && rest % 60 === 0 ? rest / 60 + ' دقايق' : rest + ' ث'}` : 'بدون مؤقت راحة');
+            out.textContent = parts.filter(Boolean).join(' · ');
+        }
+        document.addEventListener('click', e => {
+            const t = e.target.closest ? e.target : null;
+            if (!t) return;
+            const lb = t.closest('#fill-last');
+            if (lb) { const log = state.logs.find(l => l.id === lb.dataset.logId); if (log) { fillFromLog(log); updateSaveSum(); haptic('tap'); showToast('تعبّت آخر جولة. احفظها بعد ما تسويها'); } return; }
+            if (t.closest('#fill-warm')) { const box = document.getElementById('fill-from'); const on = !box.classList.contains('show-warm'); box.classList.toggle('show-warm', on); t.closest('#fill-warm').setAttribute('aria-expanded', String(on)); return; }
+            if (t.closest('#btn-apply-suggestion,.sugg-wchip')) requestAnimationFrame(updateSaveSum);
+        });
+        document.addEventListener('change', e => { if (e.target && ['load-mode-select', 'rest-timer-duration', 'input-machine-kg', 'input-bar-kg'].includes(e.target.id)) renderSettingsSum(); });
+
+        // W10: السجل مجمّع: بطاقة لكل تمرين وجولاته أسطر
+        function sessionKcalShare(logs) {
+            // سعرات الحديد تنحسب للجلسة كاملة، فنقسمها على التمارين حسب عدد جولاتها
+            const per = new Map(), now = Date.now();
+            const sids = [...new Set(logs.filter(l => l.sessionId && l.type === 'weights').map(l => l.sessionId))];
+            for (const sid of sids) {
+                const s = state.sessions.find(x => x.id === sid); if (!s) continue;
+                const all = state.logs.filter(l => l.sessionId === sid);
+                const work = all.filter(l => l.type === 'weights' && l.setType !== 'warmup');
+                const total = s.status === 'completed' ? Number(s.estimatedCalories) || 0 : GymCalc.weightSessionCalories(s, all, now);
+                per.set(sid, work.length ? total / work.length : 0);
+            }
+            return l => l.type !== 'weights' ? Number(l.calories) || 0 : l.setType === 'warmup' ? 0 : l.sessionId ? (per.get(l.sessionId) || 0) : (['v9-session', 'v10-session'].includes(l.calculationVersion) ? 0 : Number(l.calories) || 0);
+        }
+        function renderGroupedLogs(container, logs) {
+            const newestId = logs[0]?.id;
+            const kcalOf = sessionKcalShare(logs);
+            const recs = GymCalc.personalRecords(state.logs), prIds = new Set();
+            for (const r of recs.values()) if (r.count > 1) { if (r.best1rm?.logId) prIds.add(r.best1rm.logId); if (r.top?.logId) prIds.add(r.top.logId); }
+            const groups = new Map();
+            for (const l of logs.slice().sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))) {
+                const key = l.type === 'weights' ? l.exerciseId : 'cardio-' + l.id;
+                if (!groups.has(key)) groups.set(key, []);
+                groups.get(key).push(l);
+            }
+            const order = [...groups.entries()].sort((a, b) => Math.max(...b[1].map(l => l.timestamp || 0)) - Math.max(...a[1].map(l => l.timestamp || 0)));
+            const frag = document.createDocumentFragment();
+            const actions = log => {
+                const wrap = el('span', 'log-act');
+                const ed = el('button', 'log-act-btn'); ed.type = 'button'; ed.dataset.action = 'edit-log'; ed.dataset.id = log.id; ed.setAttribute('aria-label', 'تعديل التسجيل'); ed.innerHTML = '<i class="fa-solid fa-pen"></i>';
+                const del = el('button', 'log-act-btn'); del.type = 'button'; del.dataset.action = 'delete-log'; del.dataset.id = log.id; del.setAttribute('aria-label', 'حذف التسجيل'); del.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+                wrap.append(ed, del); return wrap;
+            };
+            for (const [key, list] of order) {
+                const first = list[0], ex = state.exercises.find(e => e.id === first.exerciseId);
+                const sec = el('section', 'log-group' + (first.type !== 'weights' ? ' log-cardio' : ''));
+                const head = el('div', 'log-group-head');
+                const left = el('div', 'log-group-title');
+                left.appendChild(el('b', '', shortName(first.exerciseName || ex?.name || '')));
+                const meta = el('span', 'log-group-meta');
+                const kcal = list.reduce((n, l) => n + kcalOf(l), 0);
+                if (first.type === 'weights') {
+                    const g = groupOf(ex || { id: first.exerciseId, name: first.exerciseName, category: first.category, type: 'weights' });
+                    if (g) meta.appendChild(el('span', 'cur-ex-chip', groupName(g)));
+                    const work = list.filter(l => l.setType !== 'warmup').length, warm = list.length - work;
+                    meta.appendChild(el('span', '', [EQUIP_NAMES[ex?.equip] || '', (work === 1 ? 'جولة وحدة' : work === 2 ? 'جولتين' : `${work} جولات`) + (warm ? ' + تسخين' : '')].filter(Boolean).join(' · ')));
+                } else {
+                    meta.appendChild(el('span', '', `${first.duration} دقيقة · ` + (first.type === 'treadmill' ? `${first.movement === 'running' ? 'جري' : 'مشي'} · ${first.speed} كم/س · ميل ${first.incline ?? 1}%` : ({ light: 'شدة خفيفة', moderate: 'شدة متوسطة', vigorous: 'شدة عالية' }[first.intensity] || ''))));
+                }
+                left.appendChild(meta);
+                const kc = el('span', 'log-kcal'); kc.append(el('b', '', '≈ ' + Math.round(kcal)), el('small', '', 'سعرة'));
+                head.append(left, kc);
+                if (first.type !== 'weights') { head.classList.add('log-row'); head.dataset.logId = first.id; if (first.id === newestId) head.dataset.newest = ''; head.appendChild(actions(first)); sec.appendChild(head); frag.appendChild(sec); continue; }
+                sec.appendChild(head);
+                let n = 0;
+                for (const log of list) {
+                    const warm = log.setType === 'warmup';
+                    const row = el('div', 'log-row log-set' + (warm ? ' warm' : ''));
+                    row.dataset.logId = log.id;
+                    if (log.id === newestId) row.dataset.newest = '';
+                    const unit = log.unit === 'lbs' ? 'باوند' : 'كجم';
+                    const w = log.displayWeight ?? getCanonicalWeightKg(log);
+                    const loadLabel = log.loadMode === 'per_hand' ? ' لكل يد' : log.loadMode === 'assisted' ? ' مساعدة' : log.loadMode === 'added' ? ' إضافي' : '';
+                    const setTxt = log.loadMode === 'timed' ? `${Number(log.durationSeconds) || 0} ثانية` : `${log.loadMode === 'bodyweight' ? `وزن الجسم (${log.bodyWeightKgAtLog ?? log.effectiveLoadKg ?? '—'} كجم)` : `${w} ${unit}${loadLabel}`} × ${repsText(log)}`;
+                    const setCell = el('span', 'log-set-cell'); setCell.appendChild(el('b', 'log-set-txt', setTxt));
+                    if (log.loadMode !== 'timed') setCell.appendChild(el('small', 'log-1rm', `[1RM: ${get1RMLabel(getProgressWeightKg(log), log.reps)}]`));
+                    const tag = prIds.has(log.id) ? el('span', 'log-tag pr', 'رقم قياسي')
+                        : el('span', 'log-tag', log.setType && log.setType !== 'normal' ? (SET_LABELS[log.setType] || '') + (log.rir != null ? ` · RIR ${log.rir === 4 ? '4+' : log.rir}` : '') : (log.rir == null ? '' : `RIR ${log.rir === 4 ? '4+' : log.rir}`));
+                    row.append(el('span', 'log-n', warm ? '–' : String(++n)), setCell, tag, actions(log));
+                    sec.appendChild(row);
+                }
+                frag.appendChild(sec);
+            }
+            container.replaceChildren(frag);
+            const tot = logs.reduce((s2, l) => s2 + kcalOf(l), 0);
+            const sum = document.getElementById('logs-kcal');
+            if (sum) sum.textContent = tot ? `حوالي ${Math.round(tot)} سعرة` : '';
+        }
 
         /* ---------- v11.5 (الدفعة 3) ---------- */
         // A1: خريطة الاستشفاء: وش جاهز للتمرين اليوم ووش يحتاج راحة
