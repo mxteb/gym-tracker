@@ -101,7 +101,9 @@ test('exercise classification and default load mode match v10.3 for every name a
   const ref = require('./reference-v10.3.cjs')({ profile: {}, logs: [] }, GymData);
   const names = [...GymCatalog.DEFAULT_EXERCISES.map(e => e.name.toLowerCase()), ...Object.keys(GymCatalog.EXERCISE_DICTIONARY),
     'hip thrust barbell', 'ضغط ارجل', 'رفرفة خلفي', 'تجديف', 'cable fly', 'شي غريب', 'leg curl machine', 'ez bar curl', 'plank'];
-  for (const n of names) assert.deepEqual(plain(GymCalc.classifyExercise(n)), plain(ref.runLocalClassification(n)), n);
+  // v12.4: two names v10.3 got wrong on purpose fixed (abductor machine was «pull», hanging leg raise was «legs»)
+  const FIXED = { 'جهاز ضم وإبعاد الفخذ (abductor / adductor machine)': 'legs', 'رفع الأرجل معلق (hanging leg raise)': 'abs' };
+  for (const n of names) { const want = plain(ref.runLocalClassification(n)); if (FIXED[n]) want.cat = FIXED[n]; assert.deepEqual(plain(GymCalc.classifyExercise(n)), want, n); }
   for (const ex of [...GymCatalog.DEFAULT_EXERCISES, null, { id: 'x', equip: 'dumbbell' }]) assert.equal(GymCalc.defaultLoadMode(ex), ref.getDefaultLoadMode(ex));
 });
 
@@ -218,7 +220,9 @@ test('v10.8: muscles, records, streaks, weekly sets', () => {
   assert.equal(GymCalc.muscleOf(ex.find(e => e.id === 'ex_36')), 'shoulders');
   assert.equal(GymCalc.muscleOf({ id: 'c1', isCustom: true, type: 'weights', category: 'pull', name: 'Preacher curl' }), 'biceps');
   assert.equal(GymCalc.muscleOf({ id: 'c2', isCustom: true, type: 'weights', category: 'push', name: 'تراي حبل' }), 'triceps');
-  assert.equal(GymCalc.muscleOf({ id: 'c3', isCustom: true, type: 'weights', category: 'push', name: 'تراي حبل', muscle: 'chest' }), 'chest');
+  assert.equal(GymCalc.muscleOf({ id: 'c3', isCustom: true, type: 'weights', category: 'push', name: 'تراي حبل', muscle: 'chest', muscleConfirmed: true }), 'chest');
+  // v12.4: a stored muscle you never confirmed was a guess, so a clear name wins
+  assert.equal(GymCalc.muscleOf({ id: 'c3', isCustom: true, type: 'weights', category: 'push', name: 'تراي حبل', muscle: 'chest' }), 'triceps');
   assert.equal(GymCalc.muscleOf({ id: 'c2', isCustom: true, type: 'weights', category: 'push', name: 'شي غريب' }), 'chest');
   assert.equal(GymCalc.muscleOf({ id: 'c3', isCustom: true, type: 'weights', category: 'legs', name: 'leg curl' }), 'legs');
   // records
@@ -472,4 +476,26 @@ test('v12.3 exercise trend for the progress list', () => {
   const a = plain(GymCalc.exerciseTrend([A('x', '2026-09-01', 40), A('y', '2026-10-01', 30)], 'ex_32', '2026-10-11'));
   assert.equal(a.metric, 'assist'); assert.equal(a.dir, 'up'); assert.equal(a.change, 10); assert.equal(a.best, 30);
   assert.equal(GymCalc.exerciseTrend([], 'ex_1', '2026-10-11'), null);
+});
+
+test('v12.4 custom exercises: the name beats an old wrong guess (Calf press was chest)', () => {
+  const C = (name, extra = {}) => ({ id: 'c', isCustom: true, type: 'weights', category: 'push', name, ...extra });
+  // the old classifier put anything with «press» in push → chest
+  assert.equal(GymCalc.muscleOf(C('Calf press', { muscle: 'chest' })), 'legs');
+  assert.deepEqual(plain(GymCalc.partsOf(C('Calf press جالس مع طارات', { muscle: 'chest', parts: { main: ['chest_low'], help: [] } }))).main, ['gastro']);
+  assert.equal(GymCalc.partsOf(C('Calf press')).guessed, true);
+  assert.equal(GymCalc.muscleOf(C('Leg curl machine')), 'legs');
+  assert.equal(GymCalc.muscleOf(C('Hanging leg raise')), 'abs');
+  assert.equal(GymCalc.muscleOf(C('Converging chest press')), 'chest');
+  // once you confirm, your choice stands even if the name says otherwise
+  assert.equal(GymCalc.muscleOf(C('Calf press', { parts: { main: ['chest_low'], help: [] }, muscleConfirmed: true })), 'chest');
+  // a library exercise keeps its catalog muscle
+  assert.equal(GymCalc.muscleOf({ id: 'ex_1', type: 'weights', category: 'push', name: 'بنش بريس مستوي بالبار' }), 'chest');
+  // «the machine is busy»: alternatives work the same muscle, not just the same group
+  const calf = C('Calf press', { id: 'calf', muscle: 'chest' });
+  const alts = GymCalc.alternatives([...GymCatalog.DEFAULT_EXERCISES, calf], [], 'calf');
+  assert.ok(alts.length === 3 && alts.slice(0, 2).every(e => GymCalc.partsOf(e).main.includes('gastro') || GymCalc.partsOf(e).main.includes('soleus')), alts.map(e => e.name).join());
+  // adding: the category guess
+  for (const [n, cat] of [['calf press', 'legs'], ['leg press', 'legs'], ['leg raise', 'abs'], ['converging chest press', 'push'], ['seated row machine', 'pull'], ['tricep extension', 'push']])
+    assert.equal(GymCalc.classifyExercise(n).cat, cat, n);
 });

@@ -1008,4 +1008,12 @@
     [/^(بار|دمبل|أجهزة|كابل\/وزن جسم|كارديو) · (لكل يد · |بمساعدة · |بالوقت · )?(تمرين مضاف · )?(.+)$/, function (e, m, c, d) { return t(e) + ' · ' + (m ? t(m.slice(0, -3)) + ' · ' : '') + (c ? 'custom exercise · ' : '') + t(d); }]
   ]);
 
+  /* ---------- v12.4 (edit muscles from the exercise card) ---------- */
+  GymI18n.add({
+    'عدّل عضلات التمرين': 'Edit the muscles of this exercise', '+ أضف تمرين جديد': '+ Add a new exercise', 'عضلات التمرين': 'Exercise muscles',
+    'الضغطة الأولى تخليها أساسية (أحمر)، الثانية مساعدة (أصفر)، والثالثة تشيلها. التصنيف هذا يحدد وين تنحسب جولاتك في «جسمك» والاستشفاء.': 'Tap once for main (red), twice for helper (yellow), a third time to remove. This decides where your sets count in "Body" and recovery.'
+  }, [
+    [/^خمّنا عضلته من الاسم: (.+)\. صح؟$/, function (m) { return 'We guessed its muscles from the name: ' + m + '. Right?'; }]
+  ]);
+
 })();

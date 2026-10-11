@@ -2713,7 +2713,17 @@
             const ex = currentExercise();
             document.getElementById('cur-ex-name').textContent = ex ? shortName(ex.name) : 'اختر تمرين';
             const g = ex && groupOf(ex);
-            const chip = document.getElementById('cur-ex-muscle'); chip.textContent = g ? groupName(g) : ''; chip.hidden = !g;
+            // v12.4: العضلة تنضغط وتتعدّل من هنا، ولو متخمّنة نسألك عنها بدل ما نحسبها غلط بصمت
+            const parts = ex && GymCalc.partsOf(ex);
+            const chip = document.getElementById('cur-ex-muscle');
+            chip.replaceChildren(); chip.hidden = !g;
+            if (g) { chip.append(el('span', '', groupName(g)), el('span', 'cur-ex-chip-pen', parts?.guessed ? '؟' : '✎')); chip.classList.toggle('guess', !!parts?.guessed); }
+            const gb = document.getElementById('cur-ex-guess');
+            gb.classList.toggle('hidden', !parts?.guessed || !parts.main.length);
+            if (parts?.guessed && parts.main.length) {
+                document.getElementById('cur-ex-guess-text').textContent = `خمّنا عضلته من الاسم: ${parts.main.map(partName).join(listSep())}. صح؟`;
+                const ok = document.getElementById('cur-ex-guess-ok'); ok.textContent = `صح، ${groupName(g)}`; ok.dataset.confirmEx = ex.id;
+            }
             document.getElementById('cur-ex-equip').textContent = ex ? (EQUIP_NAMES[ex.equip] || '') : '';
             const n = neighbors();
             const pos = document.getElementById('cur-ex-pos');
@@ -2870,6 +2880,50 @@
             if (e.target && ['input-weight', 'input-reps', 'input-duration-sec'].includes(e.target.id)) updateSaveSum();
         });
 
+
+
+        /* ---------- v12.4: تعديل عضلات التمرين من بطاقته ---------- */
+        let msId = null, msPick = null, msReturn = null;
+        function renderMuscleSheet() {
+            const box = document.getElementById('ms-chips');
+            box.replaceChildren(chipsFor(msPick, 'data-ms-part'));
+            document.getElementById('ms-save').disabled = !msPick.main.length;
+        }
+        function openMuscleSheet(id) {
+            const ex = state.exercises.find(e => e.id === id);
+            if (!ex || ex.type !== 'weights') return;
+            const p = GymCalc.partsOf(ex) || { main: [], help: [] };
+            msId = id; msPick = { main: [...p.main], help: [...p.help] }; msReturn = document.activeElement;
+            document.getElementById('ms-name').textContent = shortName(ex.name);
+            renderMuscleSheet();
+            document.getElementById('muscle-sheet').classList.remove('hidden');
+            document.body.classList.add('sheet-open');
+            document.getElementById('ms-close').focus();
+            // ننزل للعضلة المختارة (لو هي أرجل ما تحتاج تدوّرها تحت)
+            document.querySelector('#ms-chips [data-role="main"]')?.scrollIntoView({ block: 'center' });
+        }
+        function closeMuscleSheet() {
+            document.getElementById('muscle-sheet').classList.add('hidden');
+            document.body.classList.remove('sheet-open');
+            msId = null;
+            (msReturn && msReturn.isConnected ? msReturn : document.getElementById('cur-ex-muscle'))?.focus();
+        }
+        function openExercisesTab(tab) {
+            addFromWorkout = true; exTab = tab; switchTab('exercises'); scrollTo(0, 0);
+            setExTab(tab);
+        }
+        document.addEventListener('click', e => {
+            const t = e.target.closest ? e.target : null;
+            if (!t) return;
+            if (t.closest('#cur-ex-muscle,#cur-ex-guess-edit')) { const ex = currentExercise(); if (ex) openMuscleSheet(ex.id); return; }
+            if (t.closest('#ms-close,#ms-cancel') || t.id === 'muscle-sheet') return closeMuscleSheet();
+            const mp = t.closest('[data-ms-part]');
+            if (mp) { msPick = cyclePart(msPick, mp.dataset.msPart); renderMuscleSheet(); document.querySelector(`[data-ms-part="${mp.dataset.msPart}"]`)?.focus(); return; }
+            if (t.closest('#ms-save')) { const id = msId; const pick = msPick; runMutation(async () => { await saveExerciseParts(id, pick, false); closeMuscleSheet(); renderWorkoutV12(); }); return; }
+            if (t.closest('#cur-ex-add')) return openExercisesTab('add');
+            if (t.closest('#cur-ex-lib')) return openExercisesTab('library');
+        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('muscle-sheet').classList.contains('hidden')) closeMuscleSheet(); });
 
 
         /* ---------- v12.3 (المرحلة 4أ): صفحة التطور ---------- */
@@ -3115,7 +3169,7 @@
             ex.muscleConfirmed = true; ex.editedAt = Date.now();
             await dbSaveAll('exercises', state.exercises);
             editPicks.delete(id);
-            renderLibrary(); renderExerciseDropdown();
+            renderLibrary(); renderExerciseDropdown(); renderWorkoutV12();
             showToast(confirm ? `تمام، «${shortName(ex.name)}» على ${groupName(ex.muscle)}` : `انحفظت عضلات «${shortName(ex.name)}»`);
         }
         document.addEventListener('click', e => {

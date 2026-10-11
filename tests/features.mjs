@@ -597,14 +597,32 @@ async function run(lang) {
   await ev(`document.querySelector('[data-lib-filter="mine"]').click()`); await sleep(200);
   check(lang, 'G8 «added by me» shows only your exercises', await ev(`return document.querySelectorAll('#lib-groups .lib-row').length === 0 && document.querySelectorAll('#manage-exercises-list .custom-ex-del').length > 0`));
   await ev(`document.querySelector('[data-lib-filter="all"]').click()`); await sleep(200);
-  const guessed = await ev(`return !document.getElementById('lib-banner').classList.contains('hidden') && !!document.querySelector('[data-confirm-ex]')`);
+  const guessed = await ev(`return !document.getElementById('lib-banner').classList.contains('hidden') && !!document.querySelector('#manage-exercises-list [data-confirm-ex]')`);
   if (guessed) {
-    const cid = await ev(`return document.querySelector('[data-confirm-ex]').dataset.confirmEx`);
-    const g0 = await ev(`return document.querySelectorAll('[data-confirm-ex]').length`);
+    const cid = await ev(`return document.querySelector('#manage-exercises-list [data-confirm-ex]').dataset.confirmEx`);
+    const g0 = await ev(`return document.querySelectorAll('#manage-exercises-list [data-confirm-ex]').length`);
     await p.shot('g8-library');
-    await ev(`document.querySelector('[data-confirm-ex]').click()`); await sleep(600);
-    check(lang, 'G8 confirming a guessed exercise saves it and drops it from the guessed list', await ev(`return !document.querySelector('[data-confirm-ex="${cid}"]') && document.querySelectorAll('[data-confirm-ex]').length === ${g0 - 1} && document.getElementById('lib-banner').classList.contains('hidden') === ${g0 === 1}`));
+    await ev(`document.querySelector('#manage-exercises-list [data-confirm-ex]').click()`); await sleep(600);
+    check(lang, 'G8 confirming a guessed exercise saves it and drops it from the guessed list', await ev(`return !document.querySelector('#manage-exercises-list [data-confirm-ex="${cid}"]') && document.querySelectorAll('#manage-exercises-list [data-confirm-ex]').length === ${g0 - 1} && document.getElementById('lib-banner').classList.contains('hidden') === ${g0 === 1}`));
   } else check(lang, 'G8 the fixture has a guessed custom exercise', false);
+  /* ---------- v12.4 guessed muscles show on the exercise card, and the chip edits them ---------- */
+  const gid = await ev(`return document.querySelector('#manage-exercises-list [data-confirm-ex]')?.dataset.confirmEx || ''`);
+  await ev(`document.getElementById('exercises-back').click()`); await sleep(300);
+  if (gid) {
+    await select(gid); await sleep(300);
+    check(lang, 'v12.4 a guessed exercise asks on its card', await ev(`return !document.getElementById('cur-ex-guess').classList.contains('hidden') && document.getElementById('cur-ex-muscle').classList.contains('guess')`));
+    await ev(`document.getElementById('cur-ex-muscle').click()`); await sleep(300);
+    check(lang, 'v12.4 tapping the muscle opens the editor with its muscles picked', await ev(`return !document.getElementById('muscle-sheet').classList.contains('hidden') && document.querySelectorAll('#ms-chips [data-role="main"]').length > 0`));
+    await ev(`document.querySelector('#ms-chips [data-ms-part="forearm"]').click()`); await sleep(150);
+    await p.shot('v124-sheet');
+    await ev(`document.getElementById('ms-save').click()`); await sleep(700);
+    check(lang, 'v12.4 saving closes it and the card stops asking', await ev(`return document.getElementById('muscle-sheet').classList.contains('hidden') && document.getElementById('cur-ex-guess').classList.contains('hidden') && !document.getElementById('cur-ex-muscle').classList.contains('guess')`));
+  } else check(lang, 'v12.4 a second guessed custom exercise in the fixture', false);
+  await ev(`document.getElementById('cur-ex-lib').click()`); await sleep(300);
+  check(lang, 'v12.4 «my exercises» link opens the library', await ev(`return !document.getElementById('screen-exercises').classList.contains('hidden') && document.getElementById('ex-tab-library').getAttribute('aria-selected') === 'true'`));
+  await ev(`document.getElementById('exercises-back').click()`); await sleep(300);
+  await ev(`document.getElementById('cur-ex-add').click()`); await sleep(300);
+  check(lang, 'v12.4 «add a new exercise» link opens the add form', await ev(`return !document.getElementById('screen-exercises').classList.contains('hidden') && document.getElementById('ex-tab-add').getAttribute('aria-selected') === 'true'`));
   await ev(`document.getElementById('exercises-back').click()`); await sleep(300);
 
   // whole workout screen for the look

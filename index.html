@@ -174,7 +174,7 @@
                         <button type="button" id="btn-ex-prev" class="cur-ex-arrow" aria-label="التمرين السابق"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
                         <div class="cur-ex-mid">
                             <b id="cur-ex-name" class="cur-ex-name"></b>
-                            <span class="cur-ex-meta"><span id="cur-ex-muscle" class="cur-ex-chip"></span><span id="cur-ex-equip" class="cur-ex-equip"></span><span id="cur-ex-pos" class="cur-ex-pos"></span></span>
+                            <span class="cur-ex-meta"><button type="button" id="cur-ex-muscle" class="cur-ex-chip cur-ex-chip-btn" aria-label="عدّل عضلات التمرين"></button><span id="cur-ex-equip" class="cur-ex-equip"></span><span id="cur-ex-pos" class="cur-ex-pos"></span></span>
                         </div>
                         <button type="button" id="btn-ex-next" class="cur-ex-arrow" aria-label="التمرين الجاي"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
                     </div>
@@ -182,6 +182,14 @@
                         <button type="button" id="btn-change-ex" class="cur-ex-btn">غيّر التمرين</button>
                         <button type="button" id="btn-guide-toggle" class="cur-ex-btn hidden">طريقة الأداء</button>
                         <button type="button" id="btn-busy" class="busy-btn cur-ex-btn hidden">الجهاز مشغول؟</button>
+                    </div>
+                    <div id="cur-ex-guess" class="cur-ex-guess hidden">
+                        <span id="cur-ex-guess-text"></span>
+                        <span class="cur-ex-guess-btns"><button type="button" id="cur-ex-guess-ok" class="custom-ex-ok"></button><button type="button" id="cur-ex-guess-edit" class="custom-ex-change">غيّر العضلات</button></span>
+                    </div>
+                    <div class="cur-ex-links">
+                        <button type="button" id="cur-ex-add" class="cur-ex-link">+ أضف تمرين جديد</button>
+                        <button type="button" id="cur-ex-lib" class="cur-ex-link">مكتبة تماريني</button>
                     </div>
                 </div>
                 <div class="flex flex-col gap-2 v12-hide" id="old-picker">
@@ -1053,6 +1061,22 @@
             <div class="ex-picker-foot">
                 <button type="button" id="picker-new" class="picker-new">+ تمرين جديد</button>
                 <span class="field-hint">يفتح الإضافة كاملة (الاسم، العضلات، الأداة)، والاسم مكتوب لك</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="muscle-sheet" class="ex-picker modal-overlay hidden" data-added role="dialog" aria-modal="true" aria-labelledby="ms-title">
+        <div class="ex-picker-sheet">
+            <div class="ex-picker-grip" aria-hidden="true"></div>
+            <div class="ex-picker-head"><h2 id="ms-title">عضلات التمرين</h2><button type="button" id="ms-close" class="picker-close" aria-label="إغلاق">×</button></div>
+            <div class="ms-body">
+                <b id="ms-name" class="ms-name"></b>
+                <p class="field-hint">الضغطة الأولى تخليها أساسية (أحمر)، الثانية مساعدة (أصفر)، والثالثة تشيلها. التصنيف هذا يحدد وين تنحسب جولاتك في «جسمك» والاستشفاء.</p>
+                <div id="ms-chips"></div>
+            </div>
+            <div class="ex-picker-foot ms-foot">
+                <button type="button" id="ms-save" class="ms-save">احفظ العضلات</button>
+                <button type="button" id="ms-cancel" class="custom-ex-change">إلغاء</button>
             </div>
         </div>
     </div>

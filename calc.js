@@ -169,7 +169,10 @@ function classifyExercise(cleanName) {
   if (cleanName.includes(key)) return { cat: val.cat, equip: val.equip };
  }
  let cat = null, equip = null;
- if (/(ضغط|صدر|بنش|أكتاف|اكتاف|كتف|ترايسيبس|تراي|متوازي|رفرفة|تفتيح|press|bench|chest|shoulder|tricep|fly|dip|overhead|pec|push)/i.test(cleanName)) cat = 'push';
+ // البطن والأرجل أول: «Calf press» و«Leg press» أرجل، و«Leg raise» بطن (كانت تطلع push لأن فيها press)
+ if (NAME_ABS.test(cleanName)) cat = 'abs';
+ else if (NAME_LEGS.test(cleanName)) cat = 'legs';
+ else if (/(ضغط|صدر|بنش|أكتاف|اكتاف|كتف|ترايسيبس|تراي|متوازي|رفرفة|تفتيح|press|bench|chest|shoulder|tricep|fly|dip|overhead|pec|push)/i.test(cleanName)) cat = 'push';
  else if (/(سحب|ظهر|عقلة|عقله|بايسبس|باي|ترابيس|مطرقة|هامر|رو|بلوفر|وجه|pulldown|row|pull|back|biceps|curl|shrug|chin|lat|face|rear|delt)/i.test(cleanName)) cat = 'pull';
  else if (/(سكوات|أرجل|ارجل|فخذ|سمانة|طعن|مكبس|مقعدة|مؤخرة|هيب|ضم|إبعاد|ابعاد|ضام|ادكشن|ابداكشن|squat|leg|lunge|calf|thrust|extension|curl|adduct|abduct|hip|glute|hamstring|quad|rdl|deadlift)/i.test(cleanName)) cat = 'legs';
  else if (/(بطن|معدة|معده|بلانك|طحن|crunch|plank|abs|core|situp)/i.test(cleanName)) cat = 'abs';
@@ -241,23 +244,36 @@ function suggestNext(logs, exerciseId, opts = {}) {
 
 /* ---------- v10.8: التطور والتحليل ---------- */
 /** العضلة الأساسية: من الجدول للتمارين الجاهزة، ومن الاسم للمخصصة، وإلا من الفئة. null للكارديو. */
-function muscleOf(ex) {
- if (!ex || ex.type !== 'weights' || ex.category === 'cardio') return null;
- // v12: العضلات اللي اخترتها بالتفصيل تغلب كل شي، وبعدها المجموعة اللي اخترتها (v11.7)
- const chosen = ex.parts && Array.isArray(ex.parts.main) && ex.parts.main.find(p => GymCatalog.PARTS[p]);
- if (chosen) return GymCatalog.PARTS[chosen].g;
- if (ex.muscle && GymCatalog.MUSCLE_NAMES[ex.muscle]) return ex.muscle;
- const known = GymCatalog.MUSCLE_BY_ID[ex.id];
- if (known && !ex.isCustom) return known;
- if (ex.category === 'legs') return 'legs';
- if (ex.category === 'abs') return 'abs';
- const n = String(ex.name || '').toLowerCase();
+/** المجموعة من اسم التمرين بس (null لو الاسم ما يدل). الترتيب مهم: البطن ثم الأرجل قبل «ضغط/press» و«curl»،
+ *  عشان «Calf press» تطلع أرجل مو صدر، و«Leg curl» أرجل مو باي، و«رفع الأرجل» بطن. */
+const NAME_ABS = /(بطن|معدة|معده|بلانك|كرنش|طحن|crunch|plank|\babs?\b|core|sit ?-?ups?|leg raises?|knee raises?|رفع (ال)?(أرجل|ارجل|ركب|رجل)|oblique|russian twist|ab wheel|عجلة)/i;
+const NAME_LEGS = /(سكوات|سكوايت|أرجل|ارجل|رجل|فخذ|سمانة|سمانه|بطات|بطة|طعن|لانج|مكبس|مقعدة|مؤخرة|هيب|ثرست|إبعاد|ابعاد|ضم |ضم$|بلغاري|squat|\blegs?\b|lunge|calf|calves|thrust|adduct|abduct|\bhip|glute|hamstring|quad|\brdl\b|romanian|step ?-?up)/i;
+function nameMuscle(name) {
+ const n = String(name || '').toLowerCase();
+ if (NAME_ABS.test(n)) return 'abs';
+ if (NAME_LEGS.test(n)) return 'legs';
  if (/(ترايسيبس|ترايسبس|تراي|pushdown|kickback|skull|tricep)/i.test(n)) return 'triceps';
  if (/(بايسبس|بايسيبس|باي |مرجحة|هامر|مطرقة|bicep|curl)/i.test(n)) return 'biceps';
  if (/(أكتاف|اكتاف|كتف|رفرفة|shoulder|lateral|delt|overhead|arnold|face ?pull|military)/i.test(n)) return 'shoulders';
  if (/(صدر|بنش|متوازي|bench|chest|fly|flye|pec|dip|crossover)/i.test(n)) return 'chest';
  if (/(ظهر|سحب|عقلة|عقله|ترابيس|row|pull|lat|shrug|deadlift)/i.test(n)) return 'back';
- return ex.category === 'push' ? 'chest' : ex.category === 'pull' ? 'back' : null;
+ return null;
+}
+/** تمرين أضفته وما أكّدت عضلاته: التصنيف القديم ممكن يكون غلط (كان «press» = صدر)، فالاسم لو يدل يغلب */
+const unsureCustom = ex => !!ex.isCustom && ex.muscleConfirmed !== true;
+function muscleOf(ex) {
+ if (!ex || ex.type !== 'weights' || ex.category === 'cardio') return null;
+ const byName = unsureCustom(ex) ? nameMuscle(ex.name) : null;
+ // v12: العضلات اللي اخترتها بالتفصيل تغلب كل شي، وبعدها المجموعة اللي اخترتها (v11.7)
+ const chosen = ex.parts && Array.isArray(ex.parts.main) && ex.parts.main.find(p => GymCatalog.PARTS[p]);
+ if (chosen && !(byName && GymCatalog.PARTS[chosen].g !== byName)) return GymCatalog.PARTS[chosen].g;
+ if (byName) return byName;
+ if (ex.muscle && GymCatalog.MUSCLE_NAMES[ex.muscle]) return ex.muscle;
+ const known = GymCatalog.MUSCLE_BY_ID[ex.id];
+ if (known && !ex.isCustom) return known;
+ if (ex.category === 'legs') return 'legs';
+ if (ex.category === 'abs') return 'abs';
+ return nameMuscle(ex.name) || (ex.category === 'push' ? 'chest' : ex.category === 'pull' ? 'back' : null);
 }
 
 const recordKey = l => l.exerciseId + '|' + (l.loadMode || 'external');
@@ -417,7 +433,10 @@ function guessParts(ex) {
 function partsOf(ex) {
  if (!ex || ex.type !== 'weights' || ex.category === 'cardio') return null;
  let src = null, guessed = false;
- if (ex.parts && Array.isArray(ex.parts.main) && ex.parts.main.some(p => GymCatalog.PARTS[p])) { src = ex.parts; guessed = !!ex.isCustom && ex.muscleConfirmed !== true; }
+ const byName = unsureCustom(ex) ? nameMuscle(ex.name) : null;
+ const storedG = ex.parts && Array.isArray(ex.parts.main) && GymCatalog.PARTS[ex.parts.main.find(p => GymCatalog.PARTS[p])]?.g;
+ // عضلات محفوظة من تخمين قديم والاسم يقول مجموعة ثانية → نخمّن من جديد
+ if (storedG && !(byName && byName !== storedG)) { src = ex.parts; guessed = unsureCustom(ex); }
  else if (!ex.isCustom && GymCatalog.PARTS_BY_ID[ex.id]) src = GymCatalog.PARTS_BY_ID[ex.id];
  else { src = guessParts(ex); guessed = true; }
  if (!src) return null;
@@ -481,10 +500,13 @@ function warmupSets(target, opts = {}) {
 function alternatives(exercises, logs, exId, limit = 3) {
  const ex = exercises.find(e => e.id === exId), m = muscleOf(ex);
  if (!m) return [];
+ const pOf = x => partsOf(x) || { main: [], help: [] }, mine = new Set(pOf(ex).main), near = new Set(pOf(ex).help);
+ const sameMain = e => pOf(e).main.some(p => mine.has(p)) ? 2 : pOf(e).main.some(p => near.has(p)) ? 1 : 0;
  const used = new Map();
  for (const l of logs) if (l.type === 'weights') used.set(l.exerciseId, (used.get(l.exerciseId) || 0) + 1);
  return exercises.filter(e => e.id !== exId && !e.archived && e.type === 'weights' && muscleOf(e) === m)
-  .map(e => ({ e, score: Math.min(used.get(e.id) || 0, 20) * 10 + (e.equip !== ex.equip ? 3 : 0) + (e.category === ex.category ? 1 : 0) }))
+  // v12.4: نفس العضلة بالتحديد أول (السمانة → تمارين سمانة، مو أي تمرين أرجل)
+  .map(e => ({ e, score: sameMain(e) * 500 + Math.min(used.get(e.id) || 0, 20) * 10 + (e.equip !== ex.equip ? 3 : 0) + (e.category === ex.category ? 1 : 0) }))
   .sort((a, b) => b.score - a.score || String(a.e.id).localeCompare(String(b.e.id))).slice(0, limit).map(x => x.e);
 }
 /** C3: خلاصة الجلسة: الأرقام اللي انكسرت، وأكثر عضلة متأخرة عن الأسبوع الماضي (من الأربعاء وطالع، عشان بداية الأسبوع ما تبين كل شي متأخر). */
@@ -665,5 +687,5 @@ function sideBalance(logs, exerciseId) {
  if (!weak || !last.every(x => (weak === 'left' ? x.L < x.R : x.R < x.L) && gap(x) > 0.1)) return null;
  return { weak, pct: Math.round(last.reduce((s, x) => s + gap(x), 0) / 3 * 100) };
 }
-window.GymCalc = { exerciseTrend, weeklySets, activeParts, resolvePart, guessParts, partsOf, partWeights, recoveryParts, LBS_PER_KG, sideBalance, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
+window.GymCalc = { nameMuscle, exerciseTrend, weeklySets, activeParts, resolvePart, guessParts, partsOf, partWeights, recoveryParts, LBS_PER_KG, sideBalance, recovery, planMinutes, trimPlan, isUnilateral, plateau, strengthLevels, monthStats, monthsWithLogs, prevMonth, STRENGTH_LIFTS, warmupSets, alternatives, sessionInsights, toCSV, muscleOf, personalRecords, newRecord, weekStart, consistency, weeklyMuscleSets, canonicalWeightKg, volumeLoadKg, progressWeightKg, calories, weightSessionCalories, sessionSummary, bodyMetrics, progressionGroups, defaultLoadMode, classifyExercise, suggestNext };
 })();
