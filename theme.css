@@ -1243,3 +1243,26 @@ body.sheet-open{overflow:hidden}
 .ms-foot > button{flex:1;min-height:48px}
 .ms-save{border:0;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent,#111);font:inherit;font-size:.9rem;font-weight:800}
 .ms-save:disabled{opacity:.45}
+
+/* v12.6: جلسات «سجل التطور» تنضغط وتفتح جولاتها */
+#exercise-progression-history-list{max-height:24rem}
+.hist-row{cursor:pointer;position:relative}
+.hist-row:focus-visible{outline:2px solid var(--primary);outline-offset:-2px}
+.hist-row > .text-slate-400::before{content:'‹';display:inline-block;margin-left:.4rem;color:var(--mute);transition:transform .15s}
+:root[dir="ltr"] .hist-row > .text-slate-400::before{content:'›';margin-left:0;margin-right:.4rem}
+.hist-row.open > .text-slate-400::before{transform:rotate(-90deg)}
+:root[dir="ltr"] .hist-row.open > .text-slate-400::before{transform:rotate(90deg)}
+.hist-sets{grid-column:1 / -1;display:flex;flex-direction:column;margin-top:.35rem;border-top:1px dashed var(--line);padding-top:.35rem;cursor:default}
+.hist-set{display:flex;align-items:center;min-height:44px;border-bottom:1px solid var(--line-soft)}
+.hist-set > * + *{margin-right:.5rem}
+:root[dir="ltr"] .hist-set > * + *{margin-right:0;margin-left:.5rem}
+.hist-set:last-child{border-bottom:0}
+.hist-set.warm{color:var(--mute)}
+.hist-n{min-width:1.4rem;font-family:var(--ledf);color:var(--mute);font-size:.8rem}
+.hist-v{flex:1;font-size:.9rem;font-weight:700;color:var(--ink)}
+.hist-set.warm .hist-v{color:var(--ink-2);font-weight:500}
+.hist-v small{font-weight:400;font-size:.72rem;color:var(--mute)}
+.hist-btn{min-height:40px;min-width:52px;padding:0 .6rem;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font:inherit;font-size:.8rem;font-weight:700}
+.hist-btn.hist-del{color:var(--bad);border-color:var(--bad-line)}
+.hist-empty{color:var(--mute);font-size:.8rem;padding:.4rem 0}
+:root[data-theme="logbook"] .hist-row{grid-template-columns:auto minmax(0,1fr) auto}.hist-row > .text-slate-400{white-space:nowrap}

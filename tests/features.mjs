@@ -625,6 +625,22 @@ async function run(lang) {
   check(lang, 'v12.4 «add a new exercise» link opens the add form', await ev(`return !document.getElementById('screen-exercises').classList.contains('hidden') && document.getElementById('ex-tab-add').getAttribute('aria-selected') === 'true'`));
   await ev(`document.getElementById('exercises-back').click()`); await sleep(300);
 
+  /* ---------- v12.6 tap a session in the progress history: its sets with edit and delete ---------- */
+  await ev(`document.getElementById('nav-progress').click()`); await sleep(400);
+  await ev(`document.querySelector('#prog-items [data-prog-ex="ex_1"]').click()`); await sleep(500);
+  await ev(`document.querySelector('#exercise-progression-history-list [data-hist-date]').click()`); await sleep(300);
+  const hSets = await ev(`return document.querySelectorAll('#exercise-progression-history-list .hist-set').length`);
+  check(lang, 'v12.6 tapping a session shows its sets', hSets > 0 && await ev(`return document.querySelector('#exercise-progression-history-list .hist-row').getAttribute('aria-expanded') === 'true'`), hSets + ' sets');
+  await ev(`document.querySelector('#exercise-progression-history-list [data-hist-del]').click()`); await sleep(300);
+  check(lang, 'v12.6 delete hides the set and offers undo', await ev(`return document.querySelectorAll('#exercise-progression-history-list .hist-set').length`) === hSets - 1 && await ev(`return !document.getElementById('undo-bar').classList.contains('hidden')`));
+  await ev(`document.getElementById('btn-undo').click()`); await sleep(300);
+  check(lang, 'v12.6 undo brings it back', await ev(`return document.querySelectorAll('#exercise-progression-history-list .hist-set').length`) === hSets);
+  await ev(`document.querySelector('#exercise-progression-history-list [data-hist-edit]').click()`); await sleep(300);
+  check(lang, 'v12.6 edit opens the set editor', await ev(`return !document.getElementById('edit-log-modal').classList.contains('hidden')`));
+  await ev(`document.querySelector('#edit-log-modal #btn-cancel-edit-log, #edit-log-modal [data-close]')?.click(); document.getElementById('edit-log-modal').classList.add('hidden')`); await sleep(200);
+  await p.shotEl('v126-history', '#prog-history-card');
+  await ev(`document.querySelector('#exercise-progression-history-list [data-hist-date]').click()`); await sleep(200);
+
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);
   await select(ex);

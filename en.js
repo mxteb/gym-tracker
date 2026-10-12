@@ -1016,4 +1016,12 @@
     [/^خمّنا عضلته من الاسم: (.+)\. صح؟$/, function (m) { return 'We guessed its muscles from the name: ' + m + '. Right?'; }]
   ]);
 
+  /* ---------- v12.6 (tap a session in the progress history) ---------- */
+  GymI18n.add({
+    'اضغط أي جلسة تشوف جولاتها، وتقدر تعدّل أو تحذف أي جولة غلط.': 'Tap any session to see its sets. You can edit or delete a wrong one.',
+    'عدّل': 'Edit', 'احذف': 'Delete', 'دروب': 'Drop set', 'سوبر': 'Superset', 'فشل': 'Failure', 'تسخين': 'Warm-up',
+    'ما فيه جولات في هالجلسة': 'No sets in this session',
+    'عدّل الجولة {0}': 'Edit set {0}', 'احذف الجولة {0}': 'Delete set {0}'
+  });
+
 })();

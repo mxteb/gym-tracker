@@ -1038,7 +1038,7 @@
             state.logs[index]=log;
             if(log.sessionId)await refreshCompletedSessionSummary(log.sessionId);
             await GymStorage.save(state);
-            closeEditLog();onExerciseSelectChange();
+            closeEditLog();onExerciseSelectChange();refreshProgressKeep();
             showToast('تم تعديل التسجيل وتحديث ملخص الجلسة بدون تكرار');
         }
 
@@ -1466,7 +1466,36 @@
             const logs=state.logs.filter(l=>l.exerciseId===exerciseId && l.type==='weights' && l.setType!=='warmup');
             const newest=logs.slice().sort((a,b)=>(b.timestamp||Date.parse(b.date))-(a.timestamp||Date.parse(a.date)))[0];
             const mode=document.getElementById('progress-load-mode').value || newest?.loadMode || 'external';
-            return {mode,groups:GymCalc.progressionGroups(state.logs,exerciseId,mode)};
+            return {mode,groups:GymCalc.progressionGroups(state.logs.filter(l=>!pendingDeletes.has(l.id)),exerciseId,mode)};
+        }
+        /* v12.6: اضغط أي جلسة في «سجل التطور» تنفتح جولاتها، ومع كل جولة تعديل وحذف (مع تراجع 6 ثواني) */
+        let histOpenDate=null;
+        function histSetsHTML(exerciseId,date) {
+            const logs=state.logs.filter(l=>l.exerciseId===exerciseId&&l.date===date&&!pendingDeletes.has(l.id)).sort((a,b)=>(a.timestamp||0)-(b.timestamp||0));
+            if(!logs.length)return '<div class="hist-sets" data-added><p class="hist-empty">ما فيه جولات في هالجلسة</p></div>';
+            const kind={warmup:'تسخين',dropset:'دروب',drop:'دروب',superset:'سوبر',failure:'فشل'};
+            return '<div class="hist-sets" data-added>'+logs.map((l,i)=>{
+                const tag=[kind[l.setType],l.rir!=null?'RIR '+l.rir:''].filter(Boolean).join(' · ');
+                return `<div class="hist-set${l.setType==='warmup'?' warm':''}"><span class="hist-n">${i+1}</span><span class="hist-v">${escapeHTML(setLabel(l))}${tag?` <small>${escapeHTML(tag)}</small>`:''}</span><button type="button" class="hist-btn" data-hist-edit="${escapeHTML(l.id)}" aria-label="عدّل الجولة ${i+1}">عدّل</button><button type="button" class="hist-btn hist-del" data-hist-del="${escapeHTML(l.id)}" aria-label="احذف الجولة ${i+1}">احذف</button></div>`;
+            }).join('')+'</div>';
+        }
+        function refreshProgressKeep() {
+            if(document.getElementById('screen-progress').classList.contains('hidden'))return;
+            const select=document.getElementById('chart-exercise-select');const keep=select.value;
+            initProgressScreen();
+            if(keep&&[...select.options].some(o=>o.value===keep)){select.value=keep;updateProgressChart();}
+        }
+        function initHistoryActions() {
+            const list=document.getElementById('exercise-progression-history-list');if(!list)return;
+            const toggle=row=>{const d=row.dataset.histDate;histOpenDate=histOpenDate===d?null:d;renderExerciseProgressionHistory(document.getElementById('chart-exercise-select').value);
+                const again=[...list.querySelectorAll('[data-hist-date]')].find(r=>r.dataset.histDate===d);if(again&&histOpenDate)again.scrollIntoView({block:'nearest'});};
+            list.addEventListener('click',e=>{
+                const ed=e.target.closest('[data-hist-edit]');if(ed){e.stopPropagation();openEditLog(ed.dataset.histEdit);return;}
+                const del=e.target.closest('[data-hist-del]');if(del){e.stopPropagation();swipeDelete(del.dataset.histDel);updateProgressChart();return;}
+                if(e.target.closest('.hist-sets'))return;
+                const row=e.target.closest('[data-hist-date]');if(row)toggle(row);
+            });
+            list.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-hist-date]')){e.preventDefault();toggle(e.target);}});
         }
         function renderExerciseProgressionHistory(selectedExId) {
             const container=document.getElementById('exercise-progression-history-list');
@@ -1485,7 +1514,8 @@
                 const plate=plateColored&&window.GymVisual?GymVisual.heaviestPlateColor(row.weight,barKg):null;
                 const pct=maxW>0?Math.max(2,Math.round(row.weight/maxW*1000)/10):0;
                 const record=maxW>0&&row.weight===maxW;
-                return `<div class="glass-card p-3 text-xs progress-row${record?' is-record':''}"><div class="text-slate-400">${escapeHTML(friendlyDate(row.date))}</div><strong>${Number(row.weight.toFixed(1))} ${unit}${mode==='timed'?'':` × ${row.reps} عدات`}</strong><div class="pbar" data-added aria-hidden="true"><i style="width:${pct}%;--plate:${plate?plate.color:'#8C8A84'}"></i></div><div class="text-cyan-300">${escapeHTML(delta)}</div>${mode==='timed'?'':`<small>أعلى 1RM تقديري: ${row.oneRm??'غير متاح'} | RIR: ${row.rir??'غير محدد'}</small>`}</div>`;
+                const open=histOpenDate===row.date;
+                return `<div class="glass-card p-3 text-xs progress-row hist-row${record?' is-record':''}${open?' open':''}" role="button" tabindex="0" aria-expanded="${open}" data-hist-date="${escapeHTML(row.date)}"><div class="text-slate-400">${escapeHTML(friendlyDate(row.date))}</div><strong>${Number(row.weight.toFixed(1))} ${unit}${mode==='timed'?'':` × ${row.reps} عدات`}</strong><div class="pbar" data-added aria-hidden="true"><i style="width:${pct}%;--plate:${plate?plate.color:'#8C8A84'}"></i></div><div class="text-cyan-300">${escapeHTML(delta)}</div>${mode==='timed'?'':`<small>أعلى 1RM تقديري: ${row.oneRm??'غير متاح'} | RIR: ${row.rir??'غير محدد'}</small>`}${open?histSetsHTML(selectedExId,row.date):''}</div>`;
             }).reverse().join('') || 'لا توجد جولات عمل بهذه الطريقة';
             renderProgressHero(groups,mode,unit,plateColored,barKg);
         }
@@ -1990,6 +2020,7 @@
             document.getElementById('cb-plus')?.addEventListener('click', () => { adjustRest(15); tickClockBar(); });
             document.getElementById('cb-stop')?.addEventListener('click', () => { stopRestTimer(); tickClockBar(); });
             document.getElementById('btn-undo')?.addEventListener('click', undoDelete);
+            initHistoryActions();
             document.addEventListener('visibilitychange', () => { if (document.hidden) flushPendingDeletes(); });
             window.addEventListener('pagehide', flushPendingDeletes);
             document.getElementById('progress-jump')?.addEventListener('click', e => { const b = e.target.closest('[data-jump]'); if (b) document.getElementById(b.dataset.jump)?.scrollIntoView({ block: 'start', behavior: 'smooth' }); });
@@ -2999,6 +3030,7 @@
             }
         }
         function openProgDetail(exId, push = true) {
+            if (exId) histOpenDate = null;
             const sel = document.getElementById('chart-exercise-select');
             if (exId && sel.value !== exId && [...sel.options].some(o => o.value === exId)) { sel.value = exId; resetProgressLoadMode(); }
             document.getElementById('screen-progress').classList.add('detail');
@@ -4054,7 +4086,7 @@
             pendingDeletes.set(logId, timer);
             renderTodayLogs();
             haptic('long');
-            showUndo(logId, `${shortName(log.exerciseName)} · ${log.type === 'weights' ? setLabel(log) : log.duration + ' دقيقة'}`);
+            showUndo(logId, `${window.GymI18n && GymI18n.lang === 'en' ? log.exerciseName : shortName(log.exerciseName)} · ${log.type === 'weights' ? setLabel(log) : log.duration + ' دقيقة'}`);
         }
         function undoDelete() {
             const logId = undoBar()?.dataset.logId;
@@ -4063,6 +4095,7 @@
             pendingDeletes.delete(logId);
             hideUndo(logId);
             renderTodayLogs();
+            if (!document.getElementById('screen-progress').classList.contains('hidden')) updateProgressChart();
             haptic('tap');
             showToast('رجعت الجولة');
         }
@@ -4078,7 +4111,7 @@
                 if (deletedLog.sessionId) await refreshCompletedSessionSummary(deletedLog.sessionId);
                 await GymStorage.save(state);
                 renderTodayLogs(); updateTopHeaderStats();
-                if (!document.getElementById('screen-progress').classList.contains('hidden')) initProgressScreen();
+                refreshProgressKeep();
             });
         }
         function flushPendingDeletes() { for (const id of [...pendingDeletes.keys()]) { clearTimeout(pendingDeletes.get(id)); commitDelete(id); } }
