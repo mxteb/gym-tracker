@@ -157,6 +157,8 @@ function defaultLoadMode(exercise) {
  if (exercise.id === 'ex_32') return 'assisted';
  if (['ex_19', 'ex_31', 'ex_60', 'ex_61'].includes(exercise.id)) return 'bodyweight';
  if (['ex_22', 'ex_33', 'ex_48'].includes(exercise.id)) return 'external';
+ const preset = GymCatalog.DEFAULT_LOAD && GymCatalog.DEFAULT_LOAD[exercise.id];
+ if (preset && !exercise.isCustom) return preset;
  if (exercise.equip === 'dumbbell') return 'per_hand';
  return 'external';
 }
@@ -363,7 +365,9 @@ function exerciseTrend(logs, exerciseId, today) {
  if (!groups.length) return null;
  const metric = mode === 'timed' ? 'seconds' : mode === 'assisted' ? 'assist' : groups.some(g => Number.isFinite(g.oneRm)) ? '1rm' : 'weight';
  const val = g => metric === '1rm' ? g.oneRm : g.weight;
- const pts = groups.filter(g => Number.isFinite(val(g))).map(g => ({ date: g.date, value: val(g) }));
+ // v12.7: assisted sets are judged by the assistance itself (least help in the session), not by bodyweight minus help,
+ // otherwise a heavier bodyweight with the same help read as "more help" and the best session was the one with the most help
+ const pts = metric === 'assist' ? assistPoints(own) : groups.filter(g => Number.isFinite(val(g))).map(g => ({ date: g.date, value: val(g) }));
  if (!pts.length) return null;
  const better = (a, b) => metric === 'assist' ? a < b : a > b; // assistance: less is better
  let best = pts[0], prs = 0, lastPrDate = null;
@@ -376,9 +380,24 @@ function exerciseTrend(logs, exerciseId, today) {
  const monthAgo = new Date(today + 'T12:00:00'); monthAgo.setDate(monthAgo.getDate() - 30);
  const cut = isoDate(monthAgo), before = pts.filter(p => p.date < cut), recent = pts.filter(p => p.date >= cut);
  const bestOf = arr => arr.reduce((a, b) => better(b.value, a.value) ? b : a);
- const improvedThisMonth = !!(before.length && recent.length && better(bestOf(recent).value, bestOf(before).value));
+ // v12.7: when every session is inside the last 30 days, compare with the first one (it was always 0 for a new user)
+ const base = before.length ? bestOf(before) : pts.length > 1 ? pts[0] : null, tail = before.length ? recent : pts.slice(1);
+ const improvedThisMonth = !!(base && tail.length && better(bestOf(tail).value, base.value));
  return { mode, metric, best: best.value, bestDate: best.date, first: first.value, firstDate: first.date, last: last.value, lastDate: last.date, change, pct, dir,
   plateauSessions: pl ? pl.sessions : 0, prs, lastPrDate, sessions: pts.length, improvedThisMonth, points: pts.slice(-7).map(p => p.value) };
+}
+/** أقل مساعدة في كل جلسة (بالترتيب) لتمارين المساعدة */
+function assistPoints(own) {
+ const by = new Map();
+ for (const l of own) {
+  if ((l.loadMode || 'external') !== 'assisted') continue;
+  const v = canonicalWeightKg(l);
+  if (!Number.isFinite(v)) continue;
+  const key = l.sessionId || l.date, t = l.timestamp || Date.parse(l.date) || 0, g = by.get(key);
+  if (!g) by.set(key, { date: l.date, time: t, value: v });
+  else { g.time = Math.min(g.time, t); g.value = Math.min(g.value, v); }
+ }
+ return [...by.values()].sort((a, b) => a.time - b.time).map(g => ({ date: g.date, value: g.value }));
 }
 /* ---------- v12 (M1/M2/M5): العضلات بالتفصيل ---------- */
 function exOfLog(l, byId) { return byId.get(l.exerciseId) || { id: l.exerciseId, name: l.exerciseName, category: l.category, type: 'weights' }; }
@@ -555,7 +574,7 @@ function plateau(logs, exerciseId, opts = {}) {
 const STRENGTH_LIFTS = [
  { key: 'squat', ids: ['ex_44'], men: [0.75, 1.25, 1.75, 2.5], women: [0.5, 1.0, 1.5, 1.9] },
  { key: 'bench', ids: ['ex_1'], men: [0.5, 1.0, 1.5, 2.0], women: [0.25, 0.5, 0.75, 1.0] },
- { key: 'deadlift', match: /(deadlift|ديدليفت|ديد ليفت)/i, not: /(rdl|روماني|romanian|stiff|ستيف)/i, men: [1.0, 1.5, 2.25, 3.0], women: [0.75, 1.25, 1.75, 2.5] },
+ { key: 'deadlift', match: /(deadlift|ديدليفت|ديد ليفت)/i, not: /(rdl|روماني|romanian|stiff|ستيف|trap bar|hex bar|سداسي)/i, men: [1.0, 1.5, 2.25, 3.0], women: [0.75, 1.25, 1.75, 2.5] },
  { key: 'ohp', ids: ['ex_11'], men: [0.4, 0.65, 0.9, 1.2], women: [0.2, 0.4, 0.6, 0.8] }
 ];
 function strengthLevels(logs, exercises, profile) {
@@ -668,7 +687,7 @@ function trimPlan(ids, exercises, logs, minutes) {
 function isUnilateral(ex) {
  if (!ex || ex.type !== 'weights') return false;
  if (ex.sides === true) return true;
- return /(بلغاري|طعن|بيد وحدة|بيد واحدة|رجل وحدة|رجل واحدة|single|one[- ]arm|one[- ]leg|unilateral|lunge|split squat|concentration|تركيز)/i.test(String(ex.name || ''));
+ return /(بلغاري|طعن|بيد وحدة|بيد واحدة|رجل وحدة|رجل واحدة|single|one[- ]arm|one[- ]leg|unilateral|lunge|split squat|concentration|تركيز|step[- ]?up|طلوع على)/i.test(String(ex.name || ''));
 }
 
 /** B5: جهة أضعف؟ آخر 3 جلسات فيها يمين ويسار: لو نفس الجهة أقل بأكثر من 10% في الثلاث = { weak, pct }. */

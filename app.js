@@ -165,7 +165,7 @@
             const targets = state.logs.filter(l => l.exerciseId === ex.id && l.type === 'weights' && (l.loadMode || 'external') === 'external' && (Number(l.machineKg) || 0) !== kg);
             showModal({
                 title: 'تطبيق وزن الجهاز على السجل',
-                message: `بيتغير حساب ${targets.length} جولة سابقة لـ "${ex.name}" عشان تنحسب بوزن جهاز ${kg} كجم (الأقراص اللي سجلتها ما تتغير). تقدر ترجعها بكتابة صفر وتطبيقه مرة ثانية.`,
+                message: `بيتغير حساب ${targets.length} جولة سابقة لـ "${shortName(ex.name)}" عشان تنحسب بوزن جهاز ${kg} كجم (الأقراص اللي سجلتها ما تتغير). تقدر ترجعها بكتابة صفر وتطبيقه مرة ثانية.`,
                 confirmText: 'طبّق', cancelText: 'إلغاء',
                 onConfirm: async () => {
                     const sessions = new Set();
@@ -292,6 +292,56 @@
             document.getElementById('finish-session-modal').classList.add('hidden');
             document.getElementById('btn-finish-session').focus();
         }
+        // v12.7: the summary as cards: a few numbers on top, then one card per exercise with its sets and how it compares to last time
+        function sessionSummaryBody(session, sessionLogs, s) {
+            const box = el('div', 'sum-body');
+            const fmt = n => Math.round(n).toLocaleString('en-US');
+            const stats = el('div', 'sum-stats');
+            const stat = (label, value) => { const c = el('div', 'sum-stat'); c.appendChild(el('b', '', value)); c.appendChild(el('span', '', label)); stats.appendChild(c); };
+            stat('المدة', `${s.durationLabel} دقيقة`);
+            stat('الجولات', `${s.workingSets} ${s.workingSets >= 3 && s.workingSets <= 10 ? 'جولات' : 'جولة'}`);
+            stat('الحجم', `${fmt(session.totalVolumeKg || 0)} كجم`);
+            stat('السعرات', `${fmt(session.totalEstimatedCalories || 0)} سعرة`);
+            if (s.avgRir !== 'غير محدد') stat('متوسط RIR', String(s.avgRir));
+            if (s.bestOneRm != null) stat('أعلى 1RM', `${s.bestOneRm} كجم`);
+            box.appendChild(stats);
+            const order = [];
+            for (const l of [...sessionLogs].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))) if (!order.includes(l.exerciseId)) order.push(l.exerciseId);
+            const volumeOf = logs => logs.filter(l => l.type === 'weights' && l.setType !== 'warmup').reduce((n, l) => n + GymCalc.volumeLoadKg(l) * (Number(l.reps) || 1), 0);
+            for (const id of order) {
+                const logs = sessionLogs.filter(l => l.exerciseId === id).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                const ex = state.exercises.find(e => e.id === id);
+                const card = el('div', 'sum-ex');
+                const head = el('div', 'sum-ex-head');
+                head.appendChild(el('strong', '', shortName(ex?.name || logs[0].exerciseName || '')));
+                card.appendChild(head);
+                if (logs[0].type !== 'weights') {
+                    const mins = logs.reduce((n, l) => n + (Number(l.duration) || 0), 0), cal = logs.reduce((n, l) => n + (Number(l.calories) || 0), 0);
+                    head.appendChild(el('span', 'sum-ex-vol', `${fmt(mins)} دقيقة`));
+                    if (cal) card.appendChild(el('div', 'sum-ex-cmp', `${fmt(cal)} سعرة`));
+                    box.appendChild(card); continue;
+                }
+                const vol = volumeOf(logs);
+                if (vol > 0) head.appendChild(el('span', 'sum-ex-vol', `${fmt(vol)} كجم`));
+                const sets = el('div', 'sum-ex-sets');
+                for (const l of logs) sets.appendChild(el('span', l.setType === 'warmup' ? 'sum-set warm' : 'sum-set', setLabel(l)));
+                card.appendChild(sets);
+                const before = state.logs.filter(l => l.exerciseId === id && l.sessionId !== session.id && (l.timestamp || 0) < (logs[0].timestamp || Infinity));
+                const lastKey = before.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
+                let cmp;
+                if (!lastKey) cmp = 'أول مرة تسجله';
+                else {
+                    const key = lastKey.sessionId || lastKey.date;
+                    const prev = volumeOf(before.filter(l => (l.sessionId || l.date) === key));
+                    const diff = Math.round(vol - prev);
+                    cmp = !prev || !vol ? null : diff === 0 ? 'نفس حجم المرة الماضية' : `${diff > 0 ? '+' : '−'}${fmt(Math.abs(diff))} كجم عن المرة الماضية`;
+                    if (cmp) card.classList.add(diff > 0 ? 'up' : diff < 0 ? 'down' : 'same');
+                }
+                if (cmp) card.appendChild(el('div', 'sum-ex-cmp', cmp));
+                box.appendChild(card);
+            }
+            return box;
+        }
         async function finishWorkoutSession() {
             const session = getActiveSession();
             if (!session) return;
@@ -317,15 +367,14 @@
             const rirValues = workingLogs.filter(l => l.rir !== null && l.rir !== undefined && l.rir !== '').map(l => Number(l.rir)).filter(Number.isFinite);
             const avgRir = rirValues.length ? (rirValues.reduce((a, b) => a + b, 0) / rirValues.length).toFixed(1) : 'غير محدد';
             const validOneRms = workingLogs.filter(l => l.loadMode !== 'timed').map(l => calculate1RM(getProgressWeightKg(l), l.reps)).filter(Number.isFinite);
-            const bestLog=workingLogs.filter(l=>l.loadMode!=='timed').sort((a,b)=>(calculate1RM(getProgressWeightKg(b),b.reps)||0)-(calculate1RM(getProgressWeightKg(a),a.reps)||0))[0];
-            const bestOneRm = validOneRms.length ? Math.max(...validOneRms) + ' كجم — '+bestLog.exerciseName+(bestLog.loadMode==='per_hand'?' (لكل يد)':'') : 'غير متاح';
             document.getElementById('finish-session-modal').classList.add('hidden');
             let insights = [];
             try { insights = sessionInsightLines(session.id); } catch (e) { console.warn('insights', e); }
             document.dispatchEvent(new CustomEvent('gym:session-finished', { detail: { sessionId: session.id } }));
             showModal({
                 title: `ملخص ${session.name}`,
-                message: `المدة: ${durationLabel} دقيقة | الجولات الفعلية: ${workingLogs.length} | الحجم الفعلي: ${(session.totalVolumeKg / 1000).toFixed(2)} طن | متوسط RIR: ${avgRir} | أعلى 1RM مسجل بين التمارين: ${bestOneRm} | السعرات التقديرية للحديد والكارديو: ${session.totalEstimatedCalories}`,
+                message: '',
+                body: sessionSummaryBody(session, sessionLogs, { durationLabel, workingSets: workingLogs.length, avgRir, bestOneRm: validOneRms.length ? Math.max(...validOneRms) : null }),
                 confirmText: 'تم', cancelText: 'إغلاق', insights,
                 share: () => shareSessionImage(session.id)
             });
@@ -600,6 +649,44 @@
             else if (ex.type === 'bike_elliptical') formBe.classList.remove('hidden');
             applyExerciseRest(ex);
             renderEquipSettings(); renderEquipVisual(); renderRepeatButton(); renderSuggestion(); renderExNote(); renderBusyButton(); renderSides(); renderGuide(); renderProgramTarget();
+            prefillForExercise(ex);
+        }
+
+        /* v12.7: each exercise starts from its own numbers. Before this the weight box kept whatever the previous exercise had
+         * (bench 50 kg became 50 kg per hand on the shoulder press) and a first-ever exercise always opened on 50 kg. */
+        let prefilledExId = null;
+        const LIGHT_START_KG = { barbell: 20, dumbbell: 5, machine: 10, cable_body: 10 };
+        function prefillForExercise(ex) {
+            // once per exercise and data state: re-selecting it keeps what you typed, a new log or an import fills it again
+            const key = ex && ex.id + '|' + state.logs.length + '|' + (activeSessionId || '');
+            if (!ex || ex.type !== 'weights' || key === prefilledExId) return;
+            prefilledExId = key;
+            const weightInput = document.getElementById('input-weight');
+            const setReps = r => { if (!r) return; document.getElementById('input-reps').value = r; const d = document.getElementById('val-reps-display'); if (d) d.textContent = r; };
+            const inSession = lastSetForRepeat(ex.id);
+            const sg = currentSuggestion;
+            if (inSession) {
+                if (inSession.unit && inSession.unit !== activeWeightUnit) setWeightUnit(inSession.unit);
+                if (!['bodyweight', 'timed'].includes(inSession.loadMode)) weightInput.value = inSession.displayWeight ?? getCanonicalWeightKg(inSession);
+                setReps(inSession.repsRight ?? inSession.reps);
+            } else if (sg && sg.mode !== 'timed') {
+                if (sg.unit && sg.unit !== activeWeightUnit) setWeightUnit(sg.unit);
+                if (sg.mode !== 'bodyweight') weightInput.value = sg.weight;
+                setReps(sg.reps);
+            } else {
+                const last = state.logs.filter(l => l.exerciseId === ex.id && l.type === 'weights' && l.setType !== 'warmup').sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))[0];
+                if (last) {
+                    if (last.unit && last.unit !== activeWeightUnit) setWeightUnit(last.unit);
+                    if (!['bodyweight', 'timed'].includes(last.loadMode)) weightInput.value = last.displayWeight ?? getCanonicalWeightKg(last);
+                    setReps(last.repsRight ?? last.reps);
+                } else if (!weightInput.disabled) {
+                    const bar = ex.equip === 'barbell' && ex.barKg !== undefined && ex.barKg !== '' && Number.isFinite(Number(ex.barKg)) ? Number(ex.barKg) : null;
+                    const kg = activeLoadMode === 'added' ? 0 : activeLoadMode === 'assisted' ? 20 : bar ?? LIGHT_START_KG[ex.equip] ?? 10;
+                    weightInput.value = activeWeightUnit === 'lbs' ? Math.round(kg * 2.20462 / 5) * 5 : kg;
+                }
+            }
+            updateWeightConvertedDisplay(); update1RMLiveDisplay(); renderEquipVisual();
+            if (typeof renderFill === 'function') queueMicrotask(renderFill);
         }
 
         function update1RMLiveDisplay() {
@@ -785,7 +872,7 @@
             let weightInKg = activeLoadMode === 'timed' ? 0 : activeWeightUnit === 'lbs' ? rawWeight / 2.20462 : rawWeight;
             const bodyWeightKg = parseFloat(state.profile.weight) || 0;
             if (['bodyweight', 'added', 'assisted'].includes(activeLoadMode) && !bodyWeightKg) {
-                showToast('أدخل وزن جسمك في البروفايل أولًا لهذا النوع من التمارين');
+                showToast('أدخل وزن جسمك في «جسمك» أولًا لهذا النوع من التمارين');
                 return;
             }
             const session = await ensureActiveSession();
@@ -1406,6 +1493,8 @@
             updateProgressChart();
             renderRecords(); renderCalendar(); renderMuscles(); renderSessions();
             renderProgList(); renderProgDetail();
+            // v12.7: the month report and strength cards live on this screen too; they only refreshed with the body tab, so a new set read "no workouts this month"
+            renderStrength(); renderMonthReport();
         }
 
         function updateGlobalStats() {
@@ -1603,13 +1692,13 @@
 
             const m = GymCalc.bodyMetrics(state.profile);
             if (!m) {
-                calContainer.innerHTML = `<div class="col-span-3 glass-card p-4 text-center text-xs text-slate-400">يرجى الانتقال لصفحة "البروفايل" وإدخال الطول والوزن لظهور التحليل الذكي</div>`;
+                calContainer.innerHTML = `<div class="col-span-3 glass-card p-4 text-center text-xs text-slate-400">أدخل طولك وعمرك في البروفايل ووزنك هنا في «جسمك» عشان يطلع التحليل</div>`;
                 return;
             }
             const { tdee, cutLow, cutHigh, bulkLow, bulkHigh, bmi } = m;
-            calContainer.innerHTML += createBentoCard('تثبيت الوزن (Maintenance)', tdee.toLocaleString() + '', 'هدف التوازن', 'bg-cyan-950 text-cyan-300 border-cyan-800', 'text-cyan-300', 'تقدير يومي للمحافظة على الوزن، ويُراجع حسب تغير وزنك الفعلي.');
-            calContainer.innerHTML += createBentoCard('نقصان الوزن (Fat Loss)', `${cutHigh.toLocaleString()}–${cutLow.toLocaleString()}`, 'عجز 10–20%', 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-emerald-300', 'نطاق مبدئي للتنشيف يُعدّل حسب تغير الوزن والأداء، دون ضمان تلقائي لمنع فقدان العضلات.');
-            calContainer.innerHTML += createBentoCard('زيادة نظيفة (Lean Bulk)', `${bulkLow.toLocaleString()}–${bulkHigh.toLocaleString()}`, 'فائض 5–10%', 'bg-amber-950 text-amber-300 border-amber-800', 'text-amber-300', 'فائض محافظ كبداية، ثم يُعدّل حسب معدل زيادة الوزن.');
+            calContainer.innerHTML += createBentoCard('تثبيت الوزن', tdee.toLocaleString() + '', 'هدف التوازن', 'bg-cyan-950 text-cyan-300 border-cyan-800', 'text-cyan-300', 'تقدير يومي للمحافظة على الوزن، ويُراجع حسب تغير وزنك الفعلي.');
+            calContainer.innerHTML += createBentoCard('نقصان الوزن (تنشيف)', `${cutHigh.toLocaleString()}–${cutLow.toLocaleString()}`, 'عجز 10–20%', 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-emerald-300', 'نطاق مبدئي للتنشيف يُعدّل حسب تغير الوزن والأداء، دون ضمان تلقائي لمنع فقدان العضلات.');
+            calContainer.innerHTML += createBentoCard('زيادة نظيفة (تضخيم)', `${bulkLow.toLocaleString()}–${bulkHigh.toLocaleString()}`, 'فائض 5–10%', 'bg-amber-950 text-amber-300 border-amber-800', 'text-amber-300', 'فائض محافظ كبداية، ثم يُعدّل حسب معدل زيادة الوزن.');
 
             const bmiStatus = { under: 'أقل من النطاق الطبيعي', normal: 'ضمن النطاق الطبيعي', over: 'أعلى من النطاق الطبيعي', high: 'مرتفع حسب BMI' }[m.bmiBand];
             healthContainer.innerHTML += createBentoCard('مؤشر الكتلة (BMI)', bmi, bmiStatus, 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-cyan-300', 'أداة فرز عامة لا تميز بين العضلات والدهون، وقد تضلل لدى لاعبي الحديد.');
@@ -1617,13 +1706,13 @@
             if (m.whtr) {
                 const whtr = m.whtr;
                 const whtrStatus = { low: 'أقل من 0.5', watch: 'يستحق المتابعة', high: 'مرتفع كأداة فرز' }[m.whtrBand];
-                healthContainer.innerHTML += createBentoCard('نسبة الخصر للطول (WHtR)', whtr, whtrStatus, 'bg-blue-950 text-blue-300 border-blue-800', 'text-blue-300', 'مؤشر بسيط مرتبط بالسمنة المركزية، وليس قياسًا مباشرًا للدهون الحشوية.');
+                healthContainer.innerHTML += createBentoCard('نسبة الخصر/البطن للطول (WHtR)', whtr, whtrStatus, 'bg-blue-950 text-blue-300 border-blue-800', 'text-blue-300', 'مؤشر بسيط مرتبط بالسمنة المركزية، وليس قياسًا مباشرًا للدهون الحشوية.');
             }
 
             if (m.fat) {
                 const fat = m.fat, ffmi = m.ffmi;
                 compContainer.innerHTML += createBentoCard('نسبة الدهون %', fat + '%', 'شحوم الجسم', 'bg-rose-950 text-rose-300 border-rose-800', 'text-rose-300', 'نسبة الدهون الكلية.');
-                compContainer.innerHTML += createBentoCard('مؤشر الكتلة الخالية من الدهون (FFMI)', ffmi, 'Fat-Free Mass Index', 'bg-purple-950 text-purple-300 border-purple-800', 'text-indigo-400', 'يشمل الكتلة الخالية من الدهون كلها، وليس العضلات وحدها.');
+                compContainer.innerHTML += createBentoCard('مؤشر الكتلة الخالية من الدهون (FFMI)', ffmi, 'الكتلة الخالية ÷ الطول²', 'bg-purple-950 text-purple-300 border-purple-800', 'text-indigo-400', 'يشمل الكتلة الخالية من الدهون كلها، وليس العضلات وحدها.');
             }
 
             if (m.muscle) {
@@ -1665,7 +1754,7 @@
 
         async function saveProfile() {
             const next={...state.profile,id:'user_profile',updatedAt:Date.now(),name:document.getElementById('prof-name').value.trim()};
-            for(const [key,label,min,max] of [['weight','الوزن',20,350],['height','الطول',50,250],['waist','محيط الخصر',30,250],['age','العمر',5,120],['fat','نسبة الدهون',1,70],['muscle','نسبة العضلات',1,80],['water','نسبة السوائل',1,90]]) {
+            for(const [key,label,min,max] of [['weight','الوزن',20,350],['height','الطول',50,250],['waist','محيط الخصر / البطن',30,250],['age','العمر',5,120],['fat','نسبة الدهون',1,70],['muscle','نسبة العضلات',1,80],['water','نسبة السوائل',1,90]]) {
                 next[key]=readField('prof-'+key,label,min,max,{optional:true,integer:key==='age',legacyValue:key==='age'?Number(state.profile.age):undefined})??'';
             }
             next.activityFactor=readField('prof-activity','مستوى النشاط',1,3);
@@ -1716,7 +1805,7 @@
                     <span class="text-slate-400 text-[10px]">${escapeHTML(friendlyDate(item.date))}</span>
                     <div class="space-x-3 space-x-reverse font-medium">
                         <span class="text-cyan-300">${escapeHTML(String(item.weight))} كجم</span>
-                        ${item.waist ? `<span class="text-blue-300">خصر: ${escapeHTML(String(item.waist))} سم</span>` : ''}
+                        ${item.waist ? `<span class="text-blue-300">الخصر/البطن: ${escapeHTML(String(item.waist))} سم</span>` : ''}
                     </div>
                 `;
                 fragment.appendChild(el);
@@ -1846,7 +1935,7 @@
             document.getElementById('header-today-cals').textContent = Math.round(totalCals * 10) / 10;
         }
 
-        function showModal({ title, message, confirmText, cancelText, onConfirm, insights, share }) {
+        function showModal({ title, message, confirmText, cancelText, onConfirm, insights, share, body }) {
             const modal = document.getElementById('custom-modal');
             document.getElementById('modal-title').textContent = title;
             const insightBox = document.getElementById('modal-insights');
@@ -1855,7 +1944,11 @@
                 for (const line of insights || []) { const p = document.createElement('p'); p.className = 'insight insight-' + line.kind; p.textContent = line.text; insightBox.appendChild(p); }
                 insightBox.classList.toggle('hidden', !insightBox.children.length);
             }
-            document.getElementById('modal-message').textContent = message;
+            const messageEl = document.getElementById('modal-message');
+            messageEl.textContent = message || '';
+            messageEl.classList.toggle('hidden', !message);
+            const bodyBox = document.getElementById('modal-body');
+            if (bodyBox) { bodyBox.replaceChildren(...(body ? [body] : [])); bodyBox.classList.toggle('hidden', !body); }
             
             const confirmBtn = document.getElementById('modal-confirm-btn');
             const cancelBtn = document.getElementById('modal-cancel-btn');
@@ -2472,7 +2565,7 @@
             if (!box) return;
             box.replaceChildren();
             const note = (text) => { const p = document.createElement('p'); p.className = 'field-hint'; p.textContent = text; box.appendChild(p); };
-            if (!(Number(state.profile.weight) > 0)) { note('أدخل وزنك في البروفايل عشان نقارن قوتك بوزنك.'); return; }
+            if (!(Number(state.profile.weight) > 0)) { note('أدخل وزنك في «جسمك» عشان نقارن قوتك بوزنك.'); return; }
             const rows = GymCalc.strengthLevels(state.logs, state.exercises, state.profile);
             if (!rows.length) { note('سجّل سكوات أو بنش أو ديدليفت أو ضغط أكتاف بالبار، ويطلع مستواك هنا.'); return; }
             for (const r of rows) {
@@ -4047,7 +4140,7 @@
             if (!box) return;
             const h = (state.profile.history || []).slice().sort((a, b) => String(a.date).localeCompare(String(b.date)));
             box.replaceChildren();
-            const series = [['weight', 'الوزن', 'كجم'], ['waist', 'محيط الخصر', 'سم']];
+            const series = [['weight', 'الوزن', 'كجم'], ['waist', 'محيط الخصر / البطن', 'سم']];
             let drawn = 0;
             for (const [k, label, unit] of series) {
                 const pts = h.filter(x => Number(x[k]) > 0).map(x => ({ d: x.date, v: Number(x[k]) }));
@@ -4058,7 +4151,7 @@
                 head.append(el('span', '', label), el('b', 'num-led', `${fmt1(last)} ${unit}`), el('small', diff === 0 ? '' : diff > 0 ? 'up' : 'down', pts.length > 1 ? `${diff > 0 ? '+' : ''}${diff} من ${friendlyDate(pts[0].d)}` : 'قياس واحد'));
                 box.append(head, lineChart(pts, { unit, label }));
             }
-            if (!drawn) box.appendChild(el('p', 'field-hint', 'احفظ وزنك (ومحيط خصرك لو تبي) من فوق، وكل يوم تحفظ فيه يصير نقطة في الرسم.'));
+            if (!drawn) box.appendChild(el('p', 'field-hint', 'احفظ وزنك (ومحيط خصرك / بطنك لو تبي) من فوق، وكل يوم تحفظ فيه يصير نقطة في الرسم.'));
         }
 
 
@@ -4160,6 +4253,12 @@
             list.addEventListener('pointercancel', e => { if (g && e.pointerId === g.pointer) { reset(g.row, true); g = null; } });
             // نقرة بعد سحب ما تنحسب ضغطة
             list.addEventListener('click', e => { if (e.target.closest('.log-row.swiping')) { e.stopPropagation(); e.preventDefault(); } }, true);
+            // v12.7: a plain tap on a set opens its edit form too (swipe was the only way besides the small icons)
+            list.addEventListener('click', e => {
+                const row = e.target.closest('.log-row');
+                if (!row || saving || e.target.closest('button,a,input,select,label') || !row.dataset.logId || pendingDeletes.has(row.dataset.logId)) return;
+                openEditLog(row.dataset.logId);
+            });
         }
 
 

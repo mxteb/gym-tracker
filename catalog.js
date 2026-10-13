@@ -116,7 +116,65 @@ const DEFAULT_EXERCISES = [
             { id: 'ex_66', name: 'جهاز الغزالة / أوبتكال (Elliptical Trainer)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
             { id: 'ex_67', name: 'جهاز سلالم الدرج (Stair Master)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
             { id: 'ex_68', name: 'جهاز التجديف (Rowing Machine)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
-            { id: 'ex_69', name: 'دراجة هوائية (Air Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' }
+            { id: 'ex_69', name: 'دراجة هوائية (Air Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio' },
+            // v12.7: the deadlift joins the library, plus more machines, cables and free-weight moves (user study)
+            { id: 'ex_70', name: 'ديدليفت بالبار (Barbell Deadlift)', category: 'legs', type: 'weights', equip: 'barbell' },
+            { id: 'ex_71', name: 'ضغط صدر بالسميث (Smith Machine Bench Press)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_72', name: 'ضغط صدر مائل بالسميث (Incline Smith Machine Press)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_73', name: 'بنش بريس سفلي بالبار (Decline Barbell Bench Press)', category: 'push', type: 'weights', equip: 'barbell' },
+            { id: 'ex_74', name: 'تفتيح صدر بالكيبل من تحت لفوق (Low-to-High Cable Fly)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_75', name: 'ضغط صدر جهاز أقراص (Plate-Loaded Chest Press)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_76', name: 'ضغط صدر سفلي بالماكينة (Decline Chest Press Machine)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_77', name: 'ضغط أرضي (Push-ups)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_78', name: 'ضغط أكتاف بالسميث (Smith Machine Shoulder Press)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_79', name: 'رفرفة أمامي بالكيبل (Cable Front Raise)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_80', name: 'سحب للذقن بالكيبل (Cable Upright Row)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_81', name: 'رفرفة خلفي بالكيبل (Cable Rear Delt Fly)', category: 'pull', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_82', name: 'ضغط أكتاف لاندماين (Landmine Press)', category: 'push', type: 'weights', equip: 'barbell' },
+            { id: 'ex_83', name: 'هز أكتاف بالبار (Barbell Shrugs)', category: 'pull', type: 'weights', equip: 'barbell' },
+            { id: 'ex_84', name: 'سكل كراشر بالبار (EZ-Bar Skull Crusher)', category: 'push', type: 'weights', equip: 'barbell' },
+            { id: 'ex_85', name: 'ترايسيبس كيبل فوق الرأس (Cable Overhead Triceps Extension)', category: 'push', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_86', name: 'بنش بريس قبضة ضيقة (Close-Grip Bench Press)', category: 'push', type: 'weights', equip: 'barbell' },
+            { id: 'ex_87', name: 'جهاز متوازي جالس (Seated Dip Machine)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_88', name: 'جهاز تمديد الترايسيبس (Triceps Extension Machine)', category: 'push', type: 'weights', equip: 'machine' },
+            { id: 'ex_89', name: 'مرجحة بايسبس بار EZ (EZ-Bar Curl)', category: 'pull', type: 'weights', equip: 'barbell' },
+            { id: 'ex_90', name: 'جهاز بايسبس الواعظ (Preacher Curl Machine)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_91', name: 'مرجحة الواعظ ببار EZ (EZ-Bar Preacher Curl)', category: 'pull', type: 'weights', equip: 'barbell' },
+            { id: 'ex_92', name: 'مرجحة هامر بالكيبل والحبل (Cable Rope Hammer Curl)', category: 'pull', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_93', name: 'مرجحة عكسية بالبار (Reverse Barbell Curl)', category: 'pull', type: 'weights', equip: 'barbell' },
+            { id: 'ex_94', name: 'مرجحة الرسغ بالدمبل (Dumbbell Wrist Curl)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_95', name: 'ديدليفت سومو (Sumo Deadlift)', category: 'legs', type: 'weights', equip: 'barbell' },
+            { id: 'ex_96', name: 'ديدليفت بالبار السداسي (Trap Bar Deadlift)', category: 'legs', type: 'weights', equip: 'barbell' },
+            { id: 'ex_97', name: 'جهاز سحب ظهر صدر مسنود (Chest-Supported Row Machine)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_98', name: 'جهاز سحب ظهر منخفض (Low Row Machine)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_99', name: 'سحب ظهر فردي بالكيبل (Single-Arm Cable Row)', category: 'pull', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_100', name: 'سحب ذراع مستقيم بالكيبل (Straight-Arm Cable Pulldown)', category: 'pull', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_101', name: 'سحب ظهر بالدمبل صدر على بنش مائل (Chest-Supported Dumbbell Row)', category: 'pull', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_102', name: 'جهاز تمديد الظهر (Back Extension / Hyperextension)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_103', name: 'جهاز البلوفر (Pullover Machine)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_104', name: 'جهاز سحب ظهر بالأقراص (Plate-Loaded Lat Pulldown)', category: 'pull', type: 'weights', equip: 'machine' },
+            { id: 'ex_105', name: 'سكوات أمامي بالبار (Barbell Front Squat)', category: 'legs', type: 'weights', equip: 'barbell' },
+            { id: 'ex_106', name: 'هيب ثرست بالبار (Barbell Hip Thrust)', category: 'legs', type: 'weights', equip: 'barbell' },
+            { id: 'ex_107', name: 'جهاز سكوات البندول (Pendulum Squat Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_108', name: 'جهاز سكوات الحزام (Belt Squat Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_109', name: 'مكبس أرجل أفقي (Horizontal Leg Press)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_110', name: 'جهاز رفس المقعدة (Glute Kickback Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_111', name: 'رفس المقعدة بالكيبل برجل وحدة (Single-Leg Cable Kickback)', category: 'legs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_112', name: 'جهاز ثني الأرجل واقف برجل وحدة (Single-Leg Standing Leg Curl)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_113', name: 'طلوع على بوكس بالدمبل (Dumbbell Step-Up)', category: 'legs', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_114', name: 'سمانة على مكبس الأرجل (Leg Press Calf Raise)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_115', name: 'جهاز الفخذ الخلفي والمقعدة (Glute-Ham Raise)', category: 'legs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_116', name: 'سكوات سومو بالدمبل (Dumbbell Sumo Squat)', category: 'legs', type: 'weights', equip: 'dumbbell' },
+            { id: 'ex_117', name: 'جهاز ضم الفخذ (Hip Adductor Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_118', name: 'جهاز إبعاد الفخذ (Hip Abductor Machine)', category: 'legs', type: 'weights', equip: 'machine' },
+            { id: 'ex_119', name: 'جهاز البطن (Ab Crunch Machine)', category: 'abs', type: 'weights', equip: 'machine' },
+            { id: 'ex_120', name: 'دوران الجذع بالكيبل (Cable Woodchopper)', category: 'abs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_121', name: 'عجلة البطن (Ab Wheel Rollout)', category: 'abs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_122', name: 'بلانك جانبي (Side Plank)', category: 'abs', type: 'weights', equip: 'cable_body' },
+            { id: 'ex_123', name: 'رفع الأرجل على الكرسي الروماني (Captain\'s Chair Leg Raise)', category: 'abs', type: 'weights', equip: 'machine' },
+            { id: 'ex_124', name: 'جهاز التزلج (SkiErg)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio', machine: 'rowing' },
+            { id: 'ex_125', name: 'دراجة سبين (Spin Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio', machine: 'bike' },
+            { id: 'ex_126', name: 'دراجة بظهر مسنود (Recumbent Bike)', category: 'cardio', type: 'bike_elliptical', equip: 'cardio', machine: 'bike' }
         ];
 const CATEGORY_NAMES = { push: 'دفع', pull: 'سحب', legs: 'أرجل', abs: 'بطن', cardio: 'كارديو' };
 const EQUIP_NAMES = { barbell: 'بار', dumbbell: 'دمبل', machine: 'أجهزة', cable_body: 'كابل/وزن جسم', cardio: 'كارديو' };
@@ -147,6 +205,14 @@ MUSCLE_BY_ID.ex_70 = 'back'; // ديدليفت بالبار (ينضاف مع ا�
 assign('back', [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 37]);
 assign('legs', [44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59]);
 assign('abs', [60, 61, 62, 63]);
+// v12.7
+assign('chest', [71, 72, 73, 74, 75, 76, 77]);
+assign('shoulders', [78, 79, 80, 81, 82]);
+assign('back', [83, 97, 98, 99, 100, 101, 102, 103, 104]);
+assign('triceps', [84, 85, 86, 87, 88]);
+assign('biceps', [89, 90, 91, 92, 93, 94]);
+assign('legs', [95, 96, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118]);
+assign('abs', [119, 120, 121, 122, 123]);
 /* v12 (M1/M2): العضلات بالتفصيل. كل عضلة تابعة لمجموعة من السبع (MUSCLE_NAMES) اللي تبقى في باقي التطبيق.
  * PARTS = كل العضلات المرسومة. اللي في EXTRA_PARTS (M6–M11) ما تطلع إلا لو انفعّلت، وغير كذا تنضم لعضلة أكبر (PART_MERGE). */
 const PARTS = {
@@ -193,6 +259,62 @@ const pm = (n, spec) => { const [m, h = ''] = spec.split('|'); PARTS_BY_ID['ex_'
  [49, 'quads'], [50, 'hams | gastro'], [51, 'hams | gastro'], [52, 'hams glutes | lowback forearm adductors'], [53, 'hams glutes | lowback forearm'],
  [54, 'quads glutes | adductors hams abductors'], [55, 'quads glutes | adductors abductors hams'], [56, 'adductors abductors'], [57, 'glutes | hams abductors'],
  [58, 'gastro | soleus'], [59, 'soleus | gastro'], [60, 'abs_up | obliques abs_low'], [61, 'abs_low | abs_up obliques forearm'], [62, 'abs_up abs_low | obliques delt_f'], [63, 'abs_up | abs_low obliques'],
- [70, 'lowback glutes hams | traps lats forearm quads midback']].forEach(([n, spec]) => pm(n, spec));
-window.GymCatalog = Object.freeze({ MUSCLE_NAMES, PARTS, PART_MERGE, PART_SPLIT, EXTRA_PARTS, PARTS_BY_ID, MUSCLE_BY_ID, ROUTINE_PRESETS, EXERCISE_DICTIONARY, DEFAULT_EXERCISES, CATEGORY_NAMES, EQUIP_NAMES, ROUTINE_LABELS, LOAD_HINTS, SET_LABELS, SET_HELP });
+ [70, 'lowback glutes hams | traps lats forearm quads midback'],
+ // v12.7
+ [71, 'chest_low | chest_up delt_f tri_lat'],
+ [72, 'chest_up | delt_f tri_lat'],
+ [73, 'chest_low | tri_lat delt_f'],
+ [74, 'chest_up | delt_f'],
+ [75, 'chest_low | chest_up delt_f tri_lat'],
+ [76, 'chest_low | tri_lat'],
+ [77, 'chest_low | chest_up delt_f tri_lat abs'],
+ [78, 'delt_f | delt_s tri_lat'],
+ [79, 'delt_f | chest_up'],
+ [80, 'delt_s | traps delt_f'],
+ [81, 'delt_r | midback traps'],
+ [82, 'delt_f | chest_up tri_lat serratus'],
+ [83, 'traps | forearm'],
+ [84, 'tri_long tri_lat'],
+ [85, 'tri_long | tri_lat'],
+ [86, 'tri_lat tri_long | chest_low delt_f'],
+ [87, 'tri_lat | chest_low tri_long delt_f'],
+ [88, 'tri_lat tri_long'],
+ [89, 'bi_long bi_short | brachialis forearm'],
+ [90, 'bi_short | bi_long brachialis'],
+ [91, 'bi_short | bi_long brachialis'],
+ [92, 'brachialis | bi_long forearm'],
+ [93, 'brachialis forearm | bi_long'],
+ [94, 'forearm'],
+ [95, 'glutes quads adductors | hams lowback traps forearm'],
+ [96, 'quads glutes hams | lowback traps forearm'],
+ [97, 'midback lats | delt_r bi_long brachialis'],
+ [98, 'lats midback | delt_r bi_long brachialis'],
+ [99, 'lats midback | delt_r bi_long brachialis'],
+ [100, 'lats | tri_long serratus'],
+ [101, 'midback lats | delt_r bi_long brachialis'],
+ [102, 'lowback | glutes hams'],
+ [103, 'lats | serratus tri_long'],
+ [104, 'lats | midback bi_long brachialis delt_r'],
+ [105, 'quads | glutes adductors abs'],
+ [106, 'glutes | hams adductors'],
+ [107, 'quads | glutes adductors'],
+ [108, 'quads glutes | adductors'],
+ [109, 'quads glutes | adductors hams'],
+ [110, 'glutes | hams'],
+ [111, 'glutes | hams abductors'],
+ [112, 'hams | gastro'],
+ [113, 'quads glutes | adductors hams'],
+ [114, 'gastro | soleus'],
+ [115, 'hams | glutes gastro'],
+ [116, 'quads glutes adductors'],
+ [117, 'adductors'],
+ [118, 'abductors | glutes'],
+ [119, 'abs_up | abs_low obliques'],
+ [120, 'obliques | abs_up abs_low'],
+ [121, 'abs_up abs_low | obliques lats'],
+ [122, 'obliques | abs_up abs_low'],
+ [123, 'abs_low | abs_up obliques']].forEach(([n, spec]) => pm(n, spec));
+// v12.7: how a new library exercise is logged when it isn't the usual for its equipment (dumbbell = per hand, the rest = the weight as entered)
+const DEFAULT_LOAD = { ex_77: 'bodyweight', ex_102: 'bodyweight', ex_115: 'bodyweight', ex_116: 'external', ex_121: 'bodyweight', ex_122: 'timed', ex_123: 'bodyweight' };
+window.GymCatalog = Object.freeze({ DEFAULT_LOAD, MUSCLE_NAMES, PARTS, PART_MERGE, PART_SPLIT, EXTRA_PARTS, PARTS_BY_ID, MUSCLE_BY_ID, ROUTINE_PRESETS, EXERCISE_DICTIONARY, DEFAULT_EXERCISES, CATEGORY_NAMES, EQUIP_NAMES, ROUTINE_LABELS, LOAD_HINTS, SET_LABELS, SET_HELP });
 })();

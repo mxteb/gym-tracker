@@ -31,6 +31,8 @@ try { var gtFont = localStorage.getItem('gym_font'); if (gtFont === 'large' || g
     return /^ar\b/i.test(nav) ? 'ar' : 'en';
   }
   var lang = detect();
+  // v12.7: keep the first-run choice, otherwise gym_theme (written on every start) turned English users Arabic on the 2nd open
+  if (stored() !== lang) { try { localStorage.setItem(KEY, lang); } catch (e) {} }
   var root = document.documentElement;
   if (lang === 'en') { root.lang = 'en'; root.dir = 'ltr'; }
 
