@@ -1339,10 +1339,7 @@
                 }
                 row.appendChild(wrap); chips.appendChild(row);
             }
-            const states = {};
-            for (const p of newExPick.help) states[p] = 'mid';
-            for (const p of newExPick.main) states[p] = 'tired';
-            document.getElementById('new-ex-figs').replaceChildren(bodySvg(BODY_FRONT, states, 'من قدام', { mini: true }), bodySvg(BODY_BACK, states, 'من ورا', { mini: true }));
+            document.getElementById('new-ex-figs').replaceChildren(...pickFigs(newExPick).childNodes);
             const names = a => a.map(partName).join(listSep());
             if (typeof renderAddExtras === 'function') queueMicrotask(renderAddExtras);
             const sum = document.getElementById('new-ex-muscle-sum');
@@ -1507,7 +1504,7 @@
                     const pick = editPicks.get(ex.id);
                     if (pick) {
                         const ed = el('div', 'custom-ex-edit'); ed.dataset.editOf = ex.id;
-                        ed.append(el('span', 'new-ex-label', 'الضغطة الأولى أساسية، الثانية مساعدة، والثالثة تشيلها'), chipsFor(pick, 'data-edit-part'),
+                        ed.append(el('span', 'new-ex-label', 'الضغطة الأولى أساسية، الثانية مساعدة، والثالثة تشيلها'), pickFigs(pick), chipsFor(pick, 'data-edit-part'),
                             el('p', 'field-hint', 'لو غيّرتها، جولاتك القديمة تنحسب للعضلات الجديدة في «الجولات لكل عضلة» والاستشفاء.'));
                         const row = el('div', 'custom-ex-btns');
                         const sv = el('button', 'custom-ex-ok', 'احفظ العضلات'); sv.type = 'button'; sv.dataset.saveParts = ex.id;
@@ -3097,7 +3094,7 @@
         let msId = null, msPick = null, msReturn = null;
         function renderMuscleSheet() {
             const box = document.getElementById('ms-chips');
-            box.replaceChildren(chipsFor(msPick, 'data-ms-part'));
+            box.replaceChildren(pickFigs(msPick), chipsFor(msPick, 'data-ms-part'));
             document.getElementById('ms-save').disabled = !msPick.main.length;
         }
         function openMuscleSheet(id) {
@@ -3259,6 +3256,15 @@
         /* ---------- v12.3 (المرحلة 4ب): إضافة تمرين ومكتبة تماريني ---------- */
         let exTab = 'add', libFilter = 'all';
         const editPicks = new Map(); // تمارين مضافة مفتوحة للتعديل: id → {main, help}
+        // v12.9: المجسم نفسه اللي يطلع في «جسمك» — أساسية أحمر، مساعدة أصفر
+        function pickFigs(pick) {
+            const states = {};
+            for (const p of pick.help) states[p] = 'mid';
+            for (const p of pick.main) states[p] = 'tired';
+            const figs = el('div', 'pick-figs'); figs.setAttribute('aria-hidden', 'true');
+            figs.append(bodySvg(BODY_FRONT, states, 'من قدام', { mini: true }), bodySvg(BODY_BACK, states, 'من ورا', { mini: true }));
+            return figs;
+        }
         function chipsFor(pick, attr) {
             const wrap = el('div', 'muscle-chips');
             const active = GymCalc.activeParts();
