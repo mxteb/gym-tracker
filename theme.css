@@ -1266,3 +1266,29 @@ body.sheet-open{overflow:hidden}
 .hist-btn.hist-del{color:var(--bad);border-color:var(--bad-line)}
 .hist-empty{color:var(--mute);font-size:.8rem;padding:.4rem 0}
 :root[data-theme="logbook"] .hist-row{grid-template-columns:auto minmax(0,1fr) auto}.hist-row > .text-slate-400{white-space:nowrap}
+/* v12.7: big system font on a 360-384px phone: the log date box (a native date input grows with the font) pushed the page sideways */
+#logs-date-filter{min-width:0;width:auto;max-width:44vw;flex:0 1 auto}
+#today-logs-container,#screen-workout .space-y-3>.flex.justify-between{min-width:0}
+#screen-workout .space-y-3>.flex.justify-between{flex-wrap:wrap;gap:.35rem}
+.help-line{min-width:0}
+.help-line>label{min-width:0;overflow-wrap:anywhere}
+/* v12.7: session summary as cards (numbers on top, one card per exercise) */
+.modal-card{max-height:calc(100vh - 2rem);max-height:calc(100dvh - 2rem);overflow-y:auto}
+#modal-body.hidden,#modal-message.hidden{display:none}
+.sum-body{display:flex;flex-direction:column;gap:.5rem}
+.sum-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(5.5rem,1fr));gap:.4rem}
+.sum-stat{display:flex;flex-direction:column;gap:.1rem;padding:.45rem .55rem;background:var(--bg-deep);border:1px solid var(--line-soft);border-radius:var(--r-sm);min-width:0}
+.sum-stat b{font-size:.95rem;font-weight:800;color:var(--ink);overflow-wrap:anywhere}
+.sum-stat span{font-size:.7rem;color:var(--mute)}
+.sum-ex{padding:.5rem .65rem;background:var(--bg-deep);border:1px solid var(--line-soft);border-inline-start:3px solid var(--line);border-radius:var(--r-sm);min-width:0}
+.sum-ex.up{border-inline-start-color:var(--ok)}
+.sum-ex.down{border-inline-start-color:var(--bad)}
+.sum-ex-head{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;flex-wrap:wrap}
+.sum-ex-head strong{font-size:.85rem;color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.sum-ex-vol{font-size:.75rem;font-weight:700;color:var(--mute)}
+.sum-ex-sets{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem}
+.sum-set{font-size:.72rem;padding:.12rem .45rem;border:1px solid var(--line-soft);border-radius:999px;color:var(--ink);white-space:nowrap}
+.sum-set.warm{opacity:.6;border-style:dashed}
+.sum-ex-cmp{margin-top:.35rem;font-size:.72rem;font-weight:700;color:var(--mute)}
+.sum-ex.up .sum-ex-cmp{color:var(--ok)}
+.sum-ex.down .sum-ex-cmp{color:var(--bad)}

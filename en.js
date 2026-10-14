@@ -211,7 +211,7 @@
     'تم حفظ الجولة ({0} كجم)': 'Set saved ({0} kg)',
     'تم حفظ الجولة ({0} باوند)': 'Set saved ({0} lb)',
     'تم حفظ {0} ثانية': 'Saved {0} s',
-    'أدخل وزن جسمك في البروفايل أولًا لهذا النوع من التمارين': 'Add your bodyweight in the profile first for this type of exercise',
+    'أدخل وزن جسمك في «جسمك» أولًا لهذا النوع من التمارين': 'Add your bodyweight in the Body tab first for this type of exercise',
     'أدخل وزن الجسم وقت التسجيل لإعادة حساب السعرات بعد تغيير تفاصيل الكارديو': 'Enter the bodyweight at logging time to recalculate calories after changing cardio details',
     'اختر تمرينًا من نفس نوع التسجيل': 'Pick an exercise of the same log type',
     'رقم قياسي جديد في {0}': 'New record in {0}',
@@ -471,9 +471,15 @@
     /* ===== analysis (bento) ===== */
     'تحليل القياسات والسعرات التقديرية': 'Body measurements and calorie estimates',
     'تحليل رياضي تقريبي يعتمد على مدخلات بروفايلك، وليس تشخيصًا طبيًا': 'A rough estimate from your profile, not a medical diagnosis',
-    'يرجى الانتقال لصفحة "البروفايل" وإدخال الطول والوزن لظهور التحليل الذكي': 'Go to the Profile and enter your height and weight to see the analysis',
+    'أدخل طولك وعمرك في البروفايل ووزنك هنا في «جسمك» عشان يطلع التحليل': 'Enter your height and age in Profile and your weight here in Body to see the analysis',
     'أهداف السعرات اليومية المطلوبة': 'Daily calorie targets',
     'تثبيت الوزن (Maintenance)': 'Maintenance',
+    'تثبيت الوزن': 'Maintenance',
+    'نقصان الوزن (تنشيف)': 'Fat loss',
+    'زيادة نظيفة (تضخيم)': 'Lean bulk',
+    'الكتلة الخالية ÷ الطول²': 'Fat-free mass ÷ height²',
+    '{0} كجم (دقة منخفضة)': '{0} kg (low accuracy)',
+    '{0} باوند (دقة منخفضة)': '{0} lb (low accuracy)',
     'هدف التوازن': 'Stay even',
     'تقدير يومي للمحافظة على الوزن، ويُراجع حسب تغير وزنك الفعلي.': 'Daily estimate to keep your weight; adjust it to how your weight actually changes.',
     'نقصان الوزن (Fat Loss)': 'Fat loss',
@@ -629,6 +635,7 @@
     'نظام الجدول:': 'Split:',
     'الأسبوع الماضي': 'Last week',
     'وزن الجهاز ما انحسب': 'machine weight not counted',
+    '— ({0} ما له قرص)': '— ({0} with no plate)',
     '{0} سعرة': '{0} kcal',
     '{0} كجم لكل يد': '{0} kg per hand',
     '{0} باوند لكل يد': '{0} lb per hand',
@@ -732,7 +739,7 @@
     'مستوى قوتك مقابل وزنك': 'Your strength for your bodyweight',
     'سكوات': 'Squat', 'بنش بريس': 'Bench press', 'ديدليفت': 'Deadlift', 'ضغط أكتاف واقف': 'Overhead press',
     'بداية': 'Starting', 'مبتدئ': 'Beginner', 'متوسط': 'Intermediate', 'متقدم': 'Advanced', 'نخبة': 'Elite',
-    'أدخل وزنك في البروفايل عشان نقارن قوتك بوزنك.': 'Enter your weight in Profile to compare your strength with it.',
+    'أدخل وزنك في «جسمك» عشان نقارن قوتك بوزنك.': 'Enter your weight in the Body tab to compare your strength with it.',
     'سجّل سكوات أو بنش أو ديدليفت أو ضغط أكتاف بالبار، ويطلع مستواك هنا.': 'Log a barbell squat, bench, deadlift or overhead press and your level shows here.',
     'تقريبي: معايير منتشرة لقوة الرجال والنساء حسب وزن الجسم. العمر والخبرة يفرقون.': 'Approximate: common strength standards for men and women by bodyweight. Age and training years matter too.',
     'تقرير الشهر': 'Monthly report',
@@ -941,7 +948,7 @@
     'عبّي من:': 'Fill from:', 'آخر جولة': 'Last set', 'اقتراح اليوم': "Today's suggestion", 'إعدادات التمرين': 'Exercise settings', 'كيف تنحسب السعرات': 'How calories are counted',
     'رقم قياسي': 'Record', 'وزن خارجي': 'External load', 'لكل يد': 'Per hand', 'وزن جسم + إضافي': 'Bodyweight + added', 'بمساعدة': 'Assisted', 'بالوقت': 'Timed', 'بدون مؤقت راحة': 'No rest timer',
     'كم باقي فيك؟ (RIR)': 'Reps left in you? (RIR)', '+ تسخين': '+ warm-up', 'تعبّت آخر جولة. احفظها بعد ما تسويها': 'Last set filled in. Save it after you do it',
-    'سعرات الحديد تنحسب للجلسة من مدتها ووزنك، وتنقسم على التمارين حسب عدد جولاتها. اسحب الجولة يمين للتعديل ويسار للحذف (وتقدر تتراجع 6 ثواني).': 'Weights calories are counted for the whole session from its length and your weight, then split across exercises by their sets. Swipe a set right to edit and left to delete (you can undo for 6 seconds).'
+    'سعرات الحديد تنحسب للجلسة من مدتها ووزنك، وتنقسم على التمارين حسب عدد جولاتها. اضغط الجولة (أو ✎) للتعديل و🗑 للحذف، أو اسحبها يمين ويسار (وتقدر تتراجع 6 ثواني).': 'Weights calories are counted for the whole session from its length and your weight, then split across exercises by their sets. Tap a set (or ✎) to edit and 🗑 to delete, or swipe it right or left (you can undo for 6 seconds).'
   }, [
     [/^الجهاز ([\d.]+) كجم$/, function (n) { return 'machine ' + n + ' kg'; }],
     [/^البار ([\d.]+) كجم$/, function (n) { return 'bar ' + n + ' kg'; }],
@@ -1022,6 +1029,17 @@
     'عدّل': 'Edit', 'احذف': 'Delete', 'دروب': 'Drop set', 'سوبر': 'Superset', 'فشل': 'Failure', 'تسخين': 'Warm-up',
     'ما فيه جولات في هالجلسة': 'No sets in this session',
     'عدّل الجولة {0}': 'Edit set {0}', 'احذف الجولة {0}': 'Delete set {0}'
+  });
+
+  /* ---------- v12.7 (user study: summary cards, waist/belly, library) ---------- */
+  GymI18n.add({
+    'محيط الخصر / البطن': 'Waist / belly', 'محيط الخصر / البطن (سم):': 'Waist / belly (cm):', 'الخصر/البطن: {0} سم': 'Waist / belly: {0} cm',
+    'وزنك ومحيط خصرك / بطنك مع الوقت': 'Weight and waist / belly over time',
+    'احفظ وزنك (ومحيط خصرك / بطنك لو تبي) من فوق، وكل يوم تحفظ فيه يصير نقطة في الرسم.': 'Save your weight (and waist / belly if you like) above; each day you save becomes a point on the chart.',
+    'مؤشرات تناسب الوزن والخصر/البطن': 'Weight and waist / belly ratios', 'نسبة الخصر/البطن للطول (WHtR)': 'Waist (belly)-to-height ratio (WHtR)',
+    'الجولات': 'Sets', 'الحجم': 'Volume', 'السعرات': 'Calories', 'متوسط RIR': 'Avg RIR', 'أعلى 1RM': 'Best 1RM',
+    '{0} سعرة': '{0} kcal', 'أول مرة تسجله': 'First time you log it', 'نفس حجم المرة الماضية': 'Same volume as last time',
+    '{0} كجم عن المرة الماضية': '{0} kg vs last time'
   });
 
 })();

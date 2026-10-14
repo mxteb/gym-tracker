@@ -99,18 +99,21 @@ test('session summary equals the fields v10.3 wrote on a finished session', () =
 
 test('exercise classification and default load mode match v10.3 for every name and exercise', () => {
   const ref = require('./reference-v10.3.cjs')({ profile: {}, logs: [] }, GymData);
-  const names = [...GymCatalog.DEFAULT_EXERCISES.map(e => e.name.toLowerCase()), ...Object.keys(GymCatalog.EXERCISE_DICTIONARY),
+  // v12.7: the library grew past ex_69; v10.3 only knew the first 69
+  const v103 = GymCatalog.DEFAULT_EXERCISES.filter(e => Number(e.id.slice(3)) <= 69);
+  const names = [...v103.map(e => e.name.toLowerCase()), ...Object.keys(GymCatalog.EXERCISE_DICTIONARY),
     'hip thrust barbell', 'ضغط ارجل', 'رفرفة خلفي', 'تجديف', 'cable fly', 'شي غريب', 'leg curl machine', 'ez bar curl', 'plank'];
   // v12.4: two names v10.3 got wrong on purpose fixed (abductor machine was «pull», hanging leg raise was «legs»)
   const FIXED = { 'جهاز ضم وإبعاد الفخذ (abductor / adductor machine)': 'legs', 'رفع الأرجل معلق (hanging leg raise)': 'abs' };
   for (const n of names) { const want = plain(ref.runLocalClassification(n)); if (FIXED[n]) want.cat = FIXED[n]; assert.deepEqual(plain(GymCalc.classifyExercise(n)), want, n); }
-  for (const ex of [...GymCatalog.DEFAULT_EXERCISES, null, { id: 'x', equip: 'dumbbell' }]) assert.equal(GymCalc.defaultLoadMode(ex), ref.getDefaultLoadMode(ex));
+  for (const ex of [...v103, null, { id: 'x', equip: 'dumbbell' }]) assert.equal(GymCalc.defaultLoadMode(ex), ref.getDefaultLoadMode(ex));
 });
 
-test('catalog: 69 exercises, unique ids, presets point to real exercises', () => {
+test('catalog: 126 exercises, unique ids and names, presets point to real exercises', () => {
   const ex = GymCatalog.DEFAULT_EXERCISES;
-  assert.equal(ex.length, 69);
-  assert.equal(new Set(ex.map(e => e.id)).size, 69);
+  assert.equal(ex.length, 126);
+  assert.equal(new Set(ex.map(e => e.id)).size, 126);
+  assert.equal(new Set(ex.map(e => e.name)).size, 126);
   for (const ids of Object.values(GymCatalog.ROUTINE_PRESETS)) for (const id of ids) assert.ok(ex.some(e => e.id === id), id);
 });
 
@@ -498,4 +501,43 @@ test('v12.4 custom exercises: the name beats an old wrong guess (Calf press was 
   // adding: the category guess
   for (const [n, cat] of [['calf press', 'legs'], ['leg press', 'legs'], ['leg raise', 'abs'], ['converging chest press', 'push'], ['seated row machine', 'pull'], ['tricep extension', 'push']])
     assert.equal(GymCalc.classifyExercise(n).cat, cat, n);
+});
+
+// ---------- v12.7 (user study) ----------
+test('v12.7 library: every new exercise has a muscle group, detailed parts, an English name and the right load mode', () => {
+  const added = GymCatalog.DEFAULT_EXERCISES.filter(e => Number(e.id.slice(3)) >= 70);
+  assert.equal(added.length, 57);
+  for (const e of added) {
+    assert.match(e.name, /^[^()]*[\u0600-\u06FF][^()]* \([^()]*[A-Za-z][^()]*\)$/, e.id);
+    if (e.type !== 'weights') { assert.ok(['bike', 'rowing'].includes(e.machine), e.id); continue; }
+    assert.ok(GymCatalog.MUSCLE_NAMES[GymCalc.muscleOf(e)], e.id);
+    const p = GymCatalog.PARTS_BY_ID[e.id];
+    assert.ok(p && p.main.length, e.id);
+    for (const part of [...p.main, ...p.help]) assert.ok(GymCatalog.PARTS[part], e.id + ' ' + part);
+  }
+  const byId = id => GymCatalog.DEFAULT_EXERCISES.find(e => e.id === id);
+  assert.equal(GymCalc.defaultLoadMode(byId('ex_77')), 'bodyweight');
+  assert.equal(GymCalc.defaultLoadMode(byId('ex_122')), 'timed');
+  assert.equal(GymCalc.defaultLoadMode(byId('ex_116')), 'external');
+  assert.equal(GymCalc.defaultLoadMode(byId('ex_101')), 'per_hand');
+  assert.equal(GymCalc.defaultLoadMode(byId('ex_70')), 'external');
+  assert.equal(GymCalc.defaultLoadMode({ ...byId('ex_77'), isCustom: true }), 'external');
+  assert.ok(GymCalc.isUnilateral(byId('ex_113')) && GymCalc.isUnilateral(byId('ex_99')));
+});
+test('v12.7 strength: the trap bar deadlift is not counted as the deadlift', () => {
+  const ex = GymCatalog.DEFAULT_EXERCISES;
+  const L = (id, w) => ({ id: id + w, exerciseId: id, type: 'weights', weight: w, reps: 1, setType: 'normal', date: '2026-10-01', timestamp: 1 });
+  const r = plain(GymCalc.strengthLevels([L('ex_70', 140), L('ex_96', 200)], ex, { weight: 80, gender: 'male' }));
+  const dl = r.find(x => x.key === 'deadlift');
+  assert.equal(dl.oneRm, 140);
+});
+test('v12.7 assisted trend: less help is better, also within the first month', () => {
+  const L = (sid, d, w, extra = {}) => ({ id: sid + w, exerciseId: 'ex_32', sessionId: sid, type: 'weights', loadMode: 'assisted', weight: w, reps: 8, setType: 'normal', date: d, timestamp: Date.parse(d + 'T18:00:00'), ...extra });
+  const logs = [L('a', '2026-10-01', 40), L('a', '2026-10-01', 35), L('b', '2026-10-05', 30), L('c', '2026-10-09', 25)];
+  const t = plain(GymCalc.exerciseTrend(logs, 'ex_32', '2026-10-10'));
+  assert.equal(t.metric, 'assist');
+  assert.deepEqual(t.points, [35, 30, 25]);
+  assert.equal(t.improvedThisMonth, true);
+  const worse = plain(GymCalc.exerciseTrend([L('a', '2026-10-01', 20), L('b', '2026-10-05', 30)], 'ex_32', '2026-10-10'));
+  assert.equal(worse.improvedThisMonth, false);
 });

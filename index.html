@@ -502,7 +502,7 @@
                 </div>
 
                 <div id="today-logs-container" class="space-y-2"></div>
-                <p class="field-hint swipe-hint help-line" data-added><span>سعرات الحديد تنحسب للجلسة من مدتها ووزنك، وتنقسم على التمارين حسب عدد جولاتها. اسحب الجولة يمين للتعديل ويسار للحذف (وتقدر تتراجع 6 ثواني).</span><button type="button" class="help-q" data-help="calories-burn" aria-label="كيف تنحسب السعرات">؟</button></p>
+                <p class="field-hint swipe-hint help-line" data-added><span>سعرات الحديد تنحسب للجلسة من مدتها ووزنك، وتنقسم على التمارين حسب عدد جولاتها. اضغط الجولة (أو ✎) للتعديل و🗑 للحذف، أو اسحبها يمين ويسار (وتقدر تتراجع 6 ثواني).</span><button type="button" class="help-q" data-help="calories-burn" aria-label="كيف تنحسب السعرات">؟</button></p>
 
                 <div id="lazy-logs-load-more" class="hidden text-center pt-2">
                     <button id="btn-load-more-logs" class="py-2 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-cyan-300">
@@ -776,7 +776,7 @@
                     </div>
 
                     <div>
-                        <label for="prof-waist" class="block text-[11px] text-slate-400 mb-1">محيط الخصر (سم):</label>
+                        <label for="prof-waist" class="block text-[11px] text-slate-400 mb-1">محيط الخصر / البطن (سم):</label>
                         <input type="number" id="prof-waist" min="30" max="250" step="0.5" placeholder="مثال: 80" class="w-full glass-input px-3 py-2 rounded-xl text-xs">
                     </div>
                 </div>
@@ -802,7 +802,7 @@
             </div>
 
             <section id="body-chart-card" class="glass-card p-4 space-y-3" data-added aria-labelledby="body-chart-title">
-                <h3 id="body-chart-title" class="font-bold text-xs text-slate-300">وزنك وخصرك مع الوقت</h3>
+                <h3 id="body-chart-title" class="font-bold text-xs text-slate-300">وزنك ومحيط خصرك / بطنك مع الوقت</h3>
                 <div id="body-chart" class="body-chart"></div>
                 <p class="field-hint">من سجل القياسات اللي تحفظه هنا (قياس واحد لكل يوم).</p>
             </section>
@@ -835,7 +835,7 @@
             <div class="space-y-2.5">
                 <h3 class="font-bold text-xs text-slate-300 flex items-center gap-1.5 px-1">
                     <i class="fa-solid fa-weight-scale text-blue-400"></i>
-                    <span>مؤشرات تناسب الوزن والخصر</span>
+                    <span>مؤشرات تناسب الوزن والخصر/البطن</span>
                 <button type="button" class="help-q" data-help="bmi" aria-label="وش يعني مؤشر كتلة الجسم" data-added>؟</button></h3>
                 <div id="bento-health-container" class="grid grid-cols-2 gap-3"></div>
             </div>
@@ -1083,10 +1083,11 @@
     </div>
 
     <div id="custom-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" class="hidden fixed inset-0 z-50 modal-overlay flex items-center justify-center p-4">
-        <div class="glass-card w-full max-w-sm p-5 space-y-4 border border-slate-700 shadow-2xl animate-fade-in">
+        <div class="glass-card modal-card w-full max-w-sm p-5 space-y-4 border border-slate-700 shadow-2xl animate-fade-in">
             <h3 id="modal-title" class="font-black text-base text-slate-100 flex items-center gap-2"></h3>
             <div id="modal-insights" class="modal-insights hidden" data-added></div>
             <p id="modal-message" class="text-xs text-slate-300 leading-relaxed"></p>
+            <div id="modal-body" class="hidden" data-added></div>
             <div class="flex justify-end gap-2 pt-2">
                 <button type="button" id="modal-share-btn" class="modal-share hidden" data-added>شارك كصورة</button>
                 <button id="modal-cancel-btn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-bold border border-slate-700">إلغاء</button>
