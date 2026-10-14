@@ -22,11 +22,13 @@
                 restoreActiveSession();
                 updateGenderUI();
                 inputError = error;
-                showToast(error.message || 'تعذر إتمام العملية');
+                // v12.8: technical errors (IndexedDB, DOMException…) get a plain message instead of their English text
+                if (!error?.fieldId && !/[\u0600-\u06FF]/.test(error?.message || '')) console.error(error);
+                showToast(error?.message && /[\u0600-\u06FF]/.test(error.message) ? error.message : 'تعذر إتمام العملية. جرّب مرة ثانية');
             } finally {
                 controls.forEach((el,i) => el.disabled = disabled[i]);
                 saving = false;
-                document.getElementById('input-weight').disabled=activeLoadMode==='bodyweight'||activeLoadMode==='timed';
+                const weightBox=document.getElementById('input-weight'); if(weightBox) weightBox.disabled=activeLoadMode==='bodyweight'||activeLoadMode==='timed';
                 renderTodayLogs(); updateTopHeaderStats(); updateSessionUI();
                 if(inputError?.fieldId) showFieldError(inputError);
             }
@@ -228,8 +230,31 @@
             state = await GymStorage.load(state);
             const ids = new Set(state.exercises.map(ex => ex.id));
             const missing = DEFAULT_EXERCISES.filter(ex => !ids.has(ex.id));
-            if (missing.length) { state.exercises.push(...missing); await GymStorage.save(state); }
+            // v12.8: finished sessions with no sets (a start tapped by mistake, or every set deleted later) are removed
+            const used = new Set(state.logs.map(l => l.sessionId).filter(Boolean));
+            const empty = state.sessions.filter(s => s.status === 'completed' && !used.has(s.id));
+            if (empty.length) state.sessions = state.sessions.filter(s => !empty.includes(s));
+            if (missing.length || empty.length) { state.exercises.push(...missing); await GymStorage.save(state); }
             restoreActiveSession();
+        }
+        // v12.8: a session still open after 12 hours was forgotten; without this the next workout landed inside it, under the old date
+        function checkStaleSession() {
+            const session = getActiveSession();
+            if (!session || Date.now() - session.startedAt < 12 * 3600000) return;
+            if (!sessionLogCount(session.id)) { runMutation(async () => { await discardSession(session.id); showToast('انلغت جلسة فاضية كانت مفتوحة من ' + friendlyDate(session.date)); }); return; }
+            openFinishSession();
+            showToast('عندك جلسة مفتوحة من ' + friendlyDate(session.date) + '. راجع المدة وأنهها قبل تبدأ جديدة');
+        }
+        function sessionLogCount(id) { return state.logs.filter(l => l.sessionId === id).length; }
+        // v12.8: removes a session as if it never started, with any sets logged in it
+        async function discardSession(id) {
+            state.sessions = state.sessions.filter(s => s.id !== id);
+            state.logs = state.logs.filter(l => l.sessionId !== id);
+            if (activeSessionId === id) { activeSessionId = null; stopRestTimer(); }
+            await GymStorage.save(state);
+            document.getElementById('copied-session-plan')?.classList.add('hidden');
+            updateSessionUI(); renderTodayLogs(); updateTopHeaderStats();
+            if (typeof renderStartPanel === 'function') renderStartPanel();
         }
 
         function calculateCalories(type, data) { return GymCalc.calories(type, data, state.profile.weight); }
@@ -240,6 +265,8 @@
             const session = state.sessions.find(s => s.id === sessionId && s.status === 'completed');
             if (!session) return;
             const sessionLogs = state.logs.filter(l => l.sessionId === session.id);
+            // v12.8: a finished session with no sets left is gone too, so «آخر جلسة» and the history stop showing it
+            if (!sessionLogs.length) { state.sessions = state.sessions.filter(s => s.id !== session.id); return; }
             Object.assign(session, GymCalc.sessionSummary(session, sessionLogs));
             session.editedAt = Date.now();
         }
@@ -248,7 +275,16 @@
             return state.sessions.find(s => s.id === activeSessionId && s.status === 'active') || null;
         }
 
-        async function startWorkoutSession(routineOverride) {
+        // v12.8: a start tapped by mistake can be taken back for 6 seconds, as long as nothing is logged in it yet.
+        // The bar sits at the top here so a quick tap on the save bar right after starting can't hit «تراجع».
+        function offerStartUndo(session) {
+            showUndo('start:' + session.id, `بدأت ${session.name}`, () => runMutation(async () => {
+                if (activeSessionId !== session.id || !getActiveSession() || sessionLogCount(session.id)) return;
+                await discardSession(session.id);
+                showToast('انلغت الجلسة');
+            }), true);
+        }
+        async function startWorkoutSession(routineOverride, offerUndo = true) {
             if (getActiveSession()) {
                 showToast('لديك جلسة نشطة بالفعل');
                 return getActiveSession();
@@ -272,21 +308,38 @@
             await dbSaveAll('sessions', state.sessions);
             if (ROUTINE_PRESETS[routine]) loadPresetRoutine(routine);
             updateSessionUI();
-            showToast(`بدأت ${session.name}`);
+            if (offerUndo) offerStartUndo(session); else showToast(`بدأت ${session.name}`);
             if (state.profile.ramadan === true) setTimeout(() => showToast('رمضان: اشرب ماء بين الجولات، ولو كنت صايم خل الجلسة أقصر'), 700);
             return session;
         }
 
         async function ensureActiveSession() {
-            return getActiveSession() || startWorkoutSession('free');
+            const active = getActiveSession();
+            if (active) { hideUndo('start:' + active.id); return active; }
+            return startWorkoutSession('free', false);
         }
 
         function openFinishSession() {
             if(!document.getElementById('finish-session-modal')){showToast('حدّث ملفات الموقع كاملة لفتح نافذة إنهاء الجلسة');return;}
             const session=getActiveSession();if(!session)return;
             const input=document.getElementById('finish-session-duration');clearFieldError(input);
-            input.value=Math.max(1,Math.round((Date.now()-session.startedAt)/60000));
+            input.value=suggestedDuration(session);
             document.getElementById('finish-session-modal').classList.remove('hidden');input.focus();
+        }
+        // v12.8: a session left open (overnight, or for days) suggests last set + 10 minutes, not the whole time it stayed open
+        function suggestedDuration(session) {
+            const elapsed=Math.max(1,Math.round((Date.now()-session.startedAt)/60000));
+            const lastSet=Math.max(0,...state.logs.filter(l=>l.sessionId===session.id).map(l=>Number(l.timestamp)||0));
+            if(!lastSet)return Math.min(elapsed,180);
+            return Math.max(1,Math.min(elapsed,Math.round((lastSet+600000-session.startedAt)/60000)));
+        }
+        function discardActiveSession() {
+            const session=getActiveSession();if(!session)return;
+            const n=sessionLogCount(session.id);
+            document.getElementById('finish-session-modal').classList.add('hidden');
+            if(!n)return runMutation(async()=>{await discardSession(session.id);showToast('انلغت الجلسة');});
+            showModal({title:'إلغاء الجلسة',message:n===1?'بتنحذف جولة وحدة سجلتها في هالجلسة. متأكد؟':`بتنحذف ${n} جولات سجلتها في هالجلسة. متأكد؟`,
+                confirmText:'احذفها',cancelText:'رجوع',onConfirm:async()=>{await discardSession(session.id);showToast('انلغت الجلسة');}});
         }
         function closeFinishSession() {
             document.getElementById('finish-session-modal').classList.add('hidden');
@@ -342,9 +395,18 @@
             }
             return box;
         }
-        async function finishWorkoutSession() {
+        async function finishWorkoutSession(keepEmpty) {
             const session = getActiveSession();
             if (!session) return;
+            // v12.8: nothing logged — ask before keeping an empty session; cancelling is the suggested choice
+            if (keepEmpty !== true && !sessionLogCount(session.id)) {
+                document.getElementById('finish-session-modal').classList.add('hidden');
+                showModal({ title: 'ما سجلت ولا جولة', message: 'تلغي الجلسة بدون حفظ، أو تحفظها كذا؟',
+                    confirmText: 'ألغها', cancelText: 'احفظها',
+                    onConfirm: async () => { await discardSession(session.id); showToast('انلغت الجلسة'); },
+                    onCancel: () => runMutation(() => finishWorkoutSession(true)) });
+                return;
+            }
             const elapsed = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
             const duration=readField('finish-session-duration','مدة الجلسة',1,elapsed+1440);
             const sessionLogs = state.logs.filter(l => l.sessionId === session.id);
@@ -381,7 +443,7 @@
         }
 
         function getPreviousCompletedSession() {
-            return state.sessions.filter(s => s.status === 'completed').sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0))[0] || null;
+            return state.sessions.filter(s => s.status === 'completed' && sessionLogCount(s.id)).sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0))[0] || null;
         }
 
         async function copyPreviousSession() {
@@ -422,7 +484,7 @@
                 if (l.loadMode === 'timed') { grouped[l.exerciseName].push(`${Number(l.durationSeconds)||0} ثانية`); return; }
                 grouped[l.exerciseName].push(`${l.displayWeight ?? getCanonicalWeightKg(l)}${unit}×${l.reps}`);
             });
-            container.innerHTML = `<strong class="text-cyan-300">${escapeHTML(title)}:</strong> ` + Object.entries(grouped).map(([name, sets]) => `${escapeHTML(name)}: ${escapeHTML(sets.join(' · '))}`).join('<br>');
+            container.innerHTML = `<strong class="text-cyan-300">${escapeHTML(title)}</strong>: ` + Object.entries(grouped).map(([name, sets]) => `${escapeHTML(name)}: ${escapeHTML(sets.join(' · '))}`).join('<br>');
             container.classList.remove('hidden');
             showToast(`تم تحميل ${Object.keys(grouped).length} تمارين من الجلسة السابقة`);
         }
@@ -875,6 +937,8 @@
                 showToast('أدخل وزن جسمك في «جسمك» أولًا لهذا النوع من التمارين');
                 return;
             }
+            // v12.8: assistance heavier than you used to save as 0 kg without a word
+            if (activeLoadMode === 'assisted' && weightInKg >= bodyWeightKg) { const error = Error(`المساعدة لازم تكون أقل من وزن جسمك (${bodyWeightKg} كجم)`); error.fieldId = 'input-weight'; throw error; }
             const session = await ensureActiveSession();
             const machineKg = machineKgFor(ex, activeLoadMode);
             let effectiveLoadKg = weightInKg + machineKg;
@@ -967,12 +1031,12 @@
             if (cardioType === 'treadmill') {
                 const speed = readField('input-tm-speed','السرعة',1,25);
                 const incline = readField('input-tm-incline','الميل',0,25);
-                const duration = readField('input-tm-duration','المدة بالدقائق',1,180);
+                const duration = readField('input-tm-duration','المدة بالدقائق',1,300);
                 const movement = document.getElementById('tm-movement-type').value;
                 calories = calculateCalories('treadmill', { speed, incline, duration, movement, bodyWeightKgAtLog: logData.bodyWeightKgAtLog });
                 logData = { ...logData, speed, incline, duration, movement, calories, caloriesEstimated: true };
             } else {
-                const duration = readField('input-be-duration','المدة بالدقائق',1,180);
+                const duration = readField('input-be-duration','المدة بالدقائق',1,300);
                 const intensity = document.getElementById('cardio-intensity-select').value;
                 const watts = readField('input-cardio-watts','الواط',0,2000,{optional:true});
                 const machineMap = { ex_65: 'bike', ex_66: 'elliptical', ex_67: 'stairs', ex_68: 'rowing', ex_69: 'airbike' };
@@ -1095,6 +1159,7 @@
                     if(log.reps!==Number(original.reps)){delete log.repsLeft;delete log.repsRight;}
                     if(!Number.isInteger(log.reps))log.legacyFractionalReps=true;else delete log.legacyFractionalReps;
                     if(['bodyweight','added','assisted'].includes(log.loadMode))log.bodyWeightKgAtLog=readField('edit-log-body','وزن الجسم وقت الجولة',20,350);
+                    if(log.loadMode==='assisted'&&log.weight>=log.bodyWeightKgAtLog){const e=Error('المساعدة لازم تكون أقل من وزن الجسم');e.fieldId='edit-log-weight';throw e;}
                     if(log.loadMode==='external'&&document.getElementById('edit-log-machinekg')){const m=readField('edit-log-machinekg','وزن الجهاز',0,500,{optional:true});if(m>0)log.machineKg=m;else delete log.machineKg;}
                     delete log.durationSeconds;
                 }
@@ -1210,7 +1275,11 @@
         let restDeadline = null;
         function restoreRestTimer() {
             clearInterval(restTimerInterval);
-            if (!restDeadline) { try { restDeadline=JSON.parse(localStorage.getItem('gym_rest_deadline') || 'null'); } catch {} }
+            if (!restDeadline) {
+                try { restDeadline=JSON.parse(localStorage.getItem('gym_rest_deadline') || 'null'); } catch {}
+                // v12.8: a rest that ended long ago (yesterday's session) is cleared quietly, not announced on open
+                if (restDeadline && !(restDeadline.endsAt > Date.now() - 60000)) { stopRestTimer(); return; }
+            }
             if (!restDeadline || !Number.isFinite(restDeadline.endsAt)) return;
             const tick = () => {
                 const remaining = Math.max(0, Math.ceil((restDeadline.endsAt-Date.now())/1000));
@@ -1696,9 +1765,13 @@
                 return;
             }
             const { tdee, cutLow, cutHigh, bulkLow, bulkHigh, bmi } = m;
+            // v12.8: numbers that can't be a real body (BMR under 800) gave negative calories; ask to check them instead
+            if (!(m.bmr >= 800)) calContainer.innerHTML = `<div class="col-span-3 glass-card p-4 text-center text-xs text-slate-400">الأرقام ما تطلع منطقية. راجع وزنك وطولك وعمرك في البروفايل.</div>`;
+            else {
             calContainer.innerHTML += createBentoCard('تثبيت الوزن', tdee.toLocaleString() + '', 'هدف التوازن', 'bg-cyan-950 text-cyan-300 border-cyan-800', 'text-cyan-300', 'تقدير يومي للمحافظة على الوزن، ويُراجع حسب تغير وزنك الفعلي.');
             calContainer.innerHTML += createBentoCard('نقصان الوزن (تنشيف)', `${cutHigh.toLocaleString()}–${cutLow.toLocaleString()}`, 'عجز 10–20%', 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-emerald-300', 'نطاق مبدئي للتنشيف يُعدّل حسب تغير الوزن والأداء، دون ضمان تلقائي لمنع فقدان العضلات.');
             calContainer.innerHTML += createBentoCard('زيادة نظيفة (تضخيم)', `${bulkLow.toLocaleString()}–${bulkHigh.toLocaleString()}`, 'فائض 5–10%', 'bg-amber-950 text-amber-300 border-amber-800', 'text-amber-300', 'فائض محافظ كبداية، ثم يُعدّل حسب معدل زيادة الوزن.');
+            }
 
             const bmiStatus = { under: 'أقل من النطاق الطبيعي', normal: 'ضمن النطاق الطبيعي', over: 'أعلى من النطاق الطبيعي', high: 'مرتفع حسب BMI' }[m.bmiBand];
             healthContainer.innerHTML += createBentoCard('مؤشر الكتلة (BMI)', bmi, bmiStatus, 'bg-emerald-950 text-emerald-300 border-emerald-800', 'text-cyan-300', 'أداة فرز عامة لا تميز بين العضلات والدهون، وقد تضلل لدى لاعبي الحديد.');
@@ -1844,8 +1917,17 @@
         async function importDataJSON(event) {
             const file=event.target.files?.[0];if(!file)return;
             if(file.size>25*1024*1024){showToast('الملف كبير جدًا؛ الحد 25 ميجابايت');event.target.value='';return;}
-            await importBackupText(await file.text());
+            let text='';
+            try{text=await file.text();}catch{event.target.value='';return showToast('تعذر قراءة الملف');}
             event.target.value='';
+            // v12.8: say what's in the file and ask before merging it (it used to merge the moment it was picked)
+            let incoming;
+            try{incoming=GymData.validate(parseBackupText(text));}catch(error){return showToast(/[\u0600-\u06FF]/.test(error?.message||'')?error.message:'الملف مو نسخة احتياطية من التطبيق');}
+            const logs=(incoming.logs||[]).length,sessions=(incoming.sessions||[]).length;
+            showModal({title:'استيراد نسخة احتياطية',
+                message:`الملف فيه ${logs} جولة و${sessions} جلسة. بندمجها مع بياناتك الحالية، وما ينحذف شي منها. نكمل؟`,
+                confirmText:'ادمجها',cancelText:'إلغاء',
+                onConfirm:()=>{setTimeout(()=>importBackupText(text),0);}});
         }
         function parseBackupText(text) {
             try { return JSON.parse(text); }
@@ -1935,7 +2017,7 @@
             document.getElementById('header-today-cals').textContent = Math.round(totalCals * 10) / 10;
         }
 
-        function showModal({ title, message, confirmText, cancelText, onConfirm, insights, share, body }) {
+        function showModal({ title, message, confirmText, cancelText, onConfirm, onCancel, insights, share, body }) {
             const modal = document.getElementById('custom-modal');
             document.getElementById('modal-title').textContent = title;
             const insightBox = document.getElementById('modal-insights');
@@ -1959,7 +2041,7 @@
             const previousFocus=document.activeElement;
             const close = () => {modal.classList.add('hidden');previousFocus?.focus();};
             confirmBtn.onclick = () => { close(); if (onConfirm) runMutation(onConfirm); };
-            cancelBtn.onclick = close;
+            cancelBtn.onclick = () => { close(); if (onCancel) onCancel(); };
             const shareBtn = document.getElementById('modal-share-btn');
             if (shareBtn) {
                 shareBtn.classList.toggle('hidden', !share);
@@ -2105,14 +2187,14 @@
             document.getElementById('btn-plan-cancel')?.addEventListener('click', closePlan);
             document.getElementById('btn-plan-confirm')?.addEventListener('click', () => runMutation(confirmPlan));
             document.getElementById('plan-search')?.addEventListener('input', renderPlanList);
-            document.getElementById('plan-list')?.addEventListener('change', e => { const b = e.target.closest('input[type=checkbox]'); if (!b) return; if (b.checked) planDraft.add(b.value); else planDraft.delete(b.value); document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`; renderPlanTime(); });
+            document.getElementById('plan-list')?.addEventListener('change', e => { const b = e.target.closest('input[type=checkbox]'); if (!b) return; if (b.checked) planDraft.add(b.value); else planDraft.delete(b.value); planProgramDay = null; document.getElementById('plan-count').textContent = planDraft.size === 1 ? 'تمرين واحد' : `${planDraft.size} تمارين`; renderPlanTime(); });
             initSwipe();
             document.getElementById('theme-picker')?.addEventListener('click', e => { const b = e.target.closest('[data-theme-pick]'); if (b) runMutation(() => saveTheme(b.dataset.themePick)); });
             document.getElementById('lang-picker')?.addEventListener('click', e => { const b = e.target.closest('[data-lang-pick]'); if (b) runMutation(() => saveLang(b.dataset.langPick)); });
             document.getElementById('cb-minus')?.addEventListener('click', () => { adjustRest(-15); tickClockBar(); });
             document.getElementById('cb-plus')?.addEventListener('click', () => { adjustRest(15); tickClockBar(); });
             document.getElementById('cb-stop')?.addEventListener('click', () => { stopRestTimer(); tickClockBar(); });
-            document.getElementById('btn-undo')?.addEventListener('click', undoDelete);
+            document.getElementById('btn-undo')?.addEventListener('click', runUndo);
             initHistoryActions();
             document.addEventListener('visibilitychange', () => { if (document.hidden) flushPendingDeletes(); });
             window.addEventListener('pagehide', flushPendingDeletes);
@@ -2132,6 +2214,7 @@
             document.getElementById('btn-copy-session').addEventListener('click', () => runMutation(copyPreviousSession));
             document.getElementById('btn-finish-session').addEventListener('click',openFinishSession);
             document.getElementById('btn-confirm-finish')?.addEventListener('click',()=>runMutation(finishWorkoutSession));
+            document.getElementById('btn-discard-session')?.addEventListener('click',discardActiveSession);
             document.getElementById('btn-cancel-finish')?.addEventListener('click',closeFinishSession);
             document.getElementById('btn-cancel-edit-log').addEventListener('click',closeEditLog);
             document.getElementById('edit-log-load-mode')?.addEventListener('change',updateEditModeUI);
@@ -2782,7 +2865,7 @@
             const today = getLocalDateString();
             const week = GymCalc.consistency(state.logs, today).thisWeekDays;
             document.getElementById('start-week').textContent = week === 1 ? 'يوم واحد' : `${week} أيام`;
-            const last = state.sessions.filter(x => x.status === 'completed').sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0))[0];
+            const last = state.sessions.filter(x => x.status === 'completed' && sessionLogCount(x.id)).sort((a, b) => (b.endedAt || 0) - (a.endedAt || 0))[0];
             document.getElementById('start-last-label').textContent = last ? 'آخر جلسة · ' + friendlyDate(last.date) : 'آخر جلسة';
             if (last) {
                 const sets = state.logs.filter(l => l.sessionId === last.id && l.type === 'weights' && l.setType !== 'warmup').length;
@@ -3708,7 +3791,7 @@
         function sideReps() {
             if (!sidesOn() || activeLoadMode === 'timed') return null;
             const right = Number(document.getElementById('input-reps').value);
-            const left = readField('input-reps-left', 'عدات اليسار', 0, 150);
+            const left = readField('input-reps-left', 'عدات اليسار', 1, 150);
             return { right, left };
         }
 
@@ -3819,7 +3902,8 @@
             const time = document.getElementById('ramadan-iftar'); if (time && document.activeElement !== time) time.value = state.profile.iftar || '18:00';
             const split = document.getElementById('bento-ramadan');
             if (split) {
-                const m = on ? GymCalc.bodyMetrics(state.profile) : null;
+                let m = on ? GymCalc.bodyMetrics(state.profile) : null;
+                if (m && !(m.bmr >= 800)) m = null;
                 split.classList.toggle('hidden', !m);
                 if (m) split.textContent = `في رمضان: قسّم سعرات المحافظة (${m.tdee}) على وجبتين: الفطور حوالي ${Math.round(m.tdee * 0.6)} سعرة، والسحور حوالي ${Math.round(m.tdee * 0.4)}. خل البروتين في الوجبتين.`;
             }
@@ -3846,7 +3930,7 @@
         function shortName(name) { return String(name).replace(/\s*\([^)]*\)\s*$/, ''); }
         function openPlan() {
             const session = getActiveSession();
-            planDraft = new Set(session?.planIds || []);
+            planDraft = new Set((session?.planIds || []).filter(id => !state.exercises.find(e => e.id === id)?.archived));
             if (!planDraft.size) { const routine = document.getElementById('session-routine-select').value; (ROUTINE_PRESETS[routine] || []).forEach(id => planDraft.add(id)); }
             const quick = document.getElementById('plan-quick');
             quick.replaceChildren();
@@ -3890,7 +3974,7 @@
             renderPlanTime();
         }
         async function confirmPlan() {
-            const ids = [...planDraft].filter(id => state.exercises.some(e => e.id === id));
+            const ids = [...planDraft].filter(id => state.exercises.some(e => e.id === id && !e.archived));
             if (!ids.length) throw Error('اختر تمرين واحد على الأقل');
             let session = getActiveSession();
             if (!session) session = await startWorkoutSession();
@@ -3932,8 +4016,8 @@
             const row = document.createElement('div'); row.className = 'plan-chips';
             for (const id of [...plan, ...extras]) {
                 const ex = state.exercises.find(e => e.id === id);
-                if (!ex) continue;
                 const n = count(id);
+                if (!ex || (ex.archived && !n)) continue;
                 const b = document.createElement('button'); b.type = 'button'; b.dataset.ex = id;
                 b.className = 'plan-step' + (n ? ' done' : '') + (id === next ? ' next' : '') + (plan.includes(id) ? '' : ' extra');
                 const name = document.createElement('span'); name.textContent = shortName(ex.name);
@@ -4162,41 +4246,49 @@
         const pendingDeletes = new Map(); // logId -> timer
         const UNDO_MS = 6000;
         function undoBar() { return document.getElementById('undo-bar'); }
-        function showUndo(logId, label) {
+        /* v12.8: one undo bar for every undoable step. `key` says what it's for ('del' = the pending deletes, 'start:<id>' = a session just started) */
+        let undoAction = null, undoHideTimer = null;
+        function showUndo(key, text, action, top) {
             const bar = undoBar(); if (!bar) return;
-            bar.querySelector('#undo-text').textContent = 'انحذفت: ' + label;
-            bar.dataset.logId = logId;
+            bar.classList.toggle('undo-top', !!top);
+            bar.querySelector('#undo-text').textContent = text;
+            bar.dataset.key = key; undoAction = action;
+            clearTimeout(undoHideTimer); undoHideTimer = setTimeout(() => hideUndo(key), UNDO_MS);
             const meter = bar.querySelector('#undo-meter');
             meter.style.transition = 'none'; meter.style.transform = 'scaleX(1)';
             bar.classList.remove('hidden');
             requestAnimationFrame(() => requestAnimationFrame(() => { meter.style.transition = `transform ${UNDO_MS}ms linear`; meter.style.transform = 'scaleX(0)'; }));
         }
-        function hideUndo(logId) { const bar = undoBar(); if (bar && (!logId || bar.dataset.logId === logId)) bar.classList.add('hidden'); }
+        function hideUndo(key) { const bar = undoBar(); if (bar && (!key || bar.dataset.key === key)) { bar.classList.add('hidden'); undoAction = null; } }
+        function runUndo() { const action = undoAction; hideUndo(); if (action) action(); }
         function swipeDelete(logId) {
             const log = state.logs.find(l => l.id === logId);
             if (!log || pendingDeletes.has(logId)) return;
+            // every pending delete restarts its 6 seconds, so the one undo bar covers them all
+            for (const id of pendingDeletes.keys()) { clearTimeout(pendingDeletes.get(id)); pendingDeletes.set(id, setTimeout(() => commitDelete(id), UNDO_MS)); }
             const timer = setTimeout(() => commitDelete(logId), UNDO_MS);
             pendingDeletes.set(logId, timer);
             renderTodayLogs();
             haptic('long');
-            showUndo(logId, `${window.GymI18n && GymI18n.lang === 'en' ? log.exerciseName : shortName(log.exerciseName)} · ${log.type === 'weights' ? setLabel(log) : log.duration + ' دقيقة'}`);
+            const n = pendingDeletes.size;
+            showUndo('del', n > 1 ? `انحذفت ${n} جولات` : 'انحذفت: ' + `${window.GymI18n && GymI18n.lang === 'en' ? log.exerciseName : shortName(log.exerciseName)} · ${log.type === 'weights' ? setLabel(log) : log.duration + ' دقيقة'}`, undoDelete);
         }
+        // v12.8: brings back every set still waiting to be deleted (two quick swipes used to leave the first one without an undo)
         function undoDelete() {
-            const logId = undoBar()?.dataset.logId;
-            if (!logId || !pendingDeletes.has(logId)) return;
-            clearTimeout(pendingDeletes.get(logId));
-            pendingDeletes.delete(logId);
-            hideUndo(logId);
+            if (!pendingDeletes.size) return;
+            const n = pendingDeletes.size;
+            for (const timer of pendingDeletes.values()) clearTimeout(timer);
+            pendingDeletes.clear();
             renderTodayLogs();
             if (!document.getElementById('screen-progress').classList.contains('hidden')) updateProgressChart();
             haptic('tap');
-            showToast('رجعت الجولة');
+            showToast(n > 1 ? `رجعت ${n} جولات` : 'رجعت الجولة');
         }
         function commitDelete(logId) {
             if (!pendingDeletes.has(logId)) return;
             if (saving) { pendingDeletes.set(logId, setTimeout(() => commitDelete(logId), 400)); return; }
             pendingDeletes.delete(logId);
-            hideUndo(logId);
+            if (!pendingDeletes.size) hideUndo('del');
             runMutation(async () => {
                 const deletedLog = state.logs.find(l => l.id === logId);
                 if (!deletedLog) return;
@@ -4403,13 +4495,22 @@
 
         window.GymApp = Object.freeze({ buildBackup, importBackupText, showToast, logCount: () => state.logs.length, version: '11.0' });
 
+        // v12.8: a button whose work fails outside runMutation used to do nothing at all; now it says so
+        window.addEventListener('unhandledrejection', e => { console.error(e.reason); const m = e.reason?.message; showToast(m && /[\u0600-\u06FF]/.test(m) ? m : 'تعذر إتمام العملية. جرّب مرة ثانية'); });
         window.addEventListener('DOMContentLoaded', async () => {
             registerServiceWorker();
             if(!document.getElementById('previous-set-picker')){
                 const notice=document.createElement('div');notice.setAttribute('role','status');notice.style.cssText='padding:12px;background:#78350f;color:white;text-align:center';
                 notice.textContent='ملفات الموقع غير متوافقة. ارفع index.html مع باقي ملفات التحديث ثم أغلق التطبيق وافتحه. سجلك محفوظ.';document.body.prepend(notice);
             }
-            try { await loadStateFromDB(); } catch(error) { document.getElementById('db-status-badge').textContent=error.message; return; }
+            try { await loadStateFromDB(); } catch(error) {
+                document.getElementById('db-status-badge').textContent=error.message;
+                const notice=document.createElement('div');notice.setAttribute('role','alert');notice.style.cssText='padding:16px;background:#7f1d1d;color:white;text-align:center;position:sticky;top:0;z-index:200';
+                notice.textContent=/[\u0600-\u06FF]/.test(error.message||'')?error.message:'تعذر فتح بيانات التطبيق. سكّر التطبيق وافتحه مرة ثانية.';
+                const again=document.createElement('button');again.type='button';again.textContent='حاول مرة ثانية';again.style.cssText='display:block;margin:10px auto 0;padding:8px 18px;border:1px solid white;border-radius:8px;background:transparent;color:white';
+                again.addEventListener('click',()=>location.reload());notice.appendChild(again);document.body.prepend(notice);
+                return;
+            }
             initEventListeners();updateSetHelp();
             document.getElementById('logs-date-filter').value = getLocalDateString();
             renderCategoryTabs();
@@ -4422,6 +4523,7 @@
             updateSessionUI();
             restoreRestTimer();
             applyTheme();
+            checkStaleSession();
             if (syncLangFromProfile()) return;
             document.dispatchEvent(new CustomEvent('gym:ready'));
         });

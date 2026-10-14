@@ -74,6 +74,7 @@ const tap = sel => ev(`const e=document.querySelector(${JSON.stringify(sel)}); i
 // load the test data through the app's own import
 const b64 = Buffer.from(JSON.stringify(fixture())).toString('base64');
 await ev(`const bytes=Uint8Array.from(atob('${b64}'),c=>c.charCodeAt(0)); const f=new File([bytes],'f.json',{type:'application/json'}); const dt=new DataTransfer(); dt.items.add(f); const i=document.getElementById('import-file-input'); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true})); return true`);
+await new Promise(r => setTimeout(r, 600)); await ev(`const c=document.querySelector('#custom-modal:not(.hidden) #modal-confirm-btn'); if(c) c.click(); return true`); // v12.8: import asks first
 await sleep(2000);
 const info = await ev(`return { lang: document.documentElement.lang, dir: document.documentElement.dir, logs: GymApp.logCount ? GymApp.logCount() : null }`);
 console.log('page', JSON.stringify(info));

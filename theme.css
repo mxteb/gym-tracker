@@ -439,8 +439,10 @@ button.cal-day{min-height:0;padding:0}
 .swipe-hint{margin-top:-.25rem}
 .undo-bar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));width:calc(100vw - 1.5rem);max-width:30rem;z-index:120;display:flex;align-items:center;gap:.75rem;padding:.6rem .6rem .7rem .9rem;background:var(--led-bg);border:1px solid var(--led-line);border-radius:var(--r-sm);box-shadow:0 8px 28px var(--shadow);overflow:hidden}
 .undo-bar.hidden{display:none}
+.undo-bar.undo-top{top:calc(10px + env(safe-area-inset-top));bottom:auto}
 #undo-text{flex:1;min-width:0;font-size:.85rem;color:var(--led-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #btn-undo{flex:none;min-height:44px;padding:0 1.1rem;border:1px solid var(--led-amber);border-radius:var(--r-sm);background:transparent;color:var(--led-amber);font-weight:800}
+.discard-session{display:block;width:100%;min-height:44px;margin-top:.25rem;background:transparent;border:0;color:var(--bad);font-size:.85rem;text-decoration:underline;text-underline-offset:3px}
 #undo-meter{position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--led-amber);transform-origin:right}
 
 #today-logs-container{overflow:hidden;padding:2px 0}

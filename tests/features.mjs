@@ -92,6 +92,7 @@ async function run(lang) {
   const b64 = Buffer.from(JSON.stringify(fixture(lang))).toString('base64');
   const importFixture = async () => {
     await ev(`const bytes=Uint8Array.from(atob('${b64}'),c=>c.charCodeAt(0)); const f=new File([bytes],'f.json',{type:'application/json'}); const dt=new DataTransfer(); dt.items.add(f); const i=document.getElementById('import-file-input'); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}));`);
+    await new Promise(r => setTimeout(r, 600)); await ev(`const c=document.querySelector('#custom-modal:not(.hidden) #modal-confirm-btn'); if(c) c.click(); return true`); // v12.8: import asks first
     await sleep(1500);
   };
   await importFixture();
@@ -640,6 +641,28 @@ async function run(lang) {
   await ev(`document.querySelector('#edit-log-modal #btn-cancel-edit-log, #edit-log-modal [data-close]')?.click(); document.getElementById('edit-log-modal').classList.add('hidden')`); await sleep(200);
   await p.shotEl('v126-history', '#prog-history-card');
   await ev(`document.querySelector('#exercise-progression-history-list [data-hist-date]').click()`); await sleep(200);
+
+  // v12.8: a mistaken start can be taken back, an empty session asks before it's kept, and a session can be cancelled
+  await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`); await sleep(200);
+  const active = `return document.getElementById('workout-session-card').classList.contains('session-active')`;
+  if (await ev(active)) { await ev(`document.getElementById('btn-finish-session').click()`); await sleep(200); await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(600); await ev(`document.getElementById('modal-cancel-btn').click()`); await sleep(200); }
+  const sessionsBefore = await ev(`return document.getElementById('start-last').textContent`);
+  await ev(`document.getElementById('btn-start-free').click()`); await sleep(400);
+  check(lang, 'v12.8 quick start offers undo', await ev(active) && await ev(`return !document.getElementById('undo-bar').classList.contains('hidden')`), await ev(`return document.getElementById('undo-text').textContent`));
+  await ev(`document.getElementById('btn-undo').click()`); await sleep(500);
+  check(lang, 'v12.8 undo removes the started session', !(await ev(active)) && await ev(`return document.getElementById('start-last').textContent`) === sessionsBefore);
+  await ev(`document.getElementById('btn-copy-session').click()`); await sleep(400);
+  await ev(`document.getElementById('btn-finish-session').click()`); await sleep(200);
+  check(lang, 'v12.8 finish dialog has a cancel-session button', await ev(`return !!document.getElementById('btn-discard-session')?.getClientRects().length`));
+  await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(500);
+  const emptyTitle = await ev(`return document.querySelector('#custom-modal:not(.hidden) #modal-title')?.textContent || ''`);
+  check(lang, 'v12.8 finishing with no sets asks first', /ما سجلت|No sets/.test(emptyTitle), emptyTitle);
+  await ev(`document.getElementById('modal-confirm-btn').click()`); await sleep(600);
+  check(lang, 'v12.8 cancelling leaves nothing behind', !(await ev(active)) && await ev(`return document.getElementById('start-last').textContent`) === sessionsBefore, await ev(`return document.getElementById('start-last').textContent`));
+  await ev(`document.getElementById('btn-start-free').click()`); await sleep(7000);
+  await ev(`document.getElementById('btn-finish-session').click()`); await sleep(200);
+  await ev(`document.getElementById('btn-discard-session').click()`); await sleep(600);
+  check(lang, 'v12.8 cancel-session button removes an empty session', !(await ev(active)) && await ev(`return document.getElementById('start-last').textContent`) === sessionsBefore);
 
   // whole workout screen for the look
   await ev(`document.getElementById('nav-workout').click(); scrollTo(0,0)`);

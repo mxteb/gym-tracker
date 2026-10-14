@@ -57,6 +57,7 @@ async function open(url, port) {
 async function snapshot(page, data) {
   const b64 = Buffer.from(JSON.stringify(data)).toString('base64');
   await page.ev(`const bytes=Uint8Array.from(atob('${b64}'),c=>c.charCodeAt(0)); const f=new File([bytes],'f.json',{type:'application/json'}); const dt=new DataTransfer(); dt.items.add(f); const i=document.getElementById('import-file-input'); i.files=dt.files; i.dispatchEvent(new Event('change',{bubbles:true}));`);
+  await new Promise(r => setTimeout(r, 600)); await page.ev(`const c=document.querySelector('#custom-modal:not(.hidden) #modal-confirm-btn'); if(c) c.click(); return true`); // v12.8: import asks first
   await sleep(1500);
   const out = {};
   const clean = `t => t.replace(/\\d\\d:\\d\\d(:\\d\\d)?/g,'<time>').replace(/[ \\t]+/g,' ').replace(/\\n\\s*\\n+/g,'\\n').trim()`;
