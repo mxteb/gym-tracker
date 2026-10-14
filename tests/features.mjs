@@ -606,6 +606,19 @@ async function run(lang) {
     await ev(`document.querySelector('#manage-exercises-list [data-confirm-ex]').click()`); await sleep(600);
     check(lang, 'G8 confirming a guessed exercise saves it and drops it from the guessed list', await ev(`return !document.querySelector('#manage-exercises-list [data-confirm-ex="${cid}"]') && document.querySelectorAll('#manage-exercises-list [data-confirm-ex]').length === ${g0 - 1} && document.getElementById('lib-banner').classList.contains('hidden') === ${g0 === 1}`));
   } else check(lang, 'G8 the fixture has a guessed custom exercise', false);
+  /* ---------- v12.9 the muscle editor shows the body figure and it follows the chips ---------- */
+  const eid = await ev(`return document.querySelector('#manage-exercises-list [data-edit-ex]')?.dataset.editEx || ''`);
+  if (eid) {
+    await ev(`document.querySelector('#manage-exercises-list [data-edit-ex="${eid}"]').click()`); await sleep(300);
+    const figOf = () => ev(`const e=document.querySelector('[data-edit-of="${eid}"]'); const st=r=>[...new Set([...e.querySelectorAll('.pick-figs .rec-part[data-state="'+r+'"]')].map(x=>x.dataset.muscle))].sort().join(); const ch=r=>[...e.querySelectorAll('[data-edit-part][data-role="'+r+'"]')].map(x=>x.dataset.editPart).sort().join(); return { svgs: e.querySelectorAll('.pick-figs svg').length, ok: st('tired')===ch('main') && st('mid')===ch('help'), main: ch('main') }`);
+    const f0 = await figOf();
+    check(lang, 'v12.9 editing a custom exercise shows front + back figures colored like the chips', f0.svgs === 2 && f0.ok && f0.main !== '', JSON.stringify(f0));
+    const tap = await ev(`const c=document.querySelector('[data-edit-of="${eid}"] [data-edit-part]:not([data-role])'); c.click(); return c.dataset.editPart`); await sleep(200);
+    const f1 = await figOf();
+    check(lang, 'v12.9 tapping a chip recolors the figure', f1.ok && f1.main.split(',').includes(tap), JSON.stringify(f1));
+    await p.shot('v129-edit-figure');
+    await ev(`document.querySelector('#manage-exercises-list [data-edit-ex="${eid}"]').click()`); await sleep(300);
+  } else check(lang, 'v12.9 the fixture has an editable custom exercise', false);
   /* ---------- v12.4 guessed muscles show on the exercise card, and the chip edits them ---------- */
   const gid = await ev(`return document.querySelector('#manage-exercises-list [data-confirm-ex]')?.dataset.confirmEx || ''`);
   await ev(`document.getElementById('exercises-back').click()`); await sleep(300);
@@ -615,6 +628,7 @@ async function run(lang) {
     await ev(`document.getElementById('cur-ex-muscle').click()`); await sleep(300);
     check(lang, 'v12.4 tapping the muscle opens the editor with its muscles picked', await ev(`return !document.getElementById('muscle-sheet').classList.contains('hidden') && document.querySelectorAll('#ms-chips [data-role="main"]').length > 0`));
     await ev(`document.querySelector('#ms-chips [data-ms-part="forearm"]').click()`); await sleep(150);
+    check(lang, 'v12.9 the muscle sheet shows the figure with the picked muscles', await ev(`const e=document.getElementById('ms-chips'); const st=r=>[...new Set([...e.querySelectorAll('.pick-figs .rec-part[data-state="'+r+'"]')].map(x=>x.dataset.muscle))].sort().join(); const ch=r=>[...e.querySelectorAll('[data-ms-part][data-role="'+r+'"]')].map(x=>x.dataset.msPart).sort().join(); return e.querySelectorAll('.pick-figs svg').length === 2 && st('tired') === ch('main') && st('mid') === ch('help')`));
     await p.shot('v124-sheet');
     await ev(`document.getElementById('ms-save').click()`); await sleep(700);
     check(lang, 'v12.4 saving closes it and the card stops asking', await ev(`return document.getElementById('muscle-sheet').classList.contains('hidden') && document.getElementById('cur-ex-guess').classList.contains('hidden') && !document.getElementById('cur-ex-muscle').classList.contains('guess')`));

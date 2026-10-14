@@ -1014,6 +1014,8 @@
     'استخدمه': 'Use it', 'اخترناه لك': 'Selected for you', 'غيّر': 'Change', 'غيّر العضلات': 'Change muscles', 'احفظ العضلات': 'Save muscles', 'متخمّنة': 'guessed',
     'وش العضلة الأساسية لهالتمرين؟': 'Is this the main muscle of the exercise?',
     'الضغطة الأولى تخليها أساسية، الثانية مساعدة، والثالثة تشيلها': 'Tap once for main, twice for helper, a third time to remove',
+    'الضغطة الأولى أساسية، الثانية مساعدة، والثالثة تشيلها': 'Tap once for main, twice for helper, a third time to remove',
+    'لو غيّرتها، جولاتك القديمة تنحسب للعضلات الجديدة في «الجولات لكل عضلة» والاستشفاء.': 'If you change them, your past sets count toward the new muscles in "Sets per muscle" and recovery.',
     'اختر العضلة الأساسية: اضغطها مرة وحدة': 'Pick the main muscle: tap it once',
     'أضفتها قبل، والتطبيق خمّن عضلاتها من الاسم. تأكد منها تحت.': 'You added these earlier and the app guessed their muscles from the name. Check them below.',
     'تمرين واحد عضلاته متخمّنة': '1 exercise with guessed muscles',
