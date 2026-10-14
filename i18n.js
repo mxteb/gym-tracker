@@ -70,7 +70,8 @@ try { var gtFont = localStorage.getItem('gym_font'); if (gtFont === 'large' || g
       }
     }
     var paren = /^[^()]*[\u0600-\u06FF][^()]*\(([^()]*[A-Za-z][^()]*)\)\s*$/.exec(key);
-    if (paren) return paren[1].trim();
+    // v12.8.1: a composite like "programme · يوم أ (A)" is split below, so the session title keeps its programme name
+    if (paren && !SEPS.some(function (sp) { return key.indexOf(sp) >= 0; })) return paren[1].trim();
     if ((depth || 0) < 3) {
       for (var j = 0; j < SEPS.length; j++) {
         var sep = SEPS[j];
@@ -86,6 +87,7 @@ try { var gtFont = localStorage.getItem('gym_font'); if (gtFont === 'large' || g
         if (ok) return outParts.join(sep === '، ' ? ', ' : sep);
       }
     }
+    if (paren) return paren[1].trim();
     // short labels: numbers and unit words only ("60كجم×10", "BW−5كجم")
     var allKnown = true;
     var w = key.replace(/[\u0600-\u06FF]+/g, function (word) {

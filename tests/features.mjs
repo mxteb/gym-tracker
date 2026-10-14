@@ -654,10 +654,9 @@ async function run(lang) {
   await ev(`document.getElementById('btn-copy-session').click()`); await sleep(400);
   await ev(`document.getElementById('btn-finish-session').click()`); await sleep(200);
   check(lang, 'v12.8 finish dialog has a cancel-session button', await ev(`return !!document.getElementById('btn-discard-session')?.getClientRects().length`));
-  await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(500);
-  const emptyTitle = await ev(`return document.querySelector('#custom-modal:not(.hidden) #modal-title')?.textContent || ''`);
-  check(lang, 'v12.8 finishing with no sets asks first', /ما سجلت|No sets/.test(emptyTitle), emptyTitle);
-  await ev(`document.getElementById('modal-confirm-btn').click()`); await sleep(600);
+  await ev(`document.getElementById('btn-confirm-finish').click()`); await sleep(600);
+  const emptyToast = await ev(toast);
+  check(lang, 'v12.8.1 finishing with no sets cancels it, never saves', /فانلغت|was cancelled/.test(emptyToast), emptyToast);
   check(lang, 'v12.8 cancelling leaves nothing behind', !(await ev(active)) && await ev(`return document.getElementById('start-last').textContent`) === sessionsBefore, await ev(`return document.getElementById('start-last').textContent`));
   await ev(`document.getElementById('btn-start-free').click()`); await sleep(7000);
   await ev(`document.getElementById('btn-finish-session').click()`); await sleep(200);
@@ -675,6 +674,26 @@ async function run(lang) {
     await p.shotEl(`${theme}-sugg`, '#next-suggestion');
     await p.shotEl(`${theme}-feel`, '#feel-container');
     await p.shotEl(`${theme}-note`, '#ex-note');
+  }
+
+  // v12.8.1: body numbers that can't go together are refused, and nothing is saved
+  {
+    const before = await ev(`return document.getElementById('prof-waist').value`);
+    await ev(`const h=document.getElementById('prof-height').value||'175'; document.getElementById('prof-height').value=h; document.getElementById('prof-waist').value=String(Number(h)+5); document.getElementById('btn-save-body').click(); return true`); await sleep(600);
+    const err = await ev(`return document.getElementById('prof-waist-error')?.textContent || ''`);
+    check(lang, 'v12.8.1 waist bigger than height is refused', /أقل من طولك|less than your height/.test(err), err);
+    await ev(`document.getElementById('prof-waist').value=${JSON.stringify(before)}; return true`);
+  }
+  // v12.8.1: switching language mid-session keeps what was typed and the open tab
+  if (lang === 'ar') {
+    await ev(`document.getElementById('nav-workout').click(); return true`); await sleep(200);
+    if (!(await ev(active))) { await ev(`document.getElementById('btn-start-free').click()`); await sleep(500); }
+    await select('ex_1'); await sleep(200);
+    await ev(`const w=document.getElementById('input-weight'); w.value='77.5'; w.dispatchEvent(new Event('input',{bubbles:true})); const r=document.getElementById('input-reps'); r.value='9'; r.dispatchEvent(new Event('input',{bubbles:true})); return true`);
+    await ev(`document.querySelector('[data-lang-pick="en"]').click(); return true`); await sleep(3500);
+    const kept = await ev(`return [document.documentElement.lang, document.getElementById('exercise-dropdown').value, document.getElementById('input-weight').value, document.getElementById('input-reps').value, !document.getElementById('screen-workout').classList.contains('hidden')].join('/')`);
+    check(lang, 'v12.8.1 language switch keeps typed values', kept === 'en/ex_1/77.5/9/true', kept);
+    await ev(`document.querySelector('[data-lang-pick="ar"]').click(); return true`); await sleep(3500);
   }
 
   if (lang === 'en') {
