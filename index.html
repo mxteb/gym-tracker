@@ -370,7 +370,7 @@
                                     <label for="input-reps-left">عدات اليسار:</label>
                                     <div class="sides-stepper">
                                         <button type="button" data-step-target="input-reps-left" data-step="-1" class="stepper-btn w-11 h-11 rounded-xl font-black text-sm" aria-label="أنقص عدات اليسار">-1</button>
-                                        <input type="number" id="input-reps-left" min="0" max="150" step="1" class="glass-input text-center rounded-xl font-black" inputmode="numeric">
+                                        <input type="number" id="input-reps-left" min="1" max="150" step="1" class="glass-input text-center rounded-xl font-black" inputmode="numeric">
                                         <button type="button" data-step-target="input-reps-left" data-step="1" class="stepper-btn w-11 h-11 rounded-xl font-black text-sm" aria-label="زد عدات اليسار">+1</button>
                                     </div>
                                 </div>
@@ -448,7 +448,7 @@
                             <label for="input-tm-duration" class="block text-xs text-slate-300 font-medium mb-1">المدة (بالدقائق):</label>
                             <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <button type="button" data-step-target="input-tm-duration" data-step="-5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-5</button>
-                                <input type="number" id="input-tm-duration" min="1" max="180" step="1" value="20" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                                <input type="number" id="input-tm-duration" min="1" max="300" step="1" value="20" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <button type="button" data-step-target="input-tm-duration" data-step="5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+5</button>
                             </div>
                         </div>
@@ -478,7 +478,7 @@
                             <label for="input-be-duration" class="block text-xs text-slate-300 font-medium mb-1">المدة (بالدقائق):</label>
                             <div class="flex items-center justify-between gap-1.5 bg-slate-900/60 p-2 rounded-2xl border border-slate-800">
                                 <button type="button" data-step-target="input-be-duration" data-step="-5" class="stepper-btn w-12 h-11 rounded-xl font-black text-amber-400 text-xs">-5</button>
-                                <input type="number" id="input-be-duration" min="1" max="180" step="1" value="15" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
+                                <input type="number" id="input-be-duration" min="1" max="300" step="1" value="15" class="w-24 glass-input text-center py-2.5 rounded-xl text-base font-black text-cyan-400 border border-cyan-500/40">
                                 <button type="button" data-step-target="input-be-duration" data-step="5" class="stepper-btn w-12 h-11 rounded-xl font-black text-emerald-400 text-xs">+5</button>
                             </div>
                         </div>
@@ -1189,6 +1189,7 @@
                 <button id="btn-cancel-finish" class="px-4 py-2 rounded-xl bg-slate-800">الرجوع للتمرين</button>
                 <button id="btn-confirm-finish" class="px-4 py-2 rounded-xl bg-cyan-600">إنهاء وعرض الملخص</button>
             </div>
+            <button type="button" id="btn-discard-session" class="discard-session" data-added>إلغاء الجلسة بدون حفظ</button>
         </div>
     </div>
 

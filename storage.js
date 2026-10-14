@@ -3,6 +3,7 @@
 'use strict';
 const TABLES = ['profile','exercises','logs','sessions'];
 const SNAPSHOT = 'gym_snapshot_v10';
+const DB_OK = 'gym_idb_ok';
 const clone = x => JSON.parse(JSON.stringify(x));
 let db = null, revision = 0, committed = null, baseline = {}, fallback = false;
 const request = req => new Promise((resolve,reject) => {req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
@@ -35,9 +36,18 @@ function mergeLegacy(primary,secondary) {
  return [...map.values()];
 }
 async function load(defaultState) {
- try{await open();}catch{db=null;}
+ // v12.8: a database that worked before but fails to open now is a hiccup, not an empty phone. Starting from defaults here
+ // used to write an empty snapshot that the next open preferred, and then deleted the real rows. Retry, then stop and say so.
  let raw=null;
- if(db) {try{raw=await readDB();}catch{db.close();db=null;}}
+ for(let attempt=0;attempt<2&&!raw;attempt++) {
+  if(attempt)await new Promise(r=>setTimeout(r,400));
+  try{await open();}catch{db=null;}
+  if(db) {try{raw=await readDB();}catch{try{db.close();}catch{}db=null;}}
+  if(!('indexedDB' in window))break;
+ }
+ let hadDB=false;try{hadDB=localStorage.getItem(DB_OK)==='1';}catch{}
+ if(!raw&&hadDB)throw Error('تعذر فتح بيانات التطبيق الحين. سكّر التطبيق وافتحه مرة ثانية، بياناتك ما انمسحت.');
+ if(raw?.revision)try{localStorage.setItem(DB_OK,'1');}catch{}
  const local=readLS(SNAPSHOT);
  let next;
  if(local?.schemaVersion===10 && local.revision>(raw?.revision||0)) {
@@ -91,6 +101,7 @@ async function save(next,options={}) {
     };
     await done;
     fallback=false;
+    try{localStorage.setItem(DB_OK,'1');}catch{}
    } catch(error) {
     if(conflict)throw Error('تغيرت البيانات في نافذة أخرى. أعد تحميل الصفحة قبل الحفظ.');
     if(options.wipe)throw Error('تعذر إتمام المسح الشامل. لم يُعتمد المسح.');
