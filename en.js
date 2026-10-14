@@ -659,13 +659,11 @@
     '66.7 كجم': '66.7 kg', '110.2 باوند': '110.2 lb',
     // v12.8: taking back a start, cancelling a session, safer import and errors
     'انلغت الجلسة': 'Session cancelled',
+    'ما سجلت ولا جولة، فانلغت الجلسة': 'No sets logged, so the session was cancelled',
     'إلغاء الجلسة بدون حفظ': 'Cancel session without saving',
     'إلغاء الجلسة': 'Cancel session',
     'بتنحذف جولة وحدة سجلتها في هالجلسة. متأكد؟': 'The 1 set you logged in this session will be deleted. Sure?',
     'احذفها': 'Delete it',
-    'ما سجلت ولا جولة': 'No sets logged',
-    'تلغي الجلسة بدون حفظ، أو تحفظها كذا؟': 'Cancel the session without saving, or save it as is?',
-    'ألغها': 'Cancel it', 'احفظها': 'Save it',
     'المساعدة لازم تكون أقل من وزن الجسم': 'Assistance has to be less than body weight',
     'الأرقام ما تطلع منطقية. راجع وزنك وطولك وعمرك في البروفايل.': "These numbers don't add up. Check your weight, height and age in Profile.",
     'تعذر إتمام العملية. جرّب مرة ثانية': "Couldn't do that. Try again",
@@ -675,7 +673,14 @@
     'تعذر قراءة الملف': "Couldn't read the file",
     'الملف مو نسخة احتياطية من التطبيق': "This file isn't a backup from the app",
     'استيراد نسخة احتياطية': 'Import a backup',
-    'ادمجها': 'Merge it'
+    'ادمجها': 'Merge it',
+    // v12.8.1: programme session titles ("programme · day") in English
+    'جسم كامل 3 أيام': 'Full Body 3 days', 'دفع / سحب / أرجل': 'Push / Pull / Legs', 'علوي / سفلي': 'Upper / Lower',
+    'الوزن والطول مع بعض ما يطلعون منطقيين. راجعهم': "Your weight and height together don't add up. Check them",
+    'محيط الخصر لازم يكون أقل من طولك': 'Waist has to be less than your height',
+    'نسبة الدهون ونسبة العضلات مجموعهم ما يتعدى 100%': "Body fat and muscle percentages can't add up to more than 100%",
+    'نسبة الدهون ونسبة الماء مجموعهم ما يتعدى 100%': "Body fat and water percentages can't add up to more than 100%",
+    'يوم أ (A)': 'Day A', 'يوم ب (B)': 'Day B', 'يوم ج (C)': 'Day C'
   }, [
     // sentences that carry a name or a word that changes (exercise, unit, session name)
     [/^انحذفت ([\d.,]+) جولات$/, function (a) { return 'Deleted ' + a + ' sets'; }],
@@ -858,6 +863,10 @@
     'علوي / سفلي (Upper / Lower)': 'Upper / Lower',
     '5×5 للمبتدئين': '5×5 for beginners',
     'جسم كامل 3 أيام (Full Body)': 'Full Body, 3 days',
+    'الوزن والطول مع بعض ما يطلعون منطقيين. راجعهم': "Your weight and height together don't add up. Check them",
+    'محيط الخصر لازم يكون أقل من طولك': 'Waist has to be less than your height',
+    'نسبة الدهون ونسبة العضلات مجموعهم ما يتعدى 100%': "Body fat and muscle percentages can't add up to more than 100%",
+    'نسبة الدهون ونسبة الماء مجموعهم ما يتعدى 100%': "Body fat and water percentages can't add up to more than 100%",
     'يوم أ (A)': 'Day A', 'يوم ب (B)': 'Day B', 'يوم ج (C)': 'Day C',
     'يوم {0}': 'Day {0}',
     'من {0} إلى {1} أيام بالأسبوع': '{0} to {1} days a week',

@@ -395,16 +395,14 @@
             }
             return box;
         }
-        async function finishWorkoutSession(keepEmpty) {
+        async function finishWorkoutSession() {
             const session = getActiveSession();
             if (!session) return;
-            // v12.8: nothing logged — ask before keeping an empty session; cancelling is the suggested choice
-            if (keepEmpty !== true && !sessionLogCount(session.id)) {
+            // v12.8.1: a session with no sets is never saved; finishing it just cancels it
+            if (!sessionLogCount(session.id)) {
                 document.getElementById('finish-session-modal').classList.add('hidden');
-                showModal({ title: 'ما سجلت ولا جولة', message: 'تلغي الجلسة بدون حفظ، أو تحفظها كذا؟',
-                    confirmText: 'ألغها', cancelText: 'احفظها',
-                    onConfirm: async () => { await discardSession(session.id); showToast('انلغت الجلسة'); },
-                    onCancel: () => runMutation(() => finishWorkoutSession(true)) });
+                await discardSession(session.id);
+                showToast('ما سجلت ولا جولة، فانلغت الجلسة');
                 return;
             }
             const elapsed = Math.max(1, Math.round((Date.now() - session.startedAt) / 60000));
@@ -1831,6 +1829,13 @@
                 next[key]=readField('prof-'+key,label,min,max,{optional:true,integer:key==='age',legacyValue:key==='age'?Number(state.profile.age):undefined})??'';
             }
             next.activityFactor=readField('prof-activity','مستوى النشاط',1,3);
+            // v12.8.1: each box had its own range, but together they could describe a body that can't exist
+            const bad=(id,msg)=>{const e=Error(msg);e.fieldId='prof-'+id;throw e;};
+            const num=k=>Number(next[k])||0;
+            if(num('weight')&&num('height')){const bmi=num('weight')/((num('height')/100)**2);if(bmi<12||bmi>70)bad('weight','الوزن والطول مع بعض ما يطلعون منطقيين. راجعهم');}
+            if(num('waist')&&num('height')&&num('waist')>=num('height'))bad('waist','محيط الخصر لازم يكون أقل من طولك');
+            if(num('fat')&&num('muscle')&&num('fat')+num('muscle')>100)bad('muscle','نسبة الدهون ونسبة العضلات مجموعهم ما يتعدى 100%');
+            if(num('fat')&&num('water')&&num('fat')+num('water')>100)bad('water','نسبة الدهون ونسبة الماء مجموعهم ما يتعدى 100%');
             const today=getLocalDateString();next.history=[...(state.profile.history||[])];
             if(next.weight){next.history=next.history.filter(h=>h.date!==today);next.history.push({date:today,weight:next.weight,waist:next.waist});}
             // Validate before replacing the live profile; preserve all historical entries.
@@ -2008,12 +2013,11 @@
         function updateTopHeaderStats() {
             const today = getLocalDateString();
             const todayLogs = state.logs.filter(l => l.date === today);
-            const logCalories = todayLogs.reduce((sum, l) => {
-                if (l.type === 'weights' && ['v9-session','v10-session'].includes(l.calculationVersion)) return sum;
-                return sum + (parseFloat(l.calories) || 0);
-            }, 0);
-            const sessionCalories = state.sessions.filter(s => s.date === today && s.status === 'completed').reduce((sum, s) => sum + (parseFloat(s.estimatedCalories) || 0), 0);
-            const totalCals = logCalories + sessionCalories;
+            // v12.8.1: a finished session's weights calories follow its sets, so a session that runs past midnight
+            // splits between the two days instead of landing on the day it started
+            const kcalOf = sessionKcalShare(todayLogs);
+            const done = new Set(state.sessions.filter(s => s.status === 'completed').map(s => s.id));
+            const totalCals = todayLogs.reduce((sum, l) => sum + (l.type === 'weights' && l.sessionId && !done.has(l.sessionId) ? 0 : kcalOf(l)), 0);
             document.getElementById('header-today-cals').textContent = Math.round(totalCals * 10) / 10;
         }
 
@@ -3926,10 +3930,11 @@
         function addMinutes(hhmm, add) { const [h, m] = hhmm.split(':').map(Number); const t = (h * 60 + m + add) % 1440; return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); }
 
         // خطة الجلسة
-        let planDraft = new Set();
+        let planDraft = new Set(), planProgramBefore = null;
         function shortName(name) { return String(name).replace(/\s*\([^)]*\)\s*$/, ''); }
         function openPlan() {
             const session = getActiveSession();
+            planProgramBefore = state.profile.program || '';
             planDraft = new Set((session?.planIds || []).filter(id => !state.exercises.find(e => e.id === id)?.archived));
             if (!planDraft.size) { const routine = document.getElementById('session-routine-select').value; (ROUTINE_PRESETS[routine] || []).forEach(id => planDraft.add(id)); }
             const quick = document.getElementById('plan-quick');
@@ -3952,7 +3957,15 @@
             document.getElementById('plan-modal').classList.remove('hidden');
             document.getElementById('btn-plan-cancel').focus();
         }
-        function closePlan() { document.getElementById('plan-modal').classList.add('hidden'); document.getElementById('btn-plan-session')?.focus(); }
+        // v12.8.1: «إلغاء» also puts back the programme picked inside the dialog (it was saved the moment it was chosen)
+        function closePlan() {
+            document.getElementById('plan-modal').classList.add('hidden'); document.getElementById('btn-plan-session')?.focus();
+            if (planProgramBefore !== null && (state.profile.program || '') !== planProgramBefore) {
+                const back = planProgramBefore;
+                runMutation(async () => { state.profile = { ...state.profile, program: back }; await GymStorage.save(state); if (typeof renderStartPanel === 'function') renderStartPanel(); });
+            }
+            planProgramBefore = null;
+        }
         function renderPlanList() {
             const q = document.getElementById('plan-search').value.trim().toLowerCase();
             const list = document.getElementById('plan-list');
@@ -3981,6 +3994,7 @@
             session.planIds = ids; session.editedAt = Date.now();
             if (planProgramDay) session.programDay = planProgramDay; else delete session.programDay;
             await GymStorage.save(state);
+            planProgramBefore = null;
             document.getElementById('plan-modal').classList.add('hidden');
             renderSessionPlan();
             const next = ids.find(id => !state.logs.some(l => l.sessionId === session.id && l.exerciseId === id));
@@ -4402,7 +4416,43 @@
             await GymStorage.save(state);
             if (!GymI18n.setLang(lang)) { showToast(lang === 'en' ? 'Could not save the language on this device' : 'ما قدرت أحفظ اللغة على هذا الجهاز'); return; }
             haptic('confirm');
+            saveLangDraft();
             location.reload();
+        }
+        // v12.8.1: switching language reloads the page; what's typed but not saved (and the open tab) comes back after it
+        const LANG_DRAFT = 'gym_lang_draft';
+        function saveLangDraft() {
+            const values = {};
+            document.querySelectorAll('input[id],select[id],textarea[id]').forEach(el => {
+                if (el.type === 'file' || el.closest('#lang-picker')) return;
+                values[el.id] = el.type === 'checkbox' || el.type === 'radio' ? { checked: el.checked } : el.value;
+            });
+            const tab = [...document.querySelectorAll('.screen-content')].find(e => !e.classList.contains('hidden'))?.id?.replace('screen-', '');
+            const pressed = sel => document.querySelector(sel + '[aria-pressed="true"]');
+            try { sessionStorage.setItem(LANG_DRAFT, JSON.stringify({ at: Date.now(), tab, values, setType: pressed('.set-type-btn')?.dataset.settype, rir: pressed('.rir-btn')?.dataset.rir, scroll: scrollY })); } catch {}
+        }
+        function restoreLangDraft() {
+            let d = null;
+            try { d = JSON.parse(sessionStorage.getItem(LANG_DRAFT) || 'null'); sessionStorage.removeItem(LANG_DRAFT); } catch {}
+            if (!d || Date.now() - d.at > 60000) return;
+            if (d.tab && document.getElementById('screen-' + d.tab)) switchTab(d.tab);
+            const fire = (el, type) => el.dispatchEvent(new Event(type, { bubbles: true }));
+            // the exercise and load mode first: choosing them fills the other boxes, which the saved values then replace
+            for (const id of ['exercise-dropdown', 'load-mode-select']) {
+                const el = document.getElementById(id), v = d.values[id];
+                if (el && typeof v === 'string' && [...(el.options || [])].some(o => o.value === v) && el.value !== v) { el.value = v; fire(el, 'change'); }
+            }
+            for (const [id, v] of Object.entries(d.values)) {
+                if (id === 'exercise-dropdown' || id === 'load-mode-select') continue;
+                const el = document.getElementById(id); if (!el) continue;
+                if (v && typeof v === 'object') { if (el.checked !== v.checked) el.checked = v.checked; continue; }
+                if (el.value === v) continue;
+                if (el.tagName === 'SELECT' && ![...el.options].some(o => o.value === v)) continue;
+                el.value = v; fire(el, 'input');
+            }
+            if (d.setType) document.querySelector(`.set-type-btn[data-settype="${CSS.escape(d.setType)}"]`)?.click();
+            if (d.rir != null) document.querySelector(`.rir-btn[data-rir="${CSS.escape(d.rir)}"]`)?.click();
+            if (d.scroll) requestAnimationFrame(() => scrollTo(0, d.scroll));
         }
         // a backup restored on a new phone carries the language with it
         function syncLangFromProfile() {
@@ -4524,6 +4574,7 @@
             restoreRestTimer();
             applyTheme();
             checkStaleSession();
+            restoreLangDraft();
             if (syncLangFromProfile()) return;
             document.dispatchEvent(new CustomEvent('gym:ready'));
         });
